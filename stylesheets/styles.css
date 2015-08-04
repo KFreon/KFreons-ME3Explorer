@@ -324,17 +324,6 @@ section {
   padding-bottom:50px;
 }
 
-
-/* Footer */
-
-footer {
-  width:170px;
-  float:left;
-  position:fixed;
-  bottom:10px;
-	padding-left: 50px;
-}
-
 @media print, screen and (max-width: 960px) {
 
   div.wrapper {
@@ -372,6 +361,10 @@ footer {
     right:130px;
     top:84px;
   }
+  
+  .logo-image {
+    margin-left: -2px !important;
+  }
 }
 
 @media print, screen and (max-width: 720px) {
@@ -400,9 +393,6 @@ footer {
 
 @media print, screen and (max-width: 480px) {
 
-  header ul li.download {
-    display:none;
-  }
 
 	footer {
 		margin: 0 0 0 20px;
@@ -411,7 +401,6 @@ footer {
 	footer a{
 		display:block;
 	}
-
 }
 
 @media print {
@@ -420,4 +409,11 @@ footer {
     font-size:12pt;
     color:#444;
   }
+}
+
+.logo-image {
+  border: 0px;
+  margin: 0px;
+  padding: 0px;
+  margin-left: -25px;
 }
