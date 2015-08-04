@@ -440,5 +440,6 @@ section {
 }
 
 .background {
-  background: #071021 url("../images/me3exbackground.png") top center repeat
+  background: #071021 url("../images/me3exbackground.png") top center repeat;
+  background-attachment: fixed;
 }
