@@ -359,7 +359,7 @@ section {
   }
 
   section {
-    padding:20px 84px 20px 50px;
+    padding:20px 50px 20px 50px;
     margin:0 0 20px;
   }
 
@@ -371,6 +371,10 @@ section {
     position:absolute;
     right:130px;
     top:84px;
+  }
+  
+  body {
+    padding-left: 50px;
   }
   
   .logo-image {
@@ -389,7 +393,7 @@ section {
   }
 
 	section {
-    padding:10px 0 10px 20px;
+    padding:10px 10px 10px 10px;
     margin:0 0 30px;
   }
 
@@ -404,6 +408,17 @@ section {
 
 @media print, screen and (max-width: 480px) {
 
+	header {
+		margin: 0px;
+	}
+	
+	section {
+		margin: 0px;
+	}
+
+	body {
+		padding: 0px;
+	}
 
 	footer {
 		margin: 0 0 0 20px;
@@ -429,15 +444,40 @@ section {
   margin-left: -25px;
 }
 
-.banner {
+.banner-image{
   width: 100%;
-}
-
-.banner-image {
   padding: 0px;
   border-color: black;
   margin-bottom: 0px;
 }
+
+  @media only screen and (max-width: 730px) {
+    span[id=switcher] {
+	  border: 1px solid black;
+      display:block;
+	  margin:0 auto;
+      background-image: url("../images/me3exbanner_small.png") !important;
+      background-repeat: no-repeat !important;
+      background-position: center !important;
+      width: 396px !important;
+      height: 173px !important;
+    }
+    img[id=bannerimg] {display: none !important;}
+  }
+  
+  @media only screen and (max-width: 530px) {
+    span[id=switcher] {
+	  border: 1px solid black;
+      display:block;
+      background-image: url("../images/me3exbanner_small.png") !important;
+      background-repeat: no-repeat !important;
+      background-position: center !important;
+	  background-size: cover !important;
+      width: 270px !important;
+      height: 130px !important;
+    }
+    img[id=bannerimg] {display: none !important;}
+  }
 
 .background {
   background: #071021 url("../images/me3exbackground.png") top center repeat;
