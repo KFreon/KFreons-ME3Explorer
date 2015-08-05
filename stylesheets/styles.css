@@ -310,6 +310,10 @@ a.github {
 	background: url(../images/octocat-small.png) no-repeat 1px;
 }
 
+a.linksbuttons {
+	background: transparent;
+}
+
 a.buttons:hover {
 	color: #fff;
 	text-decoration: none;
@@ -354,7 +358,7 @@ section {
 	}
 
   header {
-    padding-right:320px;
+    padding-right:50px;
 	margin-right: 0px;
   }
 
@@ -366,12 +370,6 @@ section {
   header a small {
     display:inline;
   }
-
-  header ul {
-    position:absolute;
-    right:130px;
-    top:84px;
-  }
   
   body {
     padding-left: 50px;
@@ -379,6 +377,16 @@ section {
   
   .logo-image {
     margin-left: -2px !important;
+  }
+  
+  .downloads {
+	float: left;
+	width: 50%;
+  }
+  
+  .links {
+	float: left;
+	width: 50%;
   }
 }
 
