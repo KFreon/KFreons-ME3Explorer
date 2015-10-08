@@ -158,16 +158,6 @@ namespace KFreonLib.Misc
 
 
         /// <summary>
-        /// Returns path of executing program.
-        /// </summary>
-        /// <returns>Path of executing program.</returns>
-        public static string GetExecutingLoc()
-        {
-            return Path.GetDirectoryName(Application.ExecutablePath);
-        }
-
-
-        /// <summary>
         /// Runs commands in a shell. (WV's code I believe)
         /// </summary>
         /// <param name="cmd">Commands to run.</param>
