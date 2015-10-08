@@ -8,7 +8,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using ME3Explorer.Unreal;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 
 namespace ME3Explorer.DLCTOCbinUpdater
 {

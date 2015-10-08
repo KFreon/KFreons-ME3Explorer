@@ -10,7 +10,7 @@ using System.Windows.Forms;
 using ME3Explorer.Unreal;
 using ME3Explorer.Unreal.Classes;
 using AmaroK86.MassEffect3;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using KFreonLib.MEDirectories;
 
 namespace ME3Explorer.Meshplorer2

@@ -13,7 +13,7 @@ using ME3Explorer.Unreal;
 using Microsoft.DirectX;
 using Microsoft.DirectX.Direct3D;
 using lib3ds.Net;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 
 namespace ME3Explorer.Unreal.Classes
 {

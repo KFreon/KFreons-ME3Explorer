@@ -10,7 +10,7 @@ using System.IO;
 using Newtonsoft.Json;
 using ME3Explorer.Coalesced_Editor;
 using Gibbed.MassEffect3.FileFormats.Coalesced;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 
 namespace ME3Explorer.Coalesced_Operator
 {

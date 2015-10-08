@@ -7,7 +7,7 @@ using Gibbed.IO;
 using AmaroK86.MassEffect3.ZlibBlock;
 using KFreonLib.Textures;
 using KFreonLib.Helpers;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using BitConverter = KFreonLib.Misc.BitConverter;
 using UsefulThings;
 

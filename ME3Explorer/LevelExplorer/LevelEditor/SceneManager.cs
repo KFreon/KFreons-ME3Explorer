@@ -10,7 +10,7 @@ using Microsoft.DirectX.Direct3D;
 using ME3Explorer.Unreal;
 using ME3Explorer.Unreal.Classes;
 using lib3ds.Net;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using KFreonLib.MEDirectories;
 
 namespace ME3Explorer.LevelExplorer.LevelEditor

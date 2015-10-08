@@ -12,7 +12,7 @@ using System.Windows.Forms;
 using ME3Explorer.Unreal;
 using Microsoft.DirectX;
 using Microsoft.DirectX.Direct3D;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 
 namespace ME3Explorer.Unreal.Classes
 {

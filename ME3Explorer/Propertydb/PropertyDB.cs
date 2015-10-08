@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using ME3Explorer.Unreal;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using KFreonLib.MEDirectories;
 
 namespace ME3Explorer.Propertydb

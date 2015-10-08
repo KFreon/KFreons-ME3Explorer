@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using BitConverter = KFreonLib.Misc.BitConverter;
 using Gibbed.IO;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using KFreonLib.Textures;
 using KFreonLib.MEDirectories;
 using KFreonLib.PCCObjects;

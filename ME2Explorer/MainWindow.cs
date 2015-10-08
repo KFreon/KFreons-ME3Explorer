@@ -34,7 +34,7 @@ namespace ME2Explorer
 
         public void StartDebug()
         {
-            KFreonLib.Debugging.DebugOutput.StartDebugger("ME2Explorer Main Window");
+            MEGeneral.Debugging.DebugOutput.StartDebugger("ME2Explorer Main Window");
         }
 
         private void openDebugWindowToolStripMenuItem_Click(object sender, EventArgs e)

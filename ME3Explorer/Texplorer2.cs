@@ -14,7 +14,7 @@ using Textures = KFreonLib.Textures;
 using PCCObjects = KFreonLib.PCCObjects;
 using Helpers = KFreonLib.Helpers;
 using KFreonLib.GUI;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using KFreonLib.MEDirectories;
 using TreeTexInfo = KFreonLib.Textures.TreeTexInfo;
 using System.Collections.Concurrent;

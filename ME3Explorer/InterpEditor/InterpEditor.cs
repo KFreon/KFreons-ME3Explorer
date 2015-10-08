@@ -138,7 +138,7 @@ namespace ME3Explorer.InterpEditor
         //for debugging purposes. not exposed to user
         private void InterpTrackScan_Click(object sender, EventArgs e)
         {
-            KFreonLib.Debugging.DebugOutput.StartDebugger("Main ME3Explorer Form");
+            MEGeneral.Debugging.DebugOutput.StartDebugger("Main ME3Explorer Form");
             string basepath = KFreonLib.MEDirectories.ME3Directory.cookedPath;
             string[] files = Directory.GetFiles(basepath, "*.pcc");
             List<string> conds = new List<string>();
@@ -149,7 +149,7 @@ namespace ME3Explorer.InterpEditor
             for (int f = 0; f < files.Length; f++)
             {
                 string file = files[f];
-                //KFreonLib.Debugging.DebugOutput.PrintLn((f + 1) + " / " + files.Length + " : " + file + " :", true);
+                //MEGeneral.Debugging.DebugOutput.PrintLn((f + 1) + " / " + files.Length + " : " + file + " :", true);
                 PCCPackage p = new PCCPackage(file, true, false, true);
                 for (int i = 0; i < p.Exports.Count; i++)
                 {
@@ -159,7 +159,7 @@ namespace ME3Explorer.InterpEditor
                         List<ME3LibWV.PropertyReader.Property> props = ME3LibWV.PropertyReader.getPropList(p, p.Exports[i].Data);
                         foreach (ME3LibWV.PropertyReader.Property prop in props)
                         {
-                            //KFreonLib.Debugging.DebugOutput.PrintLn(p.GetName(prop.Name));
+                            //MEGeneral.Debugging.DebugOutput.PrintLn(p.GetName(prop.Name));
                             if (p.GetName(prop.Name) == "VisibilityTrack")
                             {
                                 int pos = 28;
@@ -175,7 +175,7 @@ namespace ME3Explorer.InterpEditor
                                             if (!conds.Contains(p.GetName(BitConverter.ToInt32(p2[k].raw, 32))))
                                             {
                                                 conds.Add(p.GetName(BitConverter.ToInt32(p2[k].raw, 32)));
-                                                KFreonLib.Debugging.DebugOutput.PrintLn("Action " + p.GetName(BitConverter.ToInt32(p2[k].raw, 24)) + ", " + p.GetName(BitConverter.ToInt32(p2[k].raw, 32)) + "               at: #" + i + " " + p.GetObjectPath(i + 1) + p.GetObjectClass(i + 1) + "        in: " + file.Substring(file.LastIndexOf(@"\") + 1), false);
+                                                MEGeneral.Debugging.DebugOutput.PrintLn("Action " + p.GetName(BitConverter.ToInt32(p2[k].raw, 24)) + ", " + p.GetName(BitConverter.ToInt32(p2[k].raw, 32)) + "               at: #" + i + " " + p.GetObjectPath(i + 1) + p.GetObjectClass(i + 1) + "        in: " + file.Substring(file.LastIndexOf(@"\") + 1), false);
                                             }
                                         }
                                         else if (name == "ActiveCondition")
@@ -183,7 +183,7 @@ namespace ME3Explorer.InterpEditor
                                             if (!conds1.Contains(p.GetName(BitConverter.ToInt32(p2[k].raw, 32))))
                                             {
                                                 conds1.Add(p.GetName(BitConverter.ToInt32(p2[k].raw, 32)));
-                                                KFreonLib.Debugging.DebugOutput.PrintLn("ActiveCondition " + p.GetName(BitConverter.ToInt32(p2[k].raw, 24)) + ", " + p.GetName(BitConverter.ToInt32(p2[k].raw, 32)) + "               at: #" + i + " " + p.GetObjectPath(i + 1) + p.GetObjectClass(i + 1) + "        in: " + file.Substring(file.LastIndexOf(@"\") + 1), false);
+                                                MEGeneral.Debugging.DebugOutput.PrintLn("ActiveCondition " + p.GetName(BitConverter.ToInt32(p2[k].raw, 24)) + ", " + p.GetName(BitConverter.ToInt32(p2[k].raw, 32)) + "               at: #" + i + " " + p.GetObjectPath(i + 1) + p.GetObjectClass(i + 1) + "        in: " + file.Substring(file.LastIndexOf(@"\") + 1), false);
                                             }
                                         }
                                         pos += p2[k].raw.Length;
@@ -195,18 +195,18 @@ namespace ME3Explorer.InterpEditor
                             //    if(!conds.Contains(p.GetName(BitConverter.ToInt32(prop.raw, 32))))
                             //    {
                             //        conds.Add(p.GetName(BitConverter.ToInt32(prop.raw, 32)));
-                            //        KFreonLib.Debugging.DebugOutput.PrintLn(p.GetName(BitConverter.ToInt32(prop.raw, 24)) + ", " + p.GetName(BitConverter.ToInt32(prop.raw, 32)) + "               at: #" + i + " " + p.GetObjectPath(i + 1) + p.GetObjectClass(i + 1) + "        in: " + file.Substring(file.LastIndexOf(@"\") + 1), false);
+                            //        MEGeneral.Debugging.DebugOutput.PrintLn(p.GetName(BitConverter.ToInt32(prop.raw, 24)) + ", " + p.GetName(BitConverter.ToInt32(prop.raw, 32)) + "               at: #" + i + " " + p.GetObjectPath(i + 1) + p.GetObjectClass(i + 1) + "        in: " + file.Substring(file.LastIndexOf(@"\") + 1), false);
                             //    }
                             //}
                         }
-                        //KFreonLib.Debugging.DebugOutput.PrintLn(i + " : " + p.GetObjectClass(i + 1) + "               at: " + p.GetObjectPath(i + 1) + "        in: " + file.Substring(file.LastIndexOf(@"\") + 1), false);
+                        //MEGeneral.Debugging.DebugOutput.PrintLn(i + " : " + p.GetObjectClass(i + 1) + "               at: " + p.GetObjectPath(i + 1) + "        in: " + file.Substring(file.LastIndexOf(@"\") + 1), false);
                     }
                 }
                 Application.DoEvents();
             }
-            KFreonLib.Debugging.DebugOutput.PrintLn();
-            KFreonLib.Debugging.DebugOutput.PrintLn("*****************");
-            KFreonLib.Debugging.DebugOutput.PrintLn("Done");
+            MEGeneral.Debugging.DebugOutput.PrintLn();
+            MEGeneral.Debugging.DebugOutput.PrintLn("*****************");
+            MEGeneral.Debugging.DebugOutput.PrintLn("Done");
         }
 
         //private void openInPCCEditor2ToolStripMenuItem_Click(object sender, EventArgs e)

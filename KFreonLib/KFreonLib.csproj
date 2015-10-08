@@ -78,7 +78,6 @@
     </Compile>
     <Compile Include="MEDirectories\MEExDirectories.cs" />
     <Compile Include="Misc\BitConverter.cs" />
-    <Compile Include="Debugging\DebugOutput.cs" />
     <Compile Include="Misc\Interpreter2.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -86,12 +85,6 @@
       <DependentUpon>Interpreter2.cs</DependentUpon>
     </Compile>
     <Compile Include="TalkFile.cs" />
-    <Compile Include="Debugging\DebugWindow.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Debugging\DebugWindow.Designer.cs">
-      <DependentUpon>DebugWindow.cs</DependentUpon>
-    </Compile>
     <Compile Include="Helpers\PathChanger.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -185,6 +178,10 @@
       <Project>{26c5f25f-b450-4caf-ad8b-b8d11ae73457}</Project>
       <Name>Be.Windows.Forms.HexBox</Name>
     </ProjectReference>
+    <ProjectReference Include="..\MEGeneral\MEGeneral.csproj">
+      <Project>{9a33fd92-a725-44fd-ac09-f1a5420d92de}</Project>
+      <Name>MEGeneral</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SaltTPF\SaltTPF.csproj">
       <Project>{8637a2aa-e1fb-4ec9-88a5-688d7d1f7921}</Project>
       <Name>SaltTPF</Name>
@@ -203,9 +200,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Debugging\DebugWindow.resx">
-      <DependentUpon>DebugWindow.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Helpers\KFreonMessageBox.resx">
       <DependentUpon>KFreonMessageBox.cs</DependentUpon>
     </EmbeddedResource>

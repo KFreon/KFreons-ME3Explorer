@@ -380,13 +380,13 @@ namespace ME3Explorer.CameraTool
                 MessageBox.Show("This functionality requires ME3 to be installed. Set its path at:\n Options > Set Custom Path > Mass Effect 3");
                 return;
             }
-            KFreonLib.Debugging.DebugOutput.StartDebugger("Main ME3Explorer Form");
+            MEGeneral.Debugging.DebugOutput.StartDebugger("Main ME3Explorer Form");
             string[] files = Directory.GetFiles(basepath, "*.pcc");
             OverView = new List<OverViewStruct>();
             for (int f = 0; f < files.Length; f++)
             {
                 string file = files[f];
-                KFreonLib.Debugging.DebugOutput.PrintLn((f + 1) + " / " + files.Length + " : " + file + " :", true);
+                MEGeneral.Debugging.DebugOutput.PrintLn((f + 1) + " / " + files.Length + " : " + file + " :", true);
                 PCCPackage p = new PCCPackage(file, false, false, true);
                 OverViewStruct o = new OverViewStruct();
                 o.filepath = file;
@@ -400,7 +400,7 @@ namespace ME3Explorer.CameraTool
                         string s = "";
                         if (count++ == 0)
                             s = "\n";
-                        KFreonLib.Debugging.DebugOutput.PrintLn(s + "found " + i + " : " + p.GetObjectPath(i + 1) + p.GetObject(i + 1), false);
+                        MEGeneral.Debugging.DebugOutput.PrintLn(s + "found " + i + " : " + p.GetObjectPath(i + 1) + p.GetObject(i + 1), false);
                     }
                 }
                 if (o.Indexes.Count != 0)

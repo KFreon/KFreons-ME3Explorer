@@ -11,7 +11,7 @@ using ME3Explorer.Unreal;
 using ME3Explorer.Unreal.Classes;
 using Microsoft.DirectX;
 using Microsoft.DirectX.Direct3D;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 
 namespace ME3Explorer.LevelExplorer.LevelEditor
 {

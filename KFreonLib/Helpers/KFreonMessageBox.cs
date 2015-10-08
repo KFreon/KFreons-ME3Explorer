@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MEGeneral.Debugging;
 
 namespace KFreonLib.Helpers
 {
@@ -89,7 +90,7 @@ namespace KFreonLib.Helpers
             }
             catch
             {
-                Debugging.DebugOutput.PrintLn("Error getting image from MessageBoxIcon.");
+                DebugOutput.PrintLn("Error getting image from MessageBoxIcon.");
             }
             
             return bmp;

@@ -10,7 +10,7 @@ using System.Windows.Forms;
 using ME3Explorer.UnrealHelper;
 using KFreonLib.MEDirectories;
 using KFreonLib.Scripting;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using System.Diagnostics;
 using System.Reflection;
 using System.Windows.Interop;

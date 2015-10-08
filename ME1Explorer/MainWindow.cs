@@ -27,7 +27,7 @@ namespace ME1Explorer
 
         public void StartDebug()
         {
-            KFreonLib.Debugging.DebugOutput.StartDebugger("ME1Explorer Main Window");
+            MEGeneral.Debugging.DebugOutput.StartDebugger("ME1Explorer Main Window");
         }
 
         private void openDebugWindowToolStripMenuItem_Click(object sender, EventArgs e)

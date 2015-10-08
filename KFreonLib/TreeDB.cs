@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using UsefulThings;
+using MEGeneral.Debugging;
 
 namespace KFreonLib
 {
@@ -318,10 +319,10 @@ namespace KFreonLib
                         {
                             AdvancedFeatures = true;
                             numthings = bin.ReadInt32();
-                            Debugging.DebugOutput.PrintLn("Advanced ME" + GameVersion + " Tree features detected.");
+                            DebugOutput.PrintLn("Advanced ME" + GameVersion + " Tree features detected.");
                         }
                         else
-                            Debugging.DebugOutput.PrintLn("Advanced ME" + GameVersion + " Tree features disabled.");
+                            DebugOutput.PrintLn("Advanced ME" + GameVersion + " Tree features disabled.");
                             
                         for (int i = 0; i < numthings; i++)
                         {

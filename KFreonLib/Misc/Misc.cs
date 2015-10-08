@@ -15,7 +15,7 @@ using System.Diagnostics;
 using KFreonLib.Textures;
 using KFreonLib.PCCObjects;
 using KFreonLib.MEDirectories;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 
 namespace KFreonLib.Misc
 {

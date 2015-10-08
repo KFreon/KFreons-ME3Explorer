@@ -1,4 +1,4 @@
-﻿using KFreonLib.Debugging;
+﻿using MEGeneral.Debugging;
 using KFreonLib.Helpers;
 using System;
 using System.Collections.Generic;

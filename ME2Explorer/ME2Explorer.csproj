@@ -285,6 +285,10 @@
       <Project>{8b07ed45-42f4-4b0e-a581-2c257f77241e}</Project>
       <Name>KFreonLib</Name>
     </ProjectReference>
+    <ProjectReference Include="..\MEGeneral\MEGeneral.csproj">
+      <Project>{9a33fd92-a725-44fd-ac09-f1a5420d92de}</Project>
+      <Name>MEGeneral</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SaltTPF\SaltTPF.csproj">
       <Project>{8637a2aa-e1fb-4ec9-88a5-688d7d1f7921}</Project>
       <Name>SaltTPF</Name>

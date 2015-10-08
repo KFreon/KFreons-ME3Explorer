@@ -1,4 +1,4 @@
-﻿using KFreonLib.Debugging;
+﻿using MEGeneral.Debugging;
 using KFreonLib.GUI;
 using KFreonLib.PCCObjects;
 using KFreonLib.Scripting;

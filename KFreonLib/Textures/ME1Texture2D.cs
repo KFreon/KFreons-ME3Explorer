@@ -10,7 +10,7 @@ using System.Windows.Forms;
 using KFreonLib.PCCObjects;
 using KFreonLib.Helpers;
 using KFreonLib.MEDirectories;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using CSharpImageLibrary.General;
 
 namespace KFreonLib.Textures

@@ -15,7 +15,7 @@ using Gibbed.IO;
 using KFreonLib;
 using KFreonLib.Textures;
 using KFreonLib.GUI;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using KFreonLib.MEDirectories;
 using System.Reflection;
 using UsefulThings;

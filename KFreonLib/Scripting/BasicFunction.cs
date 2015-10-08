@@ -6,7 +6,7 @@ using System.Text;
 using System.Windows.Forms;
 using BitConverter = KFreonLib.Misc.BitConverter;
 using KFreonLib.PCCObjects;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using KFreonLib.Misc;
 
 namespace KFreonLib.Scripting

@@ -1,4 +1,4 @@
-﻿using KFreonLib.Debugging;
+﻿using MEGeneral.Debugging;
 using KFreonLib.GUI;
 using ME3Explorer.Unreal;
 using System;

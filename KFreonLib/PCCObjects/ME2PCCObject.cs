@@ -9,7 +9,7 @@ using System.Diagnostics;
 using KFreonLib.Textures;
 using KFreonLib.Helpers;
 using BitConverter = KFreonLib.Misc.BitConverter;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using UsefulThings;
 
 namespace KFreonLib.PCCObjects

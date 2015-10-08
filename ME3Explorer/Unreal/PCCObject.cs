@@ -6,7 +6,7 @@ using System.Text;
 using Gibbed.IO;
 using AmaroK86.MassEffect3.ZlibBlock;
 using System.Windows.Forms;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 
 namespace ME3Explorer.Unreal
 {

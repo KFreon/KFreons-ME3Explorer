@@ -6,7 +6,7 @@ using System.Text;
 using System.Windows.Forms;
 using ME3Explorer.Unreal;
 using SevenZip.Compression.LZMA;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using UsefulThings;
 
 namespace ME3Explorer.Unreal

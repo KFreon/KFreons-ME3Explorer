@@ -12,7 +12,7 @@ using SaltTPF;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using KFreonLib.PCCObjects;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using CSharpImageLibrary.General;
 
 namespace KFreonLib.Textures

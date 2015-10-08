@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using KFreonLib;
 using KFreonLib.GUI;
-using KFreonLib.Debugging;
+using MEGeneral.Debugging;
 using ModJob = KFreonLib.Scripting.ModMaker.ModJob;
 using KFreonLib.Scripting;
 using KFreonLib.Helpers;
