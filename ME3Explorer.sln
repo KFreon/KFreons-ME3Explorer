@@ -61,6 +61,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KFreonLib", "KFreonLib\KFre
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FemShep.VersionSwitcher", "VersionSwitcher\FemShep.VersionSwitcher.csproj", "{F3CEEE0C-42DB-406D-B165-D952D3CF0EF7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MEGeneral", "MEGeneral\MEGeneral.csproj", "{9A33FD92-A725-44FD-AC09-F1A5420D92DE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -417,6 +419,22 @@ Global
 		{F3CEEE0C-42DB-406D-B165-D952D3CF0EF7}.Release|x64.Build.0 = Release|Any CPU
 		{F3CEEE0C-42DB-406D-B165-D952D3CF0EF7}.Release|x86.ActiveCfg = Release|Any CPU
 		{F3CEEE0C-42DB-406D-B165-D952D3CF0EF7}.Release|x86.Build.0 = Release|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Debug|x64.Build.0 = Debug|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Debug|x86.Build.0 = Debug|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Release|x64.ActiveCfg = Release|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Release|x64.Build.0 = Release|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Release|x86.ActiveCfg = Release|Any CPU
+		{9A33FD92-A725-44FD-AC09-F1A5420D92DE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
