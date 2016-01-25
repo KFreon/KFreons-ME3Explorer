@@ -97,7 +97,7 @@ namespace WPF_ME3Explorer.Debugging
 
         public static void PrintLn(string line = "")
         {
-            PrintLn("");
+            PrintLn("", null);
         }
 
         public static void PrintLn(string line, string toolDisplayName, Exception e, params object[] bits)

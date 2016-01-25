@@ -188,31 +188,6 @@ namespace AmaroK86.MassEffect3
 
             return chunkList.Exists(x => x.fileList != null && x.fileList.Exists(file => file.filePath == tocFileName));
         }
-
-        public void removeNotExistingFiles(WindowProgressForm dbprog, object args)
-        {
-            bChanged = true;
-            int count = 0;
-            int totalBlocks = chunkList.Count;
-
-            dbprog.Invoke((Action)delegate
-            {
-                dbprog.Text = "Cleaning toc.bin";
-                dbprog.lblCommand.Text = "Removing not existing files from PCConsoleTOC.bin";
-                dbprog.progressBar.Maximum = totalBlocks;
-                dbprog.progressBar.Value = 0;
-            });
-
-            foreach (chunk element in chunkList)
-            {
-                dbprog.Invoke((Action)delegate { dbprog.progressBar.Value = count++; dbprog.richTextBox.Text = "Cleaning block " + count + " of " + totalBlocks; });
-
-                if (element.fileList != null)
-                    element.fileList = element.fileList.Where(x => x.exist).ToList();
-
-                //element.countNextFiles = (element.fileList == null) ? 0 : element.fileList.Count/*(x => x.exist)*/;
-            }
-        }
         
         public void clearFiles()
         {
@@ -257,59 +232,6 @@ namespace AmaroK86.MassEffect3
 
                             fileOffset += fileElement.blockSize;
                             newFileStream.Seek(fileOffset, SeekOrigin.Begin);
-                        }
-                    }
-                }
-            }
-        }
-
-        public void fixAll(WindowProgressForm dbprog, object args)
-        {
-            bChanged = true;
-
-            bool forceAll = false;
-
-            int count = 0;
-            int total = chunkList.Count;
-
-            dbprog.Invoke((Action)delegate
-            {
-                dbprog.Text = "Fixing toc.bin";
-                dbprog.lblCommand.Text = "Updating PCConsoleTOC.bin";
-                dbprog.progressBar.Maximum = total;
-                dbprog.progressBar.Value = 0;
-            });
-
-            using (FileStream tocStream = File.OpenWrite(tocFilePath))
-            {
-                foreach (chunk entry in chunkList)
-                {
-                    dbprog.Invoke((Action)delegate { dbprog.progressBar.Value = count++; dbprog.richTextBox.Text = "Fixing block " + count + " of " + total;});
-
-                    if (entry.fileList == null)
-                        continue;
-
-                    foreach (TOCHandler.fileStruct fileStruct in entry.fileList)
-                    {
-                        string fullFileName = gamePath + "\\" + fileStruct.filePath;
-                        if (File.Exists(fullFileName) && fileStruct.filePath != "BioGame\\PCConsoleTOC.bin")
-                        {
-                            using (FileStream fileStream = File.OpenRead(fullFileName))
-                            {
-                                if (forceAll || fileStruct.fileSize != fileStream.Length)
-                                {
-                                    fileStruct.fileSize = (int)fileStream.Length;
-                                    using (SHA1 sha = SHA1.Create())
-                                    {
-                                        sha.Initialize();
-                                        byte[] buffer = new byte[fileStream.Length];
-                                        int inputCount = fileStream.Read(buffer, 0, buffer.Length);
-                                        sha.TransformBlock(buffer, 0, inputCount, null, 0);
-                                        sha.TransformFinalBlock(buffer, 0, 0);
-                                        fileStruct.sha1 = sha.Hash;
-                                    }
-                                }
-                            }
                         }
                     }
                 }

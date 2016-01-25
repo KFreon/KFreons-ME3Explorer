@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
-using AmaroK86.ImageFormat;
+using CSharpImageLibrary.General;
 
 namespace SaltTPF
 {
@@ -102,9 +102,8 @@ namespace SaltTPF
                     if (data == null)
                         throw new NullReferenceException("Data returned was null");
 
-                    DDSPreview ddsimg = new DDSPreview(data);
-                    //img = DDSImage.ToBitmap(ddsimg.GetMipData(), ddsimg.Format, (int)ddsimg.Width, (int)ddsimg.Height);
-                    img = ddsimg.ToBitmap();
+                    using (ImageEngineImage ddsimg = new ImageEngineImage(data))
+                        img = ddsimg.GetGDIBitmap(true);
                 }
                 else
                 {

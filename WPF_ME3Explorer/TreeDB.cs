@@ -1,454 +1,598 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Data;
+using UsefulThings.WPF;
 using UsefulThings;
+using System.Windows.Threading;
+using System.Windows.Input;
+using System.IO.Compression;
+using System.Diagnostics;
+using WPF_ME3Explorer.Textures;
+using WPF_ME3Explorer.Debugging;
+using WPF_ME3Explorer.PCCObjects;
 
 namespace WPF_ME3Explorer
 {
-    public class TreeDB
+    public class TreeDB : ViewModelBase
     {
+        public class TreePCC
+        {
+            public string Name { get; set; }
+
+            public TreePCC()
+            {
+
+            }
+
+            public TreePCC(string name, DateTime scannedtime)
+            {
+                Name = name;
+            }
+
+            public bool Exists { get; set; }
+        }
+
+        ThumbnailManager thumbs = null;
+
+        FileSystemWatcher treeWatcher = null;
+        MEDirectories.MEDirectories MEExDirecs;
+
         #region Properties
-        public bool AdvancedFeatures { get; private set; }
+        int numtexes = 0;
+        public int NumTreeTexes
+        {
+            get
+            {
+                return numtexes;
+            }
+            set
+            {
+                SetProperty(ref numtexes, value);
+            }
+        }
+
+
         public int TexCount
         {
             get
             {
-                lock (Sync)
-                    if (Texes != null)
-                        return Texes.Count;
-                    else
-                        return -1;
+                return Textures.Count;
             }
         }
 
-        public int numPCCs
+        bool isSelected = false;
+        public bool IsSelected
         {
             get
             {
-                lock (Sync)
-                    return pccs.Count;
+                return isSelected;
+            }
+            set
+            {
+                SetProperty(ref isSelected, value);
             }
         }
-
-        public int NodeCount
+        public string TreeLocation
         {
             get
             {
-                lock (Sync)
-                    return nodeList.Count;
+                return Path.Combine(MEExDirecs.ExecFolder, "me" + GameVersion + "tree.bin");
             }
         }
-        #endregion
+        public List<TreePCC> PCCs { get; set; }
 
-        #region Globals
-        public int numDLCFiles
+        bool exists = false;
+        public bool Exists
         {
             get
             {
-                return pccs.Where(t => t.Contains("DLC_")).Count();
+                return exists;
             }
-        }
-        List<TreeTexInfo> Texes = new List<TreeTexInfo>();
-        List<string> pccs = new List<string>();
-        List<myTreeNode> nodeList = new List<myTreeNode>();
-        TreeView TexplorerTreeView;
-        private readonly object Sync = new object();
-        public string TreePath = "";
-        int GameVersion = 0;
-        public Task TreeAddTask;
-        List<List<object>> TreeTempTexes = new List<List<object>>();
-        string pathBIOGame;
-        #endregion
-
-
-        public TreeDB(List<string> given, ref TreeView textree, int WhichGame, string pathbio)
-        {
-            setup(ref textree, WhichGame, pathbio);
-            pccs.AddRange(given);
-        }
-
-        public TreeDB(ref TreeView textree, int WhichGame, string pathbio)
-        {
-            setup(ref textree, WhichGame, pathbio);
-        }
-
-        private void setup(ref TreeView textree, int WhichGame, string pathbio)
-        {
-            TexplorerTreeView = textree;
-            GameVersion = WhichGame;
-            pathBIOGame = pathbio;
-            TreeAddTask = new Task(() => PerformTreeComparison());
-        }
-
-
-        public List<myTreeNode> GetNodesAsList()
-        {
-            lock (Sync)
-                return nodeList;
-        }
-
-        public List<string> GetPCCsAsList()
-        {
-            lock (Sync)
-                return pccs;
-        }
-
-        public bool AddPCCs(List<string> files)
-        {
-            lock (Sync)
-                if (pccs != null)
-                    pccs.AddRange(files);
-                else
-                    return false;
-            return true;
-        }
-
-        public void Clear(bool complete = false)
-        {
-            lock (Sync)
+            set
             {
-                Texes.Clear();
-                if (TexplorerTreeView != null)
-                    TexplorerTreeView.Nodes.Clear();
-                nodeList.Clear();
-
-                if (complete)
-                    pccs.Clear();
+                exists = value;
+                OnPropertyChanged();
             }
         }
 
-        public TreeTexInfo GetTex(int index)
+        bool valid = false;
+        public bool Valid
         {
-            lock (Sync)
+            get
             {
-                if (index < 0 || index >= TexCount)
-                    return null;
-                else
-                    return Texes[index];
+                return valid;
+            }
+            set
+            {
+                valid = value;
+                OnPropertyChanged();
             }
         }
 
-        public bool ReplaceTex(int index, TreeTexInfo tex)
+
+
+
+        readonly object TreeLocker = new object();
+        readonly object RunningLocker = new object();
+
+        public List<TreeTexInfo> Textures { get; set; }
+
+        public RangedObservableCollection<HierarchicalTreeTexes> TreeTexes { get; set; }
+
+        public bool? AdvancedFeatures { get; set; }
+        public int GameVersion { get; set; }
+        #endregion Properties
+
+
+        int treeVersion = 0;
+        public int TreeVersion
         {
-            lock (Sync)
+            get
             {
-                if (index < 0 || index >= TexCount)
-                    return false;
-                else
+                return treeVersion;
+            }
+            set
+            {
+                SetProperty(ref treeVersion, value);
+            }
+        }
+
+
+        ICommand selectCommand = null;
+        public ICommand SelectCommand
+        {
+            get
+            {
+                return selectCommand;
+            }
+            set
+            {
+                SetProperty(ref selectCommand, value);
+            }
+        }
+
+        public TreeDB(List<string> pccs, MEDirectories.MEDirectories direcs, int game, bool Selected, ICommand selectcommand, int treeVersion, ThumbnailManager thumbsmanager = null, bool DontLoad = false)
+            : this(direcs, game, Selected, selectcommand, treeVersion, thumbsmanager, DontLoad)
+        {
+            List<TreePCC> temppccs = new List<TreePCC>();
+            DateTime now = DateTime.Now;
+            pccs.ForEach(pcc => temppccs.Add(new TreePCC(pcc, now)));
+            PCCs = temppccs;
+        }
+
+        public TreeDB(string filename, int treeVersion, ThumbnailManager thumbsmanager = null)
+            : this(treeVersion, thumbsmanager)
+        {
+            GameVersion = int.Parse(Path.GetFileName(filename)[2] + "");
+            MEExDirecs = new MEDirectories.MEDirectories(GameVersion);
+            LoadTree(filename);
+        }
+
+        private TreeDB(int treeVersion, ThumbnailManager thumbsmanager = null)
+        {
+            thumbs = thumbsmanager;
+            PCCs = new List<TreePCC>();
+            Textures = new List<TreeTexInfo>();
+            TreeTexes = new RangedObservableCollection<HierarchicalTreeTexes>();
+            TreeVersion = treeVersion;
+        }
+
+        public TreeDB(MEDirectories.MEDirectories direcs, int game, bool Selected, ICommand selectcommand, int treeVersion, ThumbnailManager thumbsmanager = null, bool DontLoad = false) : this(treeVersion, thumbsmanager)
+        {
+            MEExDirecs = new MEDirectories.MEDirectories(direcs, game);
+            GameVersion = game;
+
+            SelectCommand = selectcommand;
+
+            BindingOperations.EnableCollectionSynchronization(TreeTexes, TreeLocker);
+
+            Directory.CreateDirectory(MEExDirecs.ExecFolder);
+
+            treeWatcher = new FileSystemWatcher(MEExDirecs.ExecFolder, Path.GetFileName(TreeLocation));
+            treeWatcher.Changed += treeWatcher_Changed;
+            treeWatcher.Created += treeWatcher_Changed;
+            treeWatcher.Deleted += treeWatcher_Changed;
+            treeWatcher.Renamed += treeWatcher_Changed;
+
+            treeWatcher.EnableRaisingEvents = true;
+
+            IsSelected = Selected;
+
+            if (!DontLoad)
+                LoadTree();
+        }
+
+        void treeWatcher_Renamed(object sender, RenamedEventArgs e)
+        {
+            Debug.WriteLine(GameVersion + " Tree renamed!");
+        }
+
+        void treeWatcher_Changed(object sender, FileSystemEventArgs e)
+        {
+            Debug.WriteLine(GameVersion + " Tree changed: " + e.ChangeType);
+        }
+
+        public void SaveTree(string destinationFileName)
+        {
+            DebugOutput.PrintLn(String.Format("Saving ME{0} tree to file at: {1}", GameVersion, destinationFileName));
+            using (FileStream fs = new FileStream(destinationFileName, FileMode.Create, FileAccess.Write))
+            {
+                using (GZipStream Compressor = new GZipStream(fs, CompressionLevel.Optimal))
+                    WriteTreeToStream(Compressor);
+            }
+        }
+
+        private void WriteTreeToStream(Stream output)
+        {
+            using (BinaryWriter bin = new BinaryWriter(output))
+            {
+                bin.Write(631991); // KFreon: Marker for advanced features
+                bin.Write(TreeVersion);
+
+                // KFreon: Write pccs scanned 
+                bin.Write(PCCs.Count);
+                foreach (TreePCC pcc in PCCs)
+                    bin.Write(pcc.Name.Remove(0, MEExDirecs.BasePath.Length));  // writing as string? can change all others?
+
+                // KFreon: Write Textures
+                bin.Write(TexCount);
+                for (int i = 0; i < TexCount; i++)
                 {
-                    Texes[index] = tex;
-                    return true;
+                    TreeTexInfo tex = Textures[i];
+
+                    // KFreon: Set texname if unknown - Prevents crashes on broken texture
+                    if (String.IsNullOrEmpty(tex.EntryName))
+                        tex.EntryName = "UNKNOWN";
+
+
+                    bin.Write(tex.EntryName);
+
+                    bin.Write(tex.Hash);
+
+                    string fullpackage = tex.FullPackage;
+                    if (String.IsNullOrEmpty(fullpackage))
+                        fullpackage = "Base Package";
+                    bin.Write(fullpackage);
+
+                    /*string thumbpath = tex.ThumbnailPath != null ? tex.ThumbnailPath.Split('\\').Last() : "placeholder.ico";
+                    bin.Write(thumbpath);*/
+
+                    bin.Write(tex.NumMips);
+                    bin.Write((int)tex.Format);
+                    bin.Write(tex.PCCs.Count);
+
+
+                    foreach (PCCEntry entry in tex.PCCs)
+                    {
+                        string tempfile = entry.File;
+                        tempfile = tempfile.Remove(0, MEExDirecs.BasePath.Length + 1);
+
+                        // KFreon: Write file entry
+                        bin.Write(tempfile);
+
+                        // KFreon: Write corresponding expID
+                        bin.Write(entry.ExpID);
+                    }
                 }
             }
         }
 
-        private TreeTexInfo Contains(TreeTexInfo tex, string PackName, string filename)
+        public void ConstructTree()
         {
-            for (int i = 0; i < TexCount; i++)
-                if (Compare(tex, i, PackName, filename))
-                    return Texes[i];
+            if (TreeTexes.Count != 0)
+            {
+                OnPropertyChanged("TreeTexes");
+                OnPropertyChanged("NumTreeTexes");
+                DebugOutput.PrintLn("TOTAL ME" + GameVersion + " TEXTURES: " + NumTreeTexes);
+                return;
+            }
+
+
+            List<HierarchicalTreeTexes> tempTreeTexes = new List<HierarchicalTreeTexes>((int)(Textures.Count / 2));
+
+            foreach (TreeTexInfo tex in Textures)
+            {
+                string[] packages = tex.FullPackage.Split('.');
+
+                // KFreon: Recursively find correct node to add to
+                HierarchicalTreeTexes found = FindCorrectNode(tempTreeTexes, packages, 0);
+
+                if (found == null)
+                {
+                    HierarchicalTreeTexes top = null;
+                    HierarchicalTreeTexes curr = null;
+                    foreach (string pack in packages)
+                    {
+                        HierarchicalTreeTexes temp = new HierarchicalTreeTexes(pack);
+
+                        if (curr == null)
+                        {
+                            curr = temp;
+                            top = temp;
+                        }
+                        else
+                        {
+                            temp.Parent = curr;
+                            curr.TreeTexes.Add(temp);
+                            curr = temp;
+                        }
+                    }
+
+                    if (curr.Textures == null)
+                        Dispatcher.CurrentDispatcher.Invoke(() => curr.Textures = new ObservableCollection<TreeTexInfo>());
+
+                    tex.Parent = curr;
+                    curr.Textures.Add(tex);
+                    tempTreeTexes.Add(top);
+                }
+                else
+                {
+                    if (found.Textures == null)
+                        Dispatcher.CurrentDispatcher.Invoke(() => found.Textures = new ObservableCollection<TreeTexInfo>());
+
+                    tex.Parent = found;
+                    found.Textures.Add(tex);
+                }
+            }
+
+            // KFreon: Sort tree
+            tempTreeTexes.Sort((tex1, tex2) => tex1.Name.CompareTo(tex2.Name));
+            Dispatcher.CurrentDispatcher.Invoke(() => TreeTexes.AddRange(tempTreeTexes));
+
+            int count = 0;
+            foreach (var tex in TreeTexes)
+                count += tex.FullTexCount;
+
+            NumTreeTexes = count;
+            DebugOutput.PrintLn("TOTAL ME" + GameVersion + " TEXTURES: " + NumTreeTexes);
+        }
+
+        public HierarchicalTreeTexes FindCorrectNode(ICollection<HierarchicalTreeTexes> texes, string[] packs, int index)
+        {
+            if (index < packs.Length)
+            {
+                string pack = packs[index];
+                foreach (HierarchicalTreeTexes treet in texes)
+                {
+                    if (pack == treet.Name)
+                    {
+                        HierarchicalTreeTexes te = FindCorrectNode(treet.TreeTexes, packs, (index + 1));
+                        if (te == null)
+                            return treet;
+                        else
+                            return te;
+                    }
+                }
+            }
+            return null;
+        }
+
+        public void LoadTree(string filename = null)
+        {
+            Exists = false;
+            Valid = false;
+            AdvancedFeatures = false;
+            if (File.Exists(filename ?? TreeLocation))
+            {
+                Exists = true;
+                try
+                {
+                    FileStream fs = new FileStream(filename ?? TreeLocation, FileMode.Open, FileAccess.Read);
+                    MemoryStream mem = UsefulThings.General.DecompressStream(fs);
+                    if (mem == null)
+                    {
+                        ReadTree(fs);
+                        fs.Dispose();
+                    }
+                    else
+                    {
+                        fs.Dispose();
+                        using (mem)
+                        {
+                            ReadTree(mem);
+                        }
+                    }
+
+                    Valid = true;
+                }
+                catch (Exception e)
+                {
+                    PCCs.Clear();
+                    DebugOutput.PrintLn("Failed to load tree. Reason: ", "TreeDB Load", e);
+                }
+            }
+
+            Task.Run(() =>
+            {
+                foreach (TreePCC pcc in PCCs)
+                    if (File.Exists(pcc.Name))
+                        pcc.Exists = true;
+            });
+        }
+
+        private void ReadTree(Stream input)
+        {
+            input.Seek(0, SeekOrigin.Begin);
+            using (BinaryReader bin = new BinaryReader(input))
+            {
+                int numTexes = bin.ReadInt32();
+                if (numTexes == 1991)
+                {
+                    // KFreon: Pre WPF tree. ~rev 686
+                    AdvancedFeatures = null;
+                    numTexes = bin.ReadInt32();
+                    DebugOutput.PrintLn("Medium ME" + GameVersion + " Tree features detected.");
+                }
+                else if (numTexes == 631991)
+                {
+                    // KFreon: WPF Tree
+                    AdvancedFeatures = true;
+                    TreeVersion = bin.ReadInt32();
+                    numTexes = bin.ReadInt32();
+                    DebugOutput.PrintLn("Advanced ME" + GameVersion + " Tree features detected.");
+                }
+                else
+                    DebugOutput.PrintLn("ME" + GameVersion + " Tree features disabled.");
+
+
+                if (AdvancedFeatures == true)
+                {
+                    // KFreon: numTexes = numPCCs here
+                    for (int i = 0; i < numTexes; i++)
+                    {
+                        TreePCC pcc = new TreePCC();
+                        string test = bin.ReadString();
+                        pcc.Name = Path.Combine(MEExDirecs.BasePath, test);
+                        PCCs.Add(pcc);
+                    }
+
+                    numTexes = bin.ReadInt32();
+                }
+
+
+                for (int i = 0; i < numTexes; i++)
+                {
+                    TreeTexInfo tempStruct = new TreeTexInfo(GameVersion, MEExDirecs.PathBIOGame, thumbs);
+
+                    tempStruct.EntryName = ReadString(bin);
+                    tempStruct.Hash = bin.ReadUInt32();
+                    tempStruct.FullPackage = ReadString(bin);
+
+
+                    if (AdvancedFeatures == null)
+                    {
+                        ReadString(bin);  // KFreon: Not used anymore, so just ignore it
+                        //tempStruct.ThumbnailPath = Path.Combine(MEExDirecs.ThumbnailCache, thum);
+                    }
+
+                    tempStruct.NumMips = bin.ReadInt32();
+
+                    if (AdvancedFeatures != true)
+                    {
+                        string format = ReadString(bin);
+                        tempStruct.Format = CSharpImageLibrary.General.ImageFormats.FindFormatInString(format).InternalFormat;
+                    }
+                    else
+                        tempStruct.Format = (CSharpImageLibrary.General.ImageEngineFormat)bin.ReadInt32();
+
+                    int numFiles = bin.ReadInt32();
+
+                    if (AdvancedFeatures != true)
+                    {
+                        List<string> pccs = new List<string>(numFiles);
+                        for (int j = 0; j < numFiles; j++)
+                        {
+                            string tempStr = ReadString(bin);
+                            pccs.Add(Path.Combine(MEExDirecs.BasePath, tempStr));
+                        }
+
+                        List<int> ExpIDs = new List<int>(numFiles);
+                        for (int j = 0; j < numFiles; j++)
+                            ExpIDs.Add(bin.ReadInt32());
+
+
+                        tempStruct.PCCs.AddRange(PCCEntry.PopulatePCCEntries(pccs, ExpIDs));
+                    }
+                    else
+                    {
+                        List<PCCEntry> tempEntries = new List<PCCEntry>(numFiles);
+                        for (int j = 0; j < numFiles; j++)
+                        {
+                            string file = ReadString(bin);
+                            file = Path.Combine(MEExDirecs.BasePath, file);
+
+                            int expID = bin.ReadInt32();
+
+                            PCCEntry entry = new PCCEntry(file, expID);
+                            tempEntries.Add(entry);
+                        }
+                        tempStruct.PCCs.AddRange(tempEntries);
+                    }
+
+                    Textures.Add(tempStruct);
+                }
+            }
+        }
+
+        private string ReadString(BinaryReader bin)
+        {
+            if (AdvancedFeatures == true)
+                return bin.ReadString();
+            else
+            {
+                int length = bin.ReadInt32();
+                char[] str = bin.ReadChars(length);
+                return new string(str);
+            }
+        }
+
+        public void AddPCCs(List<string> files)
+        {
+            files.RemoveAll(file => file.ToUpperInvariant().EndsWith(".TFC"));
+
+            List<TreePCC> temp = new List<TreePCC>();
+            DateTime now = DateTime.Now;
+            files.ForEach(file => temp.Add(new TreePCC(file, now)));
+
+            PCCs.AddRange(temp);
+        }
+
+        public void AddPCC(string file)
+        {
+            if (!file.ToUpperInvariant().EndsWith(".TFC"))
+                PCCs.Add(new TreePCC(file, DateTime.Now));
+        }
+
+        private TreeTexInfo CheckTreeAddition(TreeTexInfo tex, string UpperCaseFilenameOnly)
+        {
+            int count = 0;
+            foreach (TreeTexInfo treeTex in Textures)
+            {
+                count++;
+                if (treeTex.Compare(tex, UpperCaseFilenameOnly))
+                    return treeTex;
+            }
 
             return null;
         }
 
-        private bool Compare(TreeTexInfo tex, int i, string PackName, string filename)
+        public bool AddTex(TreeTexInfo tex, string UpperCaseFilenameOnly)
         {
-            if (tex.TexName == Texes[i].TexName)
-                if ((tex.Hash == 0 && tex.tfcOffset == Texes[i].tfcOffset) || (tex.Hash != 0 && tex.Hash == Texes[i].Hash))
+            bool Added = true;
+            lock (RunningLocker)
+            {
+                TreeTexInfo treeTex = CheckTreeAddition(tex, UpperCaseFilenameOnly);
+                if (treeTex != null)
                 {
-                    if (tex.GameVersion == 1 && (tex.Package.ToLowerInvariant() == PackName.ToLowerInvariant() || Path.GetFileNameWithoutExtension(filename).ToLowerInvariant().Contains(tex.Package.ToLowerInvariant())))
-                        return true;
-                    else if (tex.GameVersion != 1)
-                        return true;
-                    else
-                        return false;
-                }
-            return false;
-        }
-
-        public List<TreeTexInfo> GetTreeAsList()
-        {
-            return new List<TreeTexInfo>(Texes);
-        }
-
-
-        public void BlindAddTex(TreeTexInfo tex)
-        {
-            lock (Sync)
-            {
-                tex.TreeInd = TexCount;
-                Texes.Add(tex);
-            }
-        }
-
-        public myTreeNode GetNode(int index)
-        {
-            lock (Sync)
-            {
-                if (index < 0 || index >= nodeList.Count)
-                    return null;
-                else
-                    return nodeList[index];
-            }
-        }
-
-        public void AddNode(myTreeNode node)
-        {
-            nodeList.Add(node);
-        }
-
-
-        public string GetPCC(int index)
-        {
-            if (index < 0 || index >= numPCCs)
-                return "";
-            else
-                return pccs[index];
-        }
-
-
-        /// <summary>
-        /// Adds texture to tree with duplicate checks
-        /// </summary>
-        /// <param name="tex">Texture to add</param>
-        public void AddTex(TreeTexInfo tex, string PackName, string filename)
-        {
-            lock (Sync)
-            {
-                List<object> tmp = new List<object>();
-                tmp.Add(tex);
-                tmp.Add(PackName);
-                tmp.Add(filename);
-                TreeTempTexes.Add(tmp);
-
-
-                // KFreon: Start again if finished
-                if (TreeAddTask.Status == TaskStatus.RanToCompletion)
-                {
-                    TreeAddTask = null;
-                    TreeAddTask = new Task(() => PerformTreeComparison());
-                    TreeAddTask.Start();
-                }
-                else if (TreeAddTask.Status == TaskStatus.Created)   // KFreon: Start if never started before
-                    TreeAddTask.Start();
-            }
-        }
-
-        public void PerformTreeComparison()
-        {
-            int count = -1;
-
-            // KFreon: Get number of textures waiting to be processed
-            lock (Sync)
-                count = TreeTempTexes.Count;
-
-            // KFreon: Add each element with duplicate checking
-            while (count > 0)
-            {
-                // KFreon: Get elements from list as added previously
-                List<object> item;
-                lock (Sync)
-                    item = TreeTempTexes[0];
-
-                TreeTexInfo tex = (TreeTexInfo)item[0];
-                string PackName = (string)item[1];
-                string filename = (string)item[2];
-
-                // KFreon: Add to list if not a duplicate
-                TreeTexInfo temp = null;
-                if ((temp = Contains(tex, PackName, filename)) != null)
-                {
-                    temp.Update(tex, pathBIOGame);
-
-                    if (GameVersion == 2 && !temp.ValidFirstPCC && tex.ValidFirstPCC)
-                    {
-                        // KFreon: Get index of new first file in 'old' list
-                        int index = temp.Files.IndexOf(tex.Files[0]);
-
-                        // KFreon: Move pcc
-                        var element = temp.Files.Pop(index);
-                        temp.Files.Insert(0, element);
-
-                        // KFreon: Move expid
-                        var exp = temp.ExpIDs.Pop(index);
-                        temp.ExpIDs.Insert(0, exp);
-
-                        // KFreon: Update originals lists
-                        temp.OriginalExpIDs = new List<int>(temp.ExpIDs);
-                        temp.OriginalFiles = new List<string>(temp.Files);
-
-                        temp.ValidFirstPCC = true;
-                    }
+                    treeTex.Update(tex);
+                    Added = false;
                 }
                 else
-                    BlindAddTex(tex);
-
-                // KFreon: Remove item from temp list
-                lock (Sync)
-                {
-                    TreeTempTexes.RemoveAt(0);
-                    count = TreeTempTexes.Count;
-                }
+                    Textures.Add(tex);
             }
+
+            return Added;
         }
 
-
-        public bool ReadFromFile(string TreeName, string mainpath, string thumbpath, out int status, Form invokeObject = null)
+        internal void Delete()
         {
-            status = 0;
-            if (!File.Exists(TreeName))
-                return false;
+            if (Textures != null)
+                Textures.Clear();
 
-            TreePath = TreeName;
+            if (PCCs != null)
+                PCCs.Clear();
 
-            try
-            {
-                using (FileStream fs = new FileStream(TreeName, FileMode.Open, FileAccess.Read))
-                {
-                    using (BinaryReader bin = new BinaryReader(fs))
-                    {
-                        int numthings = bin.ReadInt32();
-                        if (numthings == 1991)
-                        {
-                            AdvancedFeatures = true;
-                            numthings = bin.ReadInt32();
-                            Debugging.DebugOutput.PrintLn("Advanced ME" + GameVersion + " Tree features detected.");
-                        }
-                        else
-                            Debugging.DebugOutput.PrintLn("Advanced ME" + GameVersion + " Tree features disabled.");
+            if (TreeTexes != null)
+                TreeTexes.Clear();
 
-                        for (int i = 0; i < numthings; i++)
-                        {
-                            TreeTexInfo tempStruct = new TreeTexInfo();
-                            int temp = bin.ReadInt32();
-                            char[] tempChar = bin.ReadChars(temp);
-                            tempStruct.TexName = new string(tempChar);
-                            tempStruct.Hash = bin.ReadUInt32();
-                            tempChar = bin.ReadChars(bin.ReadInt32());
-                            tempStruct.FullPackage = new string(tempChar);
-                            tempChar = bin.ReadChars(bin.ReadInt32());
-
-                            if (AdvancedFeatures)
-                            {
-                                string thum = new string(tempChar);
-                                tempStruct.ThumbnailPath = thum != null ? Path.Combine(thumbpath, thum) : null;
-                            }
-
-                            tempStruct.NumMips = bin.ReadInt32();
-                            tempStruct.Format = "";
-                            int formatlen = bin.ReadInt32();
-                            tempChar = bin.ReadChars(formatlen);
-                            tempStruct.Format = new string(tempChar);
-
-                            int numFiles = bin.ReadInt32();
-                            tempStruct.Files = new List<string>();
-                            for (int j = 0; j < numFiles; j++)
-                            {
-                                tempChar = bin.ReadChars(bin.ReadInt32());
-                                string tempStr = new string(tempChar);
-                                tempStruct.Files.Add(Path.Combine(mainpath, tempStr));
-                            }
-
-                            tempStruct.ExpIDs = new List<int>();
-                            tempStruct.TriedThumbUpdate = false;
-                            for (int j = 0; j < numFiles; j++)
-                                tempStruct.ExpIDs.Add(bin.ReadInt32());
-
-                            tempStruct.OriginalFiles = new List<string>(tempStruct.Files);
-                            tempStruct.OriginalExpIDs = new List<int>(tempStruct.ExpIDs);
-                            BlindAddTex(tempStruct);
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                if (invokeObject != null)
-                {
-                    int temp = status;
-                    invokeObject.Invoke(new Action(() =>
-                    {
-                        if (MessageBox.Show("Tree is corrupted or wrong tree loaded  :(" + Environment.NewLine + "Do you want to build a new tree?", "Mission Failure.", MessageBoxButtons.YesNo, MessageBoxIcon.Error) == System.Windows.Forms.DialogResult.Yes)
-                        {
-                            File.Delete(TreeName);
-                            temp = 1;
-                        }
-                        else
-                            temp = 2;
-                    }));
-                    status = temp;
-                }
-                else
-                    status = 2;
-                return false;
-            }
-            return true;
-        }
-
-
-        public void WriteToFile(string treeName, string mainpath)
-        {
-            TreePath = treeName;
-            using (FileStream fs = new FileStream(treeName, FileMode.Create, FileAccess.Write))
-            {
-                using (BinaryWriter bin = new BinaryWriter(fs))
-                {
-                    bin.Write(1991); // KFreon: Marker for advanced features
-                    bin.Write(TexCount);
-                    for (int i = 0; i < TexCount; i++)
-                    {
-                        TreeTexInfo tex = GetTex(i);
-                        bin.Write(tex.TexName.Length);
-                        bin.Write(tex.TexName.ToCharArray());
-
-                        bin.Write(tex.Hash);
-
-                        string fullpackage = tex.FullPackage;
-                        if (String.IsNullOrEmpty(fullpackage))
-                            fullpackage = "Base Package";
-                        bin.Write(fullpackage.Length);
-                        bin.Write(fullpackage.ToCharArray());
-
-                        string thumbpath = tex.ThumbnailPath != null ? tex.ThumbnailPath.Split('\\').Last() : "placeholder.ico";
-                        bin.Write(thumbpath.Length);
-                        bin.Write(thumbpath.ToCharArray());
-
-                        bin.Write(tex.NumMips);
-                        bin.Write(tex.Format.Length);
-                        bin.Write(tex.Format.ToCharArray());
-                        bin.Write(tex.Files.Count);
-
-                        /*if (GameVersion != 1)
-                            KFreonLib.PCCObjects.Misc.ReorderFiles(ref tex.Files, ref tex.ExpIDs, Path.Combine(mainpath, "BIOGame"), GameVersion);*/
-
-
-                        foreach (string file in tex.Files)
-                        {
-                            string tempfile = file;
-                            tempfile = tempfile.Remove(0, mainpath.Length + 1);
-
-                            bin.Write(tempfile.Length);
-                            bin.Write(tempfile.ToCharArray());
-                        }
-
-                        foreach (int expid in tex.ExpIDs)
-                            bin.Write(expid);
-                    }
-                }
-            }
-        }
-
-        public TreeDB Clone()
-        {
-            TreeDB newtree = new TreeDB(pccs, ref TexplorerTreeView, GameVersion, pathBIOGame);
-            newtree.AdvancedFeatures = AdvancedFeatures;
-            newtree.Texes = new List<TreeTexInfo>(Texes);
-            newtree.nodeList = new List<myTreeNode>(nodeList);
-            newtree.TreePath = TreePath;
-            return newtree;
+            NumTreeTexes = 0;
         }
     }
 }
