@@ -55,6 +55,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Busy = false;
         }
 
+        internal void ClearAll()
+        {
+            Textures.Clear();
+            PrimaryProgress = 0;
+            MaxPrimaryProgress = 1;
+            PrimaryIndeterminate = false;
+            Zippys.Clear();
+            PrimaryStatus = "Ready!";
+            IsLoaded = false;
+            Busy = false;
+            cts = new System.Threading.CancellationTokenSource();
+        }
+
         public async Task LoadFiles(IEnumerable<string> Files)
         {
             int numFiles = Files.Count();

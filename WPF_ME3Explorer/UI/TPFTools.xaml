@@ -33,7 +33,7 @@
 
             </Menu.Resources>
             <MenuItem x:Name="LoadButton" Header="Load" Click="LoadButton_Click" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}"/>
-            <MenuItem x:Name="ClearAllButton" Header="Clear All Textures">
+            <MenuItem x:Name="ClearAllButton" Header="Clear All Textures" Click="ClearAllButton_Click">
                 <MenuItem.Style>
                     <Style TargetType="MenuItem">
                         <Setter Property="IsEnabled" Value="false"/>
@@ -52,13 +52,31 @@
                     </Style>
                 </MenuItem.Style>
             </MenuItem>
-            <MenuItem x:Name="AutofixAllButton" Header="Autofix All Invalids"/>
+            <MenuItem x:Name="AutofixAllButton" Header="Autofix All Invalids">
+                <MenuItem.Style>
+                    <Style TargetType="MenuItem">
+                        <Setter Property="IsEnabled" Value="False"/>
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Busy}" Value="false"/>
+                                    <Condition Binding="{Binding IsLoaded}" Value="true"/>
+                                </MultiDataTrigger.Conditions>
+
+                                <MultiDataTrigger.Setters>
+                                    <Setter Property="IsEnabled" Value="True"/>
+                                </MultiDataTrigger.Setters>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </MenuItem.Style>
+            </MenuItem>
 
         </Menu>
         <ListBox x:Name="MainListBox" Grid.RowSpan="2"  ItemsSource="{Binding ItemsView}" BorderBrush="{x:Null}" ItemContainerStyle="{StaticResource ListBoxContainerStyle}" Focusable="False" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Grid.Row="1">
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <Grid>
+                    <Grid x:Name="ItemGrid" Background="Transparent">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="14*"/>
                             <RowDefinition Height="71*"/>
@@ -72,29 +90,46 @@
 
                         <StackPanel Orientation="Horizontal">
                             <Image x:Name="ThumbnailPreview" Width="64" Height="64" HorizontalAlignment="Left">
-                            <Image.Style>
-                                <Style TargetType="{x:Type Image}">
-                                    <Setter Property="Source" Value="{Binding Thumbnail, Mode=OneWay}"/>
+                                <Image.Style>
+                                    <Style TargetType="{x:Type Image}">
+                                        <Setter Property="Source" Value="{Binding Thumbnail, Mode=OneWay}"/>
 
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
-                                            <Setter Property="Source" Value="{StaticResource DefaultTexture}"/>
-                                        </DataTrigger>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
+                                                <Setter Property="Source" Value="{StaticResource DefaultTexture}"/>
+                                            </DataTrigger>
 
-                                        <DataTrigger Binding="{Binding isDef}" Value="true">
-                                            <Setter Property="Source" Value="{StaticResource DefaultText}"/>
-                                        </DataTrigger>
+                                            <DataTrigger Binding="{Binding isDef}" Value="true">
+                                                <Setter Property="Source" Value="{StaticResource DefaultText}"/>
+                                            </DataTrigger>
 
-                                    </Style.Triggers>
-                                </Style>
-                            </Image.Style>
-                        </Image>
-                            <TextBlock Text="{Binding EntryName}" VerticalAlignment="Center" Margin="5,0"/>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Image.Style>
+                            </Image>
+
+                            <StackPanel x:Name="NameAndButtons" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding EntryName}" VerticalAlignment="Center" Margin="5,0"/>
+                                <StackPanel Grid.Column="1" x:Name="ButtonsPanel" Orientation="Horizontal">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <Button Content="Install" Style="{StaticResource MainButtonStyle}"/>
+                                    <Button Content="Replace" Style="{StaticResource MainButtonStyle}"/>
+                                    <Button Content="Extract" Style="{StaticResource MainButtonStyle}"/>
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
 
-                        <StackPanel Grid.Column="1" x:Name="ButtonsPanel">
-                            <Button Content="Buttons" />
-                        </StackPanel>
+                        
 
                         <Grid Grid.Column="2" x:Name="DetailsGrid">
                             <Grid.RowDefinitions>
@@ -159,7 +194,33 @@
                             </StackPanel>
                         </Grid>
 
-                        <TextBlock Text="PCCS" Grid.Row="1"/>
+                        <Expander x:Name="PCCsExpander" Grid.Row="2" Visibility="{Binding Analysed, Converter={StaticResource BoolToVisConverter}}">
+                            <Expander.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="PCCs"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <StackPanel.Resources>
+                                            <Style TargetType="Button" BasedOn="{StaticResource MainButtonStyle}"/>
+                                        </StackPanel.Resources>
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Hidden"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Path=IsExpanded, ElementName=PCCsExpander}" Value="true">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <Button Content="Save List"/>
+                                        <Button Content="Select All"/>
+                                        <Button Content="De-select All"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Expander.Header>
+                            
+                            <ListBox x:Name="PCCsListBox" MaxHeight="50" ItemsSource="{Binding PCCs}"/>
+                        </Expander>
                     </Grid>
                 </DataTemplate>
             </ListBox.ItemTemplate>

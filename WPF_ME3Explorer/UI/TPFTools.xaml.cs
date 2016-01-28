@@ -44,5 +44,10 @@ namespace WPF_ME3Explorer.UI
             if (ofd.ShowDialog() == true)
                 vm.LoadFiles(ofd.FileNames);
         }
+
+        private void ClearAllButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.ClearAll();
+        }
     }
 }
