@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Data;
+using System.Windows.Media.Imaging;
 using SaltTPF;
 using UsefulThings;
 using UsefulThings.WPF;
@@ -30,7 +31,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 return null;
             }
         }
-
 
         public TPFToolsViewModel() : base(Properties.Settings.Default.TPFToolsGameVersion)
         {
@@ -196,7 +196,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             TPFTexInfo tex = LoadTex(file);
 
-            if (!tex.isDef && tex.Hash == 0)
+            if (!tex.IsDef && tex.Hash == 0)
                 DebugOutput.PrintLn("Failed to get hash from {0}", file);
 
             return tex;
@@ -248,7 +248,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             // KFreon: Remove duplicates
             Lines = Lines.Distinct().ToList(Lines.Count);
-
+            zippy.DefLines = Lines;
 
             for (int i = 0; i < numEntries; i++)
             {
@@ -257,7 +257,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
 
                 // KFreon: If hash gen failed, notify
-                if (!tmpTex.isDef && tmpTex.Hash == 0)
+                if (!tmpTex.IsDef && tmpTex.Hash == 0)
                     DebugOutput.PrintLn("Failure to get hash for entry " + i + " in " + TPF);
 
                 entries.Add(tmpTex);
@@ -286,14 +286,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 }*/
             };
 
-            if (tempTex.isDef && zippy != null)
+            if (tempTex.IsDef && zippy != null)
                 tempTex.LogContents.AddRange(Lines);
             else
             {
                 tempTex.Hash = GetHash(file, zippy == null, Lines);
                 tempTex.OriginalHash = tempTex.Hash;
 
-                if (!tempTex.isDef && tempTex.Hash == 0)
+                if (!tempTex.IsDef && tempTex.Hash == 0)
                     DebugOutput.PrintLn("Failure to get hash for entry {0} in {1}.", file, path ?? zippy._filename);
             }
 
@@ -312,7 +312,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 {
                     foreach (var tex in Textures)
                     {
-                        if (tex.isDef)
+                        if (tex.IsDef)
                         {
                             hash = FindHashInDef(tex.LogContents, filename);
                             if (hash != 0)

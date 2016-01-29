@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WPF_ME3Explorer.UI"
         mc:Ignorable="d"
-        Title="TPFTools" Height="882.469" Width="1652.27">
+        Title="TPFTools" Height="882.469" Width="1652.27" AllowDrop="True" Drop="Window_Drop" DragOver="Window_DragOver">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -73,7 +73,7 @@
             </MenuItem>
 
         </Menu>
-        <ListBox x:Name="MainListBox" Grid.RowSpan="2"  ItemsSource="{Binding ItemsView}" BorderBrush="{x:Null}" ItemContainerStyle="{StaticResource ListBoxContainerStyle}" Focusable="False" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Grid.Row="1">
+        <ListBox x:Name="MainListBox" Grid.RowSpan="2"  ItemsSource="{Binding ItemsView}" ItemContainerStyle="{StaticResource ListBoxContainerStyle}" Focusable="False" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Grid.Row="1">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Grid x:Name="ItemGrid" Background="Transparent">
@@ -99,7 +99,7 @@
                                                 <Setter Property="Source" Value="{StaticResource DefaultTexture}"/>
                                             </DataTrigger>
 
-                                            <DataTrigger Binding="{Binding isDef}" Value="true">
+                                            <DataTrigger Binding="{Binding IsDef}" Value="true">
                                                 <Setter Property="Source" Value="{StaticResource DefaultText}"/>
                                             </DataTrigger>
 
@@ -122,7 +122,7 @@
                                             </Style.Triggers>
                                         </Style>
                                     </StackPanel.Style>
-                                    <Button Content="Install" Style="{StaticResource MainButtonStyle}"/>
+                                    <Button Content="Install" Style="{StaticResource MainButtonStyle}" Visibility="{Binding Analysed, Converter={StaticResource BoolToVisConverter}}"/>
                                     <Button Content="Replace" Style="{StaticResource MainButtonStyle}"/>
                                     <Button Content="Extract" Style="{StaticResource MainButtonStyle}"/>
                                 </StackPanel>
@@ -131,7 +131,7 @@
 
                         
 
-                        <Grid Grid.Column="2" x:Name="DetailsGrid">
+                        <Grid Grid.Column="2" x:Name="DetailsGrid" Visibility="{Binding IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="21*"/>
                                 <RowDefinition Height="20*"/>
@@ -152,6 +152,7 @@
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Foreground" Value="Gray"/>
                                     <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
                                 </Style>
 
                                 <Style TargetType="Label">
@@ -163,7 +164,7 @@
                             <StackPanel x:Name="HashDetails" Grid.Row="1">
                                 <Label Content="Hash: "/>
                                 <TextBox Text="{Binding Hash, Converter={StaticResource HashStringConverter}}" Padding="2,0" VerticalContentAlignment="Center"/>
-                                <Button Content="Reset" HorizontalAlignment="Right" Background="White" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                <Button Content="Reset" HorizontalAlignment="Right" Background="White" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding IsHashChanged, Converter={StaticResource BoolToVisConverter}}"/>
                             </StackPanel>
 
                             <StackPanel x:Name="WidthAndHeight" Grid.Row="2">
@@ -226,7 +227,18 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <StackPanel Orientation="Horizontal" Grid.Row="3" Margin="0,0.667,0,30.333" Grid.RowSpan="2">
+        <Border x:Name="TPFDetails" Grid.Column="1" Grid.Row="1" BorderBrush="#FFABADB3" BorderThickness="1">
+            <StackPanel>
+                <TextBlock Text="TPF Details" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold"/>
+                <TextBlock x:Name="TPFDetailsText" Text="{Binding ElementName=MainListBox, Path=SelectedItem.SourceInfo}" TextWrapping="Wrap" Margin="5,0"/>
+            </StackPanel>
+        </Border>
+
+        <Image x:Name="SmallPreviewImage" Grid.Column="1" Grid.Row="2" Grid.RowSpan="2" Source="{Binding ElementName=MainListBox, Path=SelectedItem.Preview, IsAsync=True}" Visibility="{Binding ElementName=MainListBox, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
+
+        <TextBlock x:Name="DefPreview" Margin="10" Grid.Column="1" Grid.Row="2" Grid.RowSpan="2" Text="{Binding ElementName=MainListBox, Path=SelectedItem.DefPreview}" TextWrapping="Wrap" Visibility="{Binding ElementName=MainListBox, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}}"/>
+
+        <StackPanel x:Name="MainButtons" Orientation="Horizontal" Grid.Row="3" Margin="0,0.667,0,30.333" Grid.RowSpan="2">
             <Border x:Name="InstallButton" Background="White" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" BorderBrush="#FFC1C1C1" BorderThickness="1" Margin="3">
                 <StackPanel VerticalAlignment="Center">
                     <Button Content="Install Textures" Style="{StaticResource MainButtonStyle}" FontSize="20" BorderBrush="White"/>

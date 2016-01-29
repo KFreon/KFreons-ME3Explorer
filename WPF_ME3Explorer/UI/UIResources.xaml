@@ -1,5 +1,6 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:s="clr-namespace:System;assembly=mscorlib"
                     xmlns:local="clr-namespace:WPF_ME3Explorer"
                     xmlns:useful="clr-namespace:UsefulThings.WPF;assembly=UsefulThings">
 
@@ -7,11 +8,16 @@
     <useful:InverseBooleanConverter x:Key="InverseBoolConverter"/>
     <local:HashToStringConverter x:Key="HashStringConverter"/>
 
+    <!-- Default images to display -->
     <BitmapImage x:Key="Folder_Closed" UriSource="/WPF_ME3Explorer;component/Resources/Folder_Closed.png" DecodePixelHeight="32"/>
     <BitmapImage x:Key="Folder_Open" UriSource="/WPF_ME3Explorer;component/Resources/Folder_Open.png" DecodePixelHeight="32"/>
     <BitmapImage x:Key="DefaultTexture" UriSource="/WPF_ME3Explorer;component/Resources/Placeholder.png" DecodePixelHeight="64"/>
     <BitmapImage x:Key="DefaultMesh" UriSource="/WPF_ME3Explorer;component/Resources/DefaultMesh.png" DecodePixelHeight="64"/>
     <BitmapImage x:Key="DefaultText" UriSource="/WPF_ME3Explorer;component/Resources/DefaultText.png" DecodePixelHeight="64"/>
+
+    <!-- Boolean values for use as converter parameters -->
+    <s:Boolean x:Key="True">True</s:Boolean>
+    <s:Boolean x:Key="False">False</s:Boolean>
 
     <ControlTemplate x:Key="StatusBarTemplate" TargetType="{x:Type StatusBar}">
         <DockPanel LastChildFill="False">
@@ -23,7 +29,7 @@
                 </Style>
             </DockPanel.Resources>
             <ProgressBar x:Name="PrimaryProgressBar" Width="200" Height="25" Value="{Binding PrimaryProgress}" Maximum="{Binding MaxPrimaryProgress}" IsIndeterminate="{Binding PrimaryIndeterminate}" DockPanel.Dock="Left"/>
-            <TextBlock x:Name="PrimaryStatusText" Text="{Binding PrimaryStatus}"/>
+            <TextBlock x:Name="PrimaryStatusText" Text="{Binding PrimaryStatus}" Margin="5,0"/>
             <Button Content="Cancel" Visibility="{Binding Busy, Converter={StaticResource BoolToVisConverter}}" DockPanel.Dock="Right"/>
             <TextBlock Text="WV, AK, Salt, Gibbed = The Real Heros" DockPanel.Dock="Right"/>
             <Label Content="|" DockPanel.Dock="Right" Foreground="Gray"/>

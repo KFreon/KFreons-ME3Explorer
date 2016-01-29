@@ -236,6 +236,8 @@ namespace SaltTPF
         /* Private members */
         private Int64 EOFRecordOff;
 
+        public List<string> DefLines { get; set; }
+
         /// <summary>
         /// Construct the zip object. Reads in the file list and uses it to populate the entries var
         /// </summary>

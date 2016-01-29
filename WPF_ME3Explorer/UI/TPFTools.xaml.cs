@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,7 +11,6 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using Microsoft.Win32;
 using WPF_ME3Explorer.UI.ViewModels;
 
@@ -48,6 +48,38 @@ namespace WPF_ME3Explorer.UI
         private void ClearAllButton_Click(object sender, RoutedEventArgs e)
         {
             vm.ClearAll();
+        }
+
+
+        private void Window_Drop(object sender, DragEventArgs e)
+        {
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+
+            if (files?.Length != 0)
+                vm.LoadFiles(files);
+        }
+
+        private void Window_DragOver(object sender, DragEventArgs e)
+        {
+            string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            bool enabled = true;
+            if (files?.Length != 0)
+            {
+                foreach (string file in files)
+                {
+                    string ext = Path.GetExtension(file);
+                    if (!AcceptedExtensions.Contains(ext))
+                    {
+                        enabled = false;
+                        break;
+                    }
+                }
+            }
+            else
+                enabled = false;
+
+            e.Handled = true;
+            e.Effects = enabled ? DragDropEffects.All : DragDropEffects.None;
         }
     }
 }

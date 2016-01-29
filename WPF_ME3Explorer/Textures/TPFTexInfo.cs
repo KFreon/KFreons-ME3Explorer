@@ -24,6 +24,31 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
+        public BitmapSource Preview
+        {
+            get
+            {
+                if (IsDef)
+                    return null;
+
+                byte[] data = Extract();
+                if (data == null)
+                    return null;
+
+                try
+                {
+                    using (MemoryStream datastream = new MemoryStream(data))
+                    using (MemoryStream ms = ImageEngine.GenerateThumbnailToStream(datastream, 1024))
+                        return UsefulThings.WPF.Images.CreateWPFBitmap(ms);
+                }
+                catch (Exception e)
+                {
+                    DebugOutput.PrintLn("Failed to get preview: " + OriginalEntryName, "TPFTexInfo", e);
+                }
+
+                return null;
+            }
+        }
 
 
         #region Properties
@@ -33,7 +58,7 @@ namespace WPF_ME3Explorer.Textures
         {
             get
             {
-                return isExternal ? "External file\n\nPath: " + FilePath + "\\" + EntryName + Path.GetExtension(OriginalEntryName) : Zippy.Description;
+                return IsExternal ? "External file\n\nPath: " + FilePath + "\\" + EntryName + Path.GetExtension(OriginalEntryName) : Zippy.Description;
             }
         }
 
@@ -83,14 +108,14 @@ namespace WPF_ME3Explorer.Textures
         readonly object previewlocker = new object();
 
 
-        public bool isExternal
+        public bool IsExternal
         {
             get
             {
                 return FilePath != null;
             }
         }
-        public bool isDef
+        public bool IsDef
         {
             get
             {
@@ -98,6 +123,14 @@ namespace WPF_ME3Explorer.Textures
             }
         }
         public ZipReader Zippy { get; set; }
+
+        public string DefPreview
+        {
+            get
+            {
+                return String.Join(Environment.NewLine, Zippy.DefLines);
+            }
+        }
 
         BitmapSource thumbnail = null;
         public BitmapSource Thumbnail
@@ -284,7 +317,7 @@ namespace WPF_ME3Explorer.Textures
         public bool EnumerateDetails(string imagePath = null)
         {
             // KFreon: Textures only
-            if (isDef)
+            if (IsDef)
                 return false;
 
             ImageEngineImage img = null;
@@ -343,7 +376,7 @@ namespace WPF_ME3Explorer.Textures
             byte[] imgdata = null;
             try
             {
-                if (isExternal)
+                if (IsExternal)
                     imgdata = UsefulThings.General.GetExternalData(File.Exists(AutoFixPath) ? AutoFixPath : OriginalEntryName);
                 else
                     imgdata = Zippy.Entries[TPFEntryIndex].Extract(true);
@@ -355,33 +388,9 @@ namespace WPF_ME3Explorer.Textures
             return imgdata;
         }
 
-        public async Task<BitmapSource> GetPreview()
-        {
-            BitmapSource temp = null;
-            await Task.Run(() =>
-            {
-                byte[] data = Extract();
-                if (data == null)
-                    return;
-
-                try
-                {
-                    using (ImageEngineImage img = new ImageEngineImage(data))
-                        temp = img.GetWPFBitmap();
-                }
-                catch (Exception e)
-                {
-                    DebugOutput.PrintLn("Failed to get preview: " + OriginalEntryName, "TPFTools GetPreview", e);
-                }
-            });
-
-
-            return temp;
-        }
-
         public bool Compare(TPFTexInfo tex)
         {
-            if (tex.isDef || isDef)
+            if (tex.IsDef || IsDef)
                 return false;
 
             return Hash == tex.Hash && tex.EntryName == EntryName;
