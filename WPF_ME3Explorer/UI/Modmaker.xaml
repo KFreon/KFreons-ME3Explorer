@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WPF_ME3Explorer.UI"
         mc:Ignorable="d"
-        Title="Modmaker" Height="300" Width="300">
+        Title="Modmaker" Height="300" Width="300" Closing="Window_Closing">
     <Grid>
         
     </Grid>

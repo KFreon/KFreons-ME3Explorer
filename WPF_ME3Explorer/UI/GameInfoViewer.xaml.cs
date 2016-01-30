@@ -11,23 +11,32 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using WPF_ME3Explorer.UI.ViewModels;
 
 namespace WPF_ME3Explorer.UI
 {
     /// <summary>
-    /// Interaction logic for Texplorer.xaml
+    /// Interaction logic for GameInfoViewer.xaml
     /// </summary>
-    public partial class Texplorer : Window
+    public partial class GameInfoViewer : Window
     {
-        public bool IsClosed { get; private set; }
-        public Texplorer()
+        GameInfoViewModel vm = null;
+        public GameInfoViewer()
         {
             InitializeComponent();
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        public GameInfoViewer(string title, int game) : this()
         {
-            IsClosed = true;
+            vm = new GameInfoViewModel(title, game);
+            DataContext = vm;
+        }
+
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.Save();
+            DialogResult = true;
+            Close();
         }
     }
 }

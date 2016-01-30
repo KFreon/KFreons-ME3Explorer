@@ -25,6 +25,8 @@ namespace WPF_ME3Explorer.UI
         string[] AcceptedFiles = { "DirectX Images", "JPEG Images", "Bitmap Images", "PNG Images" , "Texmod Archives", "ME3Explorer Archives" };
         string[] AcceptedExtensions = { ".dds", ".jpg", ".bmp", ".png", ".tpf", ".metpf" };
 
+        public bool IsClosed { get; private set; }
+
         public TPFTools()
         {
             InitializeComponent();
@@ -80,6 +82,12 @@ namespace WPF_ME3Explorer.UI
 
             e.Handled = true;
             e.Effects = enabled ? DragDropEffects.All : DragDropEffects.None;
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            IsClosed = true;
+            vm.Shutdown();
         }
     }
 }

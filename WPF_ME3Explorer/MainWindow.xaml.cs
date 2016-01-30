@@ -27,24 +27,37 @@ namespace WPF_ME3Explorer
         public MainWindow()
         {
             InitializeComponent();
+            TPFToolsInstance = new UI.TPFTools();
+            TexplorerInstance = new UI.Texplorer();
+            ModmakerInstance = new UI.Modmaker();
         }
 
         private void TPFToolsButton_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            TPFToolsInstance = new UI.TPFTools();
+            if (TPFToolsInstance.IsClosed)
+                TPFToolsInstance = new UI.TPFTools();
             TPFToolsInstance.Show();
         }
 
         private void TexplorerButton_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            TexplorerInstance = new UI.Texplorer();
+            if (TexplorerInstance.IsClosed)
+                TexplorerInstance = new UI.Texplorer();
             TexplorerInstance.Show();
         }
 
         private void ModmakerButton_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            ModmakerInstance = new UI.Modmaker();
+            if (ModmakerInstance.IsClosed)
+                ModmakerInstance = new UI.Modmaker();
             ModmakerInstance.Show();
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            TPFToolsInstance.Close();
+            TexplorerInstance.Close();
+            ModmakerInstance.Close();
         }
     }
 }

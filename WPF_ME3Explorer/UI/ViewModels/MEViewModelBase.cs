@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using System.Windows.Threading;
 using UsefulThings.WPF;
 
@@ -224,6 +225,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
+        public ICommand ShowGameInfo { get; set; }
+        public ICommand ChangeTreeCommand { get; set; }
+
         protected CancellationTokenSource cts { get; set; }
 
         public virtual void ChangeTree(TreeDB newlySelectedTree)
@@ -238,6 +242,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         public MEViewModelBase(int game, string execFolder = null)
         {
+            WPF_ME3Explorer.General.UpgradeProperties();
+
             MEExDirecs = new MEDirectories.MEDirectories(game, execFolder);
             timer = new DispatcherTimer();
             MainStopWatch = new Stopwatch();
@@ -265,6 +271,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
             ToolsetRevision = int.Parse(parts[parts.Length - 2]);
 
             cts = new CancellationTokenSource();
+
+            ShowGameInfo = new CommandHandler(t => 
+            {
+                int passedGame = int.Parse((string)t);
+                var info = new GameInfoViewer($"Mass Effect {passedGame}", passedGame);
+                if (info.ShowDialog() == true)
+                    MEExDirecs.SetupPathing();
+            });
+
+            ChangeTreeCommand = new CommandHandler(tree =>
+            {
+                ChangeTree((TreeDB)tree);
+            });
         }
 
         protected bool LoadTrees(IList<TreeDB> Trees, TreeDB CurrentTree, bool isChanging)
@@ -291,6 +310,13 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 return false;
             }
+        }
+
+        public void Shutdown()
+        {
+            ItemsView = null;
+            timer.Stop();
+            MainStopWatch.Stop();
         }
     }
 }

@@ -19,9 +19,15 @@ namespace WPF_ME3Explorer.UI
     /// </summary>
     public partial class Modmaker : Window
     {
+        public bool IsClosed { get; private set; }
         public Modmaker()
         {
             InitializeComponent();
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            IsClosed = true;
         }
     }
 }

@@ -25,7 +25,7 @@ namespace WPF_ME3Explorer.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Nothing")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string ME1BIOGame {
             get {
                 return ((string)(this["ME1BIOGame"]));

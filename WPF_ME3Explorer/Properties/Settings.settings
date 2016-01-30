@@ -3,7 +3,7 @@
   <Profiles />
   <Settings>
     <Setting Name="ME1BIOGame" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Nothing</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="ME2BIOGame" Type="System.String" Scope="User">
       <Value Profile="(Default)" />

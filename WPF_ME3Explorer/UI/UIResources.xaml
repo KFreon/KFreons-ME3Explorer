@@ -51,4 +51,117 @@
         <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
     </Style>
+
+    <Style TargetType="Button" x:Key="IndicatorStyle">
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="Red"/>
+        <Setter Property="FontSize" Value="15"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{x:Null}"/>
+    </Style>
+
+    <Style x:Key="Game1Indicator" TargetType="Button" BasedOn="{StaticResource IndicatorStyle}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding MEExDirecs.DoesGame1Exist}" Value="true">
+                <Setter Property="Foreground" Value="LawnGreen"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="Game2Indicator" TargetType="Button" BasedOn="{StaticResource IndicatorStyle}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding MEExDirecs.DoesGame2Exist}" Value="true">
+                <Setter Property="Foreground" Value="LawnGreen"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="Game3Indicator" TargetType="Button" BasedOn="{StaticResource IndicatorStyle}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding MEExDirecs.DoesGame3Exist}" Value="true">
+                <Setter Property="Foreground" Value="LawnGreen"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+
+    <DropShadowEffect x:Key="TreeButtonEffect" BlurRadius="7" ShadowDepth="0" Opacity="0.7" Color="LightBlue"/>
+    <Style x:Key="TreeIndicatorStyle" TargetType="Button" BasedOn="{StaticResource IndicatorStyle}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Valid}" Value="true">
+                <Setter Property="Foreground" Value="LawnGreen"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding IsSelected}" Value="true">
+                <Setter Property="Effect" Value="{StaticResource TreeButtonEffect}"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <ControlTemplate x:Key="GameIndicators">
+        <StackPanel Orientation="Horizontal" Margin="5,0">
+            <Label Content="Game Status:" VerticalAlignment="Center"/>
+            <Button Content="1" Style="{StaticResource Game1Indicator}" Command="{Binding ShowGameInfo}" CommandParameter="1"/>
+            <Button Content="2" Style="{StaticResource Game2Indicator}" Command="{Binding ShowGameInfo}" CommandParameter="2"/>
+            <Button Content="3" Style="{StaticResource Game3Indicator}" Command="{Binding ShowGameInfo}" CommandParameter="3"/>
+        </StackPanel>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="TreeIndicators">
+        <StackPanel x:Name="TreeContainer" Orientation="Horizontal" Margin="5,0">
+            <Label Content="Tree Status:" VerticalAlignment="Center"/>
+            <Button Content="1" Style="{StaticResource TreeIndicatorStyle}" DataContext="{Binding Trees[0]}" Command="{Binding ElementName=TreeContainer, Path=DataContext.ChangeTreeCommand}" CommandParameter="{Binding}"/>
+            <Button Content="2" Style="{StaticResource TreeIndicatorStyle}" DataContext="{Binding Trees[1]}" Command="{Binding ElementName=TreeContainer, Path=DataContext.ChangeTreeCommand}" CommandParameter="{Binding}"/>
+            <Button Content="3" Style="{StaticResource TreeIndicatorStyle}" DataContext="{Binding Trees[2]}" Command="{Binding ElementName=TreeContainer, Path=DataContext.ChangeTreeCommand}" CommandParameter="{Binding}"/>
+        </StackPanel>
+    </ControlTemplate>
+
+    <!-- Template for displaying editable pathing information on a game -->
+    <DataTemplate x:Key="PathEditTemplate">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Image Source="{Binding ImageURI}" Margin="0,0,10,0" VerticalAlignment="Top"/>
+                <StackPanel Margin="0,0,0,35">
+                    <Label Content="{Binding TitleText}" HorizontalContentAlignment="Center" FontWeight="Bold" Foreground="#FF0068FF" FontSize="18" FontFamily="Arial"/>
+                    <CheckBox Content="Allow extra path modification?" IsChecked="{Binding AllowExtraMods}"/>
+
+                    <StackPanel>
+                        <DockPanel LastChildFill="True">
+                            <Label Content="Exe Path:" HorizontalAlignment="Left"  VerticalAlignment="Top" DockPanel.Dock="Left"/>
+                            <Button x:Name="ExeBrowse" Content="Browse" VerticalAlignment="Top" HorizontalAlignment="Right" Width="75" DockPanel.Dock="Right" Margin="5,0,0,0" Command="{Binding ExeBrowseCommand}"/>
+                            <TextBox Height="23" TextWrapping="Wrap" Text="{Binding ExePath}" VerticalAlignment="Top" DockPanel.Dock="Left"/>
+                        </DockPanel>
+                    </StackPanel>
+
+
+                    <StackPanel>
+                        <DockPanel LastChildFill="True">
+                            <Label Content="BIOGame:" HorizontalAlignment="Left"  VerticalAlignment="Top" DockPanel.Dock="Left"/>
+                            <Button x:Name="BIOGameBrowse" Content="Browse" VerticalAlignment="Top" HorizontalAlignment="Right" Width="75" DockPanel.Dock="Right" Margin="5,0,0,0" Command="{Binding BIOGameBrowseCommand}" IsEnabled="{Binding AllowExtraMods}"/>
+                            <TextBox Height="23" TextWrapping="Wrap" Text="{Binding BIOGamePath}" VerticalAlignment="Top" DockPanel.Dock="Left" IsEnabled="{Binding AllowExtraMods}"/>
+                        </DockPanel>
+                    </StackPanel>
+
+                    <StackPanel>
+                        <DockPanel LastChildFill="True">
+                            <Label Content="Cooked:" HorizontalAlignment="Left"  VerticalAlignment="Top" DockPanel.Dock="Left"/>
+                            <Button x:Name="CookedBrowse" Content="Browse" VerticalAlignment="Top" HorizontalAlignment="Right" Width="75" DockPanel.Dock="Right" Margin="5,0,0,0" Command="{Binding CookedBrowseCommand}" IsEnabled="{Binding AllowExtraMods}"/>
+                            <TextBox Height="23" TextWrapping="Wrap" Text="{Binding CookedPath}" VerticalAlignment="Top" DockPanel.Dock="Left" IsEnabled="{Binding AllowExtraMods}"/>
+                        </DockPanel>
+                    </StackPanel>
+
+
+                    <StackPanel>
+                        <DockPanel LastChildFill="True">
+                            <Label Content="DLC Path:" HorizontalAlignment="Left"  VerticalAlignment="Top" DockPanel.Dock="Left"/>
+                            <Button x:Name="DLCBrowse" Content="Browse" VerticalAlignment="Top" HorizontalAlignment="Right" Width="75" DockPanel.Dock="Right" Margin="5,0,0,0" Command="{Binding DLCBrowseCommand}" IsEnabled="{Binding AllowExtraMods}"/>
+                            <TextBox Height="23" TextWrapping="Wrap" Text="{Binding DLCPath}" VerticalAlignment="Top" DockPanel.Dock="Left" IsEnabled="{Binding AllowExtraMods}"/>
+                        </DockPanel>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+            <Label Content="Detected DLC's" FontWeight="Bold" Margin="0,10,0,0"/>
+            <ListBox ItemsSource="{Binding DLCs}"/>
+        </StackPanel>
+    </DataTemplate>
 </ResourceDictionary>

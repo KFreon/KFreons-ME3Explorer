@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WPF_ME3Explorer.UI"
         mc:Ignorable="d"
-        Title="TPFTools" Height="882.469" Width="1652.27" AllowDrop="True" Drop="Window_Drop" DragOver="Window_DragOver">
+        Title="TPFTools" Height="882.469" Width="1507.27" AllowDrop="True" Drop="Window_Drop" DragOver="Window_DragOver" Closing="Window_Closing">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -21,17 +21,14 @@
             <ColumnDefinition Width="325*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="21.333"/>
+            <RowDefinition Height="28"/>
             <RowDefinition Height="153*"/>
             <RowDefinition Height="179*"/>
             <RowDefinition Height="53.333"/>
             <RowDefinition Height="31"/>
         </Grid.RowDefinitions>
 
-        <Menu Grid.ColumnSpan="2" Background="White">
-            <Menu.Resources>
-
-            </Menu.Resources>
+        <Menu Background="White">
             <MenuItem x:Name="LoadButton" Header="Load" Click="LoadButton_Click" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}"/>
             <MenuItem x:Name="ClearAllButton" Header="Clear All Textures" Click="ClearAllButton_Click">
                 <MenuItem.Style>
@@ -71,8 +68,14 @@
                     </Style>
                 </MenuItem.Style>
             </MenuItem>
-
         </Menu>
+
+        <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
+            <ContentControl x:Name="GameIndicatorPanel" Template="{StaticResource GameIndicators}"/>
+            <ContentControl x:Name="TreeIndicatorPanel" Template="{StaticResource TreeIndicators}"/>
+        </StackPanel>
+            
+
         <ListBox x:Name="MainListBox" Grid.RowSpan="2"  ItemsSource="{Binding ItemsView}" ItemContainerStyle="{StaticResource ListBoxContainerStyle}" Focusable="False" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Grid.Row="1">
             <ListBox.ItemTemplate>
                 <DataTemplate>
@@ -229,6 +232,11 @@
 
         <Border x:Name="TPFDetails" Grid.Column="1" Grid.Row="1" BorderBrush="#FFABADB3" BorderThickness="1">
             <StackPanel>
+                <Expander DockPanel.Dock="Top" FlowDirection="RightToLeft">
+                    <Expander.Header>
+                        <TextBox Text="SEARCHBOX"/>
+                    </Expander.Header>
+                </Expander>
                 <TextBlock Text="TPF Details" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold"/>
                 <TextBlock x:Name="TPFDetailsText" Text="{Binding ElementName=MainListBox, Path=SelectedItem.SourceInfo}" TextWrapping="Wrap" Margin="5,0"/>
             </StackPanel>
