@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CSharpImageLibrary.General;
+using UsefulThings;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.PCCObjects;
 
@@ -72,11 +73,15 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
+        string hashstring = null;
         public virtual string HashString
         {
             get
             {
-                return WPF_ME3Explorer.General.FormatTexmodHashAsString(Hash);
+                if (hashstring == null || IsHashChanged)
+                    hashstring = WPF_ME3Explorer.General.FormatTexmodHashAsString(Hash);
+
+                return hashstring;
             }
         }
 
@@ -190,6 +195,13 @@ namespace WPF_ME3Explorer.Textures
         {
             foreach (var pcc in PCCs)
                 pcc.Using = false;
+        }
+
+        public void Search(string text)
+        {
+            IsSearchVisible = EntryName.Contains(text, StringComparison.OrdinalIgnoreCase) ||
+                PCCs.AsParallel().Any(pcc => pcc.File.Contains(text, StringComparison.OrdinalIgnoreCase) || pcc.ExpIDString.Contains(text)) ||
+                HashString.Contains(text);
         }
     }
 }

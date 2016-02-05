@@ -4,19 +4,51 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
 using UsefulThings.WPF;
+using WPF_ME3Explorer.Textures;
 
 namespace WPF_ME3Explorer.UI.ViewModels
 {
-    public abstract class MEViewModelBase : ViewModelBase
+    public abstract class MEViewModelBase<T> : ViewModelBase where T : AbstractTexInfo
     {
         public ICollectionView ItemsView { get; set; }
         public MEDirectories.MEDirectories MEExDirecs { get; private set; }
         public MTRangedObservableCollection<TreeDB> Trees { get; set; }
+        public MTRangedObservableCollection<T> Textures { get; set; }
+
+        bool searching = false;
+        public bool Searching
+        {
+            get
+            {
+                return searching;
+            }
+            set
+            {
+                SetProperty(ref searching, value);
+            }
+        }
+
+        string searchText = null;
+        public string SearchText
+        {
+            get
+            {
+                return searchText;
+            }
+            set
+            {
+                SetProperty(ref searchText, value);
+                Searching = !String.IsNullOrEmpty(value);
+                Search(value);
+            }
+        }
 
         #region Status Bar
         string elapsedTime = null;
@@ -284,6 +316,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 ChangeTree((TreeDB)tree);
             });
+
+            Textures = new MTRangedObservableCollection<T>();
+            ItemsView = CollectionViewSource.GetDefaultView(Textures);
+            ItemsView.Filter = obj => ((AbstractTexInfo)obj).IsSearchVisible;
         }
 
         protected bool LoadTrees(IList<TreeDB> Trees, TreeDB CurrentTree, bool isChanging)
@@ -317,6 +353,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
             ItemsView = null;
             timer.Stop();
             MainStopWatch.Stop();
+        }
+
+        public void Search(string text)
+        {
+            foreach (var item in Textures)
+                item.Search(text);
+
+            ItemsView.Refresh();
         }
     }
 }

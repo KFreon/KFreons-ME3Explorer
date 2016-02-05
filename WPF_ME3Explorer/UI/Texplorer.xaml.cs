@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using WPF_ME3Explorer.UI.ViewModels;
 
 namespace WPF_ME3Explorer.UI
 {
@@ -20,9 +21,12 @@ namespace WPF_ME3Explorer.UI
     public partial class Texplorer : Window
     {
         public bool IsClosed { get; private set; }
+        TexplorerViewModel vm = null;
         public Texplorer()
         {
             InitializeComponent();
+            vm = new TexplorerViewModel();
+            DataContext = vm;
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

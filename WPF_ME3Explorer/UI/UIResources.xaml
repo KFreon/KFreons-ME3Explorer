@@ -19,6 +19,59 @@
     <s:Boolean x:Key="True">True</s:Boolean>
     <s:Boolean x:Key="False">False</s:Boolean>
 
+    <ControlTemplate x:Key="SearchBoxTemplate" TargetType="TextBox">
+        <Grid Margin="3">
+            <TextBox x:Name="SearchBox" Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+            <Label x:Name="BlankText" Content="Search for filenames, texture names, PCC's, ExpID's, and Hashes..." IsHitTestVisible="False" Foreground="Gray" Background="{x:Null}">
+                <Label.Style>
+                    <Style TargetType="Label">
+                        <Style.Resources>
+                            <Storyboard x:Key="FadeOutStoryboard">
+                                <DoubleAnimation From="1" To="0" Duration="0:0:0.1" Storyboard.TargetProperty="Opacity"/>
+                            </Storyboard>
+
+                            <Storyboard x:Key="FadeInStoryboard">
+                                <DoubleAnimation From="0" To="1" Duration="0:0:0.1" Storyboard.TargetProperty="Opacity"/>
+                            </Storyboard>
+                        </Style.Resources>
+                        <Setter Property="Opacity" Value="1"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Searching}" Value="true">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard Storyboard="{StaticResource FadeOutStoryboard}"/>
+                                </DataTrigger.EnterActions>
+
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard Storyboard="{StaticResource FadeInStoryboard}"/>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+
+                            <DataTrigger Binding="{Binding ElementName=SearchBox, Path=IsMouseOver}" Value="true">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard Storyboard="{StaticResource FadeOutStoryboard}"/>
+                                </DataTrigger.EnterActions>
+
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard Storyboard="{StaticResource FadeInStoryboard}"/>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+
+                            <DataTrigger Binding="{Binding ElementName=SearchBox,Path=IsFocused}" Value="true">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard Storyboard="{StaticResource FadeOutStoryboard}"/>
+                                </DataTrigger.EnterActions>
+
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard Storyboard="{StaticResource FadeInStoryboard}"/>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Label.Style>
+            </Label>
+        </Grid>
+    </ControlTemplate>
+    
     <ControlTemplate x:Key="StatusBarTemplate" TargetType="{x:Type StatusBar}">
         <DockPanel LastChildFill="False">
             <DockPanel.Resources>

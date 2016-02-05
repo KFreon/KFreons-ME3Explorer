@@ -3,10 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WPF_ME3Explorer.Textures;
 
 namespace WPF_ME3Explorer.UI.ViewModels
 {
-    class TexplorerViewModel
+    public class TexplorerViewModel : MEViewModelBase<TreeTexInfo>
     {
+        public TexplorerViewModel() : base(Properties.Settings.Default.TexplorerGameVersion)
+        {
+
+        }
     }
 }

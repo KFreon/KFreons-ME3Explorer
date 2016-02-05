@@ -80,6 +80,18 @@ namespace WPF_ME3Explorer.PCCObjects
             }
         }
 
+        string expidstring = null;
+        public string ExpIDString
+        {
+            get
+            {
+                if (expidstring == null && ExpID > 0)
+                    expidstring = ExpID.ToString();
+
+                return expidstring;
+            }
+        }
+
         public PCCEntry(Action<PCCEntry> pccEntryChangeAction = null)
         {
             Using = true;

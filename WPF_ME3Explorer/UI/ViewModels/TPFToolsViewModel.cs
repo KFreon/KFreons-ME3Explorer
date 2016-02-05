@@ -14,9 +14,8 @@ using WPF_ME3Explorer.Textures;
 
 namespace WPF_ME3Explorer.UI.ViewModels
 {
-    public class TPFToolsViewModel : MEViewModelBase
+    public class TPFToolsViewModel : MEViewModelBase<TPFTexInfo>
     {
-        public MTRangedObservableCollection<TPFTexInfo> Textures { get; set; }
         List<ZipReader> Zippys = new List<ZipReader>();
 
         public TreeDB CurrentTree
@@ -34,8 +33,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         public TPFToolsViewModel() : base(Properties.Settings.Default.TPFToolsGameVersion)
         {
-            Textures = new MTRangedObservableCollection<TPFTexInfo>();
-            ItemsView = CollectionViewSource.GetDefaultView(Textures);
             Trees = new MTRangedObservableCollection<TreeDB>();
             Trees.Add(new TreeDB(MEExDirecs, 1, MEExDirecs.GameVersion == 1, null, ToolsetRevision, DontLoad: true));
             Trees.Add(new TreeDB(MEExDirecs, 2, MEExDirecs.GameVersion == 2, null, ToolsetRevision, DontLoad: true));
