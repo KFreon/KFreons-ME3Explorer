@@ -130,6 +130,8 @@
     <Compile Include="UI\TPFTools.xaml.cs">
       <DependentUpon>TPFTools.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\ViewModels\DesignTime\DESIGN_TexplorerVM.cs" />
+    <Compile Include="UI\ViewModels\DesignTime\DESIGN_TPFToolsVM.cs" />
     <Compile Include="UI\ViewModels\GameInfoViewerBaseVM.cs" />
     <Compile Include="UI\ViewModels\GameInfoViewerViewModel.cs" />
     <Compile Include="UI\ViewModels\MEViewModelBase.cs" />

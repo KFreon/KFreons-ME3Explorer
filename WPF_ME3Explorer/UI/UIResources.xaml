@@ -22,7 +22,7 @@
     <ControlTemplate x:Key="SearchBoxTemplate" TargetType="TextBox">
         <Grid Margin="3">
             <TextBox x:Name="SearchBox" Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
-            <Label x:Name="BlankText" Content="Search for filenames, texture names, PCC's, ExpID's, and Hashes..." IsHitTestVisible="False" Foreground="Gray" Background="{x:Null}">
+            <Label x:Name="BlankText" Content="{TemplateBinding Tag}"  IsHitTestVisible="False" Foreground="Gray" Background="{x:Null}">
                 <Label.Style>
                     <Style TargetType="Label">
                         <Style.Resources>

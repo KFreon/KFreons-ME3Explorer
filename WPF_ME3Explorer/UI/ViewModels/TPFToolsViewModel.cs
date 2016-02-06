@@ -109,7 +109,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         /// </summary>
         /// <param name="Files>Files to load textures from.</param>
         /// <param name="numFiles">Number of files to load textures from.</param>
-        private List<TPFTexInfo> ProcessLoadingFiles(IEnumerable<string> Files, int numFiles)
+        protected List<TPFTexInfo> ProcessLoadingFiles(IEnumerable<string> Files, int numFiles)
         {
             List<TPFTexInfo> entries = new List<TPFTexInfo>();
             foreach (string file in Files)
