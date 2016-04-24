@@ -83,43 +83,12 @@
     <Compile Include="Debugging\DebugWindow.xaml.cs">
       <DependentUpon>DebugWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="General.cs" />
     <Compile Include="HashStringConverter.cs" />
     <Compile Include="ISearchable.cs" />
     <Compile Include="IToolEntry.cs" />
     <Compile Include="MEDirectories\DLCFileEntry.cs" />
     <Compile Include="MEDirectories\FileEntryBase.cs" />
-    <Compile Include="MEDirectories\ME1Directory.cs" />
-    <Compile Include="MEDirectories\ME2Directory.cs" />
-    <Compile Include="MEDirectories\ME3Directory.cs" />
-    <Compile Include="MEDirectories\MEExDirectories.cs" />
-    <Compile Include="PCCObjects\AbstractPCCObject.cs" />
-    <Compile Include="PCCObjects\ExportEntries\AbstractExportEntry.cs" />
-    <Compile Include="PCCObjects\ExportEntries\ME1ExportEntry.cs" />
-    <Compile Include="PCCObjects\ExportEntries\ME2ExportEntry.cs" />
-    <Compile Include="PCCObjects\ExportEntries\ME3ExportEntry.cs" />
-    <Compile Include="PCCObjects\ImportEntries\AbstractImportEntry.cs" />
-    <Compile Include="PCCObjects\ImportEntries\ME1ImportEntry.cs" />
-    <Compile Include="PCCObjects\ImportEntries\ME2ImportEntry.cs" />
-    <Compile Include="PCCObjects\ImportEntries\ME3ImportEntry.cs" />
-    <Compile Include="PCCObjects\ME1PCCObject.cs" />
-    <Compile Include="PCCObjects\ME2PCCObject.cs" />
-    <Compile Include="PCCObjects\ME3PCCObject.cs" />
-    <Compile Include="PCCObjects\MEPropertyReader.cs" />
-    <Compile Include="PCCObjects\PCCEntry.cs" />
-    <Compile Include="PCCObjects\PropGrid.cs" />
     <Compile Include="Settings.cs" />
-    <Compile Include="Textures\AbstractTexInfo.cs" />
-    <Compile Include="Textures\ImageInfo.cs" />
-    <Compile Include="Textures\METexture2D.cs" />
-    <Compile Include="Textures\MiniLZO.cs" />
-    <Compile Include="Textures\PCCStorageType.cs" />
-    <Compile Include="Textures\SaltLZOHelper.cs" />
-    <Compile Include="Textures\ThumbnailManager.cs" />
-    <Compile Include="Textures\TPFTexInfo.cs" />
-    <Compile Include="Textures\TreeTexFolders.cs" />
-    <Compile Include="Textures\TreeTexInfo.cs" />
-    <Compile Include="TreeDB.cs" />
     <Compile Include="UI\GameInfoViewer.xaml.cs">
       <DependentUpon>GameInfoViewer.xaml</DependentUpon>
     </Compile>
@@ -136,7 +105,6 @@
     <Compile Include="UI\ViewModels\DesignTime\DESIGN_TPFToolsVM.cs" />
     <Compile Include="UI\ViewModels\GameInfoViewerBaseVM.cs" />
     <Compile Include="UI\ViewModels\GameInfoViewerViewModel.cs" />
-    <Compile Include="UI\ViewModels\MEViewModelBase.cs" />
     <Compile Include="UI\ViewModels\ModmakerViewModel.cs" />
     <Compile Include="UI\ViewModels\TexplorerViewModel.cs" />
     <Compile Include="UI\ViewModels\TPFToolsViewModel.cs" />
