@@ -87,6 +87,8 @@
     <Compile Include="HashStringConverter.cs" />
     <Compile Include="ISearchable.cs" />
     <Compile Include="IToolEntry.cs" />
+    <Compile Include="MEDirectories\DLCFileEntry.cs" />
+    <Compile Include="MEDirectories\FileEntryBase.cs" />
     <Compile Include="MEDirectories\ME1Directory.cs" />
     <Compile Include="MEDirectories\ME2Directory.cs" />
     <Compile Include="MEDirectories\ME3Directory.cs" />
@@ -108,7 +110,6 @@
     <Compile Include="PCCObjects\PropGrid.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Textures\AbstractTexInfo.cs" />
-    <Compile Include="Textures\HierarchicalTreeTexes.cs" />
     <Compile Include="Textures\ImageInfo.cs" />
     <Compile Include="Textures\METexture2D.cs" />
     <Compile Include="Textures\MiniLZO.cs" />
@@ -116,6 +117,7 @@
     <Compile Include="Textures\SaltLZOHelper.cs" />
     <Compile Include="Textures\ThumbnailManager.cs" />
     <Compile Include="Textures\TPFTexInfo.cs" />
+    <Compile Include="Textures\TreeTexFolders.cs" />
     <Compile Include="Textures\TreeTexInfo.cs" />
     <Compile Include="TreeDB.cs" />
     <Compile Include="UI\GameInfoViewer.xaml.cs">

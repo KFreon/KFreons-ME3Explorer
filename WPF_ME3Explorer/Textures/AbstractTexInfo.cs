@@ -175,6 +175,7 @@ namespace WPF_ME3Explorer.Textures
 
         public ICommand SelectAllCommand { get; set; }
         public ICommand DeSelectAllCommand { get; set; }
+
         #endregion Properties
 
         public AbstractTexInfo()

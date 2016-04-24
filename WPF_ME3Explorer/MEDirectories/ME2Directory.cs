@@ -7,7 +7,7 @@ using System.Drawing;
 using UsefulThings;
 using WPF_ME3Explorer.Debugging;
 
-namespace MEDirectories
+namespace WPF_ME3Explorer.MEDirectories
 {
     public static class ME2Directory
     {

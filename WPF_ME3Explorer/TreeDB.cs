@@ -124,7 +124,7 @@ namespace WPF_ME3Explorer
 
         public List<TreeTexInfo> Textures { get; set; }
 
-        public RangedObservableCollection<HierarchicalTreeTexes> TreeTexes { get; set; }
+        public RangedObservableCollection<TreeTexFolders> TreeTexes { get; set; }
 
         public bool? AdvancedFeatures { get; set; }
         public int GameVersion { get; set; }
@@ -180,7 +180,7 @@ namespace WPF_ME3Explorer
             thumbs = thumbsmanager;
             PCCs = new List<TreePCC>();
             Textures = new List<TreeTexInfo>();
-            TreeTexes = new RangedObservableCollection<HierarchicalTreeTexes>();
+            TreeTexes = new RangedObservableCollection<TreeTexFolders>();
             TreeVersion = treeVersion;
         }
 
@@ -295,83 +295,30 @@ namespace WPF_ME3Explorer
             }
 
 
-            List<HierarchicalTreeTexes> tempTreeTexes = new List<HierarchicalTreeTexes>((int)(Textures.Count / 2));
+            var folderPaths = Textures.Select(tex => tex.FullPackage).Distinct();
 
-            foreach (TreeTexInfo tex in Textures)
+            List<TreeTexFolders> folders = new List<TreeTexFolders>();
+            foreach (string path in folderPaths)
             {
-                string[] packages = tex.FullPackage.Split('.');
+                string[] nodes = path.Split('.');
 
-                // KFreon: Recursively find correct node to add to
-                HierarchicalTreeTexes found = FindCorrectNode(tempTreeTexes, packages, 0);
-
-                if (found == null)
-                {
-                    HierarchicalTreeTexes top = null;
-                    HierarchicalTreeTexes curr = null;
-                    foreach (string pack in packages)
-                    {
-                        HierarchicalTreeTexes temp = new HierarchicalTreeTexes(pack);
-
-                        if (curr == null)
-                        {
-                            curr = temp;
-                            top = temp;
-                        }
-                        else
-                        {
-                            temp.Parent = curr;
-                            curr.TreeTexes.Add(temp);
-                            curr = temp;
-                        }
-                    }
-
-                    if (curr.Textures == null)
-                        Dispatcher.CurrentDispatcher.Invoke(() => curr.Textures = new ObservableCollection<TreeTexInfo>());
-
-                    tex.Parent = curr;
-                    curr.Textures.Add(tex);
-                    tempTreeTexes.Add(top);
-                }
+                var topNodes = folders.Where(t => t.FolderName == nodes[0]);
+                TreeTexFolders folder = null;
+                if (topNodes?.Count() > 0)
+                    folder = topNodes.First();
                 else
-                {
-                    if (found.Textures == null)
-                        Dispatcher.CurrentDispatcher.Invoke(() => found.Textures = new ObservableCollection<TreeTexInfo>());
+                    folder = new TreeTexFolders(nodes.First(), null);
 
-                    tex.Parent = found;
-                    found.Textures.Add(tex);
-                }
+                folder.CreatePath(nodes.GetRange(1));
             }
 
             // KFreon: Sort tree
-            tempTreeTexes.Sort((tex1, tex2) => tex1.Name.CompareTo(tex2.Name));
-            Dispatcher.CurrentDispatcher.Invoke(() => TreeTexes.AddRange(tempTreeTexes));
+            folders.Sort((tex1, tex2) => tex1.FolderName.CompareTo(tex2.FolderName));
+            Dispatcher.CurrentDispatcher.Invoke(() => TreeTexes.AddRange(folders));
 
-            int count = 0;
-            foreach (var tex in TreeTexes)
-                count += tex.FullTexCount;
 
-            NumTreeTexes = count;
+            NumTreeTexes = Textures.Count;
             DebugOutput.PrintLn("TOTAL ME" + GameVersion + " TEXTURES: " + NumTreeTexes);
-        }
-
-        public HierarchicalTreeTexes FindCorrectNode(ICollection<HierarchicalTreeTexes> texes, string[] packs, int index)
-        {
-            if (index < packs.Length)
-            {
-                string pack = packs[index];
-                foreach (HierarchicalTreeTexes treet in texes)
-                {
-                    if (pack == treet.Name)
-                    {
-                        HierarchicalTreeTexes te = FindCorrectNode(treet.TreeTexes, packs, (index + 1));
-                        if (te == null)
-                            return treet;
-                        else
-                            return te;
-                    }
-                }
-            }
-            return null;
         }
 
         public void LoadTree(string filename = null)

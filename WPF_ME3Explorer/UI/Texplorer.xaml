@@ -7,7 +7,7 @@
         xmlns:dVM="clr-namespace:WPF_ME3Explorer.UI.ViewModels.DesignTime"
         xmlns:VM="clr-namespace:WPF_ME3Explorer.UI.ViewModels"
         mc:Ignorable="d"
-        Title="Texplorer" Height="800.334" Width="1500.575" Closing="Window_Closing" d:DataContext="{d:DesignInstance Type=dVM:DESIGN_TexplorerVM, IsDesignTimeCreatable=True}">
+        Title="Texplorer" Height="800.334" Width="1748.575" Closing="Window_Closing" d:DataContext="{d:DesignInstance Type=dVM:DESIGN_TexplorerVM}">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -28,13 +28,17 @@
             <RowDefinition Height="406*"/>
             <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
+
+
+
         <Menu Background="White" Grid.ColumnSpan="2" Margin="0,0,0,0.333">
-            <MenuItem Header="Save Changes"/>
+            <MenuItem Header="Save Changes" IsEnabled="{Binding Changes}"/>
         </Menu>
 
-        <StackPanel Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right" Margin="0,0,-0.333,0.333">
+        <StackPanel x:Name="GameAndTreeIndicators" Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right" Margin="0,0,-0.333,0.333">
             <ContentControl x:Name="GameIndicatorPanel" Template="{StaticResource GameIndicators}"/>
             <ContentControl x:Name="TreeIndicatorPanel" Template="{StaticResource TreeIndicators}"/>
+            <Button Content="Settings" Style="{StaticResource MainButtonStyle}"/>
         </StackPanel>
 
         <TreeView x:Name="MainTreeView" Grid.Row="1">
@@ -43,19 +47,141 @@
 
         <WrapPanel x:Name="MainDisplayPanel" Grid.Column="1" Grid.Row="1"/>
 
-        <Grid Grid.Row="1" Grid.Column="2">
+        <Grid x:Name="DetailsArea" Grid.Row="1" Grid.Column="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="221*"/>
                 <RowDefinition Height="287*"/>
             </Grid.RowDefinitions>
 
-            <TextBox Template="{StaticResource SearchBoxTemplate}" Tag="Search..." VerticalAlignment="Top"/>
-            <ListBox x:Name="SearchResultsBox" Margin="0,32,0.333,286.333" Grid.RowSpan="2"/>
+            <TextBox Template="{StaticResource SearchBoxTemplate}" Tag="Search..." VerticalAlignment="Top" BorderBrush="{x:Null}"/>
+            <ListBox x:Name="SearchResultsBox" Margin="0,32,0.333,286.333"/>
 
             <Label Content="PCC's" Grid.Row="1" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Top"/>
             <ListBox x:Name="PCCsListBox" Grid.Row="1" Margin="0,34.333,0.333,0.333"/>
         </Grid>
 
         <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="2" Grid.ColumnSpan="3"/>
+
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" Background="Black">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200*"/>
+                <ColumnDefinition Width="631*"/>
+            </Grid.ColumnDefinitions>
+
+            <Grid Background="White" Grid.Column="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="491*"/>
+                    <ColumnDefinition Width="422"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="50*"/>
+                    <RowDefinition Height="713*"/>
+                </Grid.RowDefinitions>
+                
+                <Button Content="-->" VerticalAlignment="Center" HorizontalAlignment="Left" Background="White" FontSize="20"/>
+                <TextBlock Text="{Binding GameVersion, StringFormat=ME{0} Information}" Margin="0,0,-0.667,-0.667" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="25"/>
+                
+                <DockPanel x:Name="GameFileInfoPanel" Grid.Row="1">
+                    <DockPanel DockPanel.Dock="Top">
+                        <CheckBox Content="Only new" DockPanel.Dock="Left" VerticalAlignment="Center" IsChecked="{Binding DLCFilterNewOnly, Mode=TwoWay}" IsEnabled="{Binding CurrentTree.Valid}"/>
+
+                        <TextBox Text="Search..." VerticalAlignment="Center" Margin="5,0"/>
+                    </DockPanel>
+
+                    <ListBox DockPanel.Dock="Left"/>
+
+                    <DockPanel DockPanel.Dock="Bottom" LastChildFill="False">
+                        <TextBlock Text="{Binding ElementName=DLCsListBox, Path=SelectedItem.SizeString, StringFormat=DLC Size:   {0}}" DockPanel.Dock="Left"/>
+                        <TextBlock Text="{Binding ElementName=FilesListBox, Path=SelectedItem.DateModified, StringFormat=Date Modified:   {0}}" DockPanel.Dock="Right"/>
+                        <TextBlock Text="{Binding ElementName=FilesListBox, Path=SelectedItem.SizeString, StringFormat=File Size:   {0}}" DockPanel.Dock="Right" Margin="0,0,10,0"/>
+                        <Button HorizontalAlignment="Center" DockPanel.Dock="Top" FontSize="20">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Content" Value="Begin Scan!"/>
+
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CurrentTree.Valid}" Value="true">
+                                            <Setter Property="Content" Value="Add to Tree!"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </DockPanel>
+
+                    <DockPanel DockPanel.Dock="Right">
+                        <DockPanel.Resources>
+                            <DataTemplate x:Key="ListTemplate">
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding Using, Mode=TwoWay}"/>
+                                    <TextBlock Text="{Binding Name}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DockPanel.Resources>
+                        <ListBox x:Name="DLCsListBox" DockPanel.Dock="Left" ItemsSource="{Binding DLCItemsView}" ItemTemplate="{StaticResource ListTemplate}"/>
+                        <ListBox x:Name="FilesListBox" DockPanel.Dock="Right" ItemsSource="{Binding ElementName=DLCsListBox, Path=SelectedItem.FilesView}" ItemTemplate="{StaticResource ListTemplate}"/>
+                    </DockPanel>
+                </DockPanel>
+
+                <StackPanel x:Name="TreeInfoPanel" Grid.Column="1" Grid.Row="1">
+                    <DockPanel LastChildFill="False">
+                        <StackPanel DockPanel.Dock="Left">
+                            <Label Content="Tree Exists?" FontWeight="Bold" FontSize="30"/>
+                            <TextBlock HorizontalAlignment="Center" FontSize="50" FontWeight="Bold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="YES"/>
+                                        <Setter Property="Foreground" Value="Green"/>
+                                        
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentTree.Exists}" Value="false">
+                                                <Setter Property="Text" Value="NO"/>
+                                                <Setter Property="Foreground" Value="Red"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel DockPanel.Dock="Right">
+                            <Label Content="Tree Valid?" FontWeight="Bold" FontSize="30"/>
+                            <TextBlock HorizontalAlignment="Center" FontSize="50" FontWeight="Bold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="YES"/>
+                                        <Setter Property="Foreground" Value="Green"/>
+
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentTree.Valid}" Value="false">
+                                                <Setter Property="Text" Value="NO"/>
+                                                <Setter Property="Foreground" Value="Red"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Visibility="{Binding CurrentTree.Valid, Converter={StaticResource BoolToVisConverter}}">
+                        <Label Content="Tree Version:   " HorizontalAlignment="Center" FontSize="20" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding CurrentTree.TreeVersion}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    
+                    <Label Content="Tree Operations" HorizontalAlignment="Center" FontWeight="Bold" FontSize="15" Margin="0,10,0,0"/>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Import Tree"/>
+                        <Button Content="Export Tree"/>
+                        <Button Content="Remove Current Tree"/>
+                        <Button Content="Export Tree as CSV"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+
+        </Grid>
     </Grid>
 </Window>

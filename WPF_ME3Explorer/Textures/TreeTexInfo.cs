@@ -84,8 +84,6 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        public HierarchicalTreeTexes Parent { get; set; }
-
         #region Properties
         public string Details
         {

@@ -18,22 +18,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
     {
         List<ZipReader> Zippys = new List<ZipReader>();
 
-        public TreeDB CurrentTree
-        {
-            get
-            {
-                if (Trees != null && Trees.Count != 0)
-                    foreach (TreeDB tree in Trees)
-                        if (tree.IsSelected)
-                            return tree;
-
-                return null;
-            }
-        }
-
         public TPFToolsViewModel() : base(Properties.Settings.Default.TPFToolsGameVersion)
         {
-            Trees = new MTRangedObservableCollection<TreeDB>();
             Trees.Add(new TreeDB(MEExDirecs, 1, MEExDirecs.GameVersion == 1, null, ToolsetRevision, DontLoad: true));
             Trees.Add(new TreeDB(MEExDirecs, 2, MEExDirecs.GameVersion == 2, null, ToolsetRevision, DontLoad: true));
             Trees.Add(new TreeDB(MEExDirecs, 3, MEExDirecs.GameVersion == 3, null, ToolsetRevision, DontLoad: true));

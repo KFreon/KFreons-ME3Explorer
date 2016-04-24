@@ -8,11 +8,11 @@ using AmaroK86.MassEffect3.ZlibBlock;
 using System.Diagnostics;
 using CSharpImageLibrary.General;
 using WPF_ME3Explorer.PCCObjects;
-using MEDirectories;
 using Gibbed.IO;
 using SaltTPF;
 using System.Windows.Media.Imaging;
 using AmaroK86.ImageFormat;
+using WPF_ME3Explorer.MEDirectories;
 
 namespace WPF_ME3Explorer.Textures
 {

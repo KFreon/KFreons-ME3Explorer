@@ -262,6 +262,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         protected CancellationTokenSource cts { get; set; }
 
+        public TreeDB CurrentTree
+        {
+            get
+            {
+                if (Trees != null && Trees.Count != 0)
+                    foreach (TreeDB tree in Trees)
+                        if (tree.IsSelected)
+                            return tree;
+
+                return null;
+            }
+        }
+
         public virtual void ChangeTree(TreeDB newlySelectedTree)
         {
             foreach (var tree in Trees)
@@ -316,6 +329,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 ChangeTree((TreeDB)tree);
             });
+
+            Trees = new MTRangedObservableCollection<TreeDB>();
 
             Textures = new MTRangedObservableCollection<T>();
             ItemsView = CollectionViewSource.GetDefaultView(Textures);

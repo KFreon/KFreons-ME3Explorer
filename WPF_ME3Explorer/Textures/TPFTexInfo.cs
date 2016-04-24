@@ -426,7 +426,7 @@ namespace WPF_ME3Explorer.Textures
             EntryName = treetex.EntryName;
         }
 
-        public bool ExtractConvert(string destinationName, ImageEngineFormat format, ImageEngine.MipHandling fixMips = ImageEngine.MipHandling.GenerateNew)
+        public bool ExtractConvert(string destinationName, ImageEngineFormat format, MipHandling fixMips = MipHandling.GenerateNew)
         {
             using (ImageEngineImage img = new ImageEngineImage(Extract()))
             {

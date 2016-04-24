@@ -7,7 +7,7 @@ using Microsoft.Win32;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.Debugging;
 
-namespace MEDirectories
+namespace WPF_ME3Explorer.MEDirectories
 {
     /// <summary>
     /// Provides Object Oriented front end access to all three ME Directory classes under one roof.
@@ -403,6 +403,42 @@ namespace MEDirectories
                     execf = Path.Combine(UsefulThings.General.GetExecutingLoc(), "Exec\\");
 
                 return execf;
+            }
+        }
+
+        public List<string> DLCFiles
+        {
+            get
+            {
+                switch (GameVersion)
+                {
+                    case 1:
+                        return ME1Directory.DLCFiles;
+                    case 2:
+                        return ME2Directory.DLCFiles;
+                    case 3:
+                        return ME3Directory.DLCFiles;
+                    default:
+                        return null;
+                }
+            }
+        }
+
+        public List<string> BasegameFiles
+        {
+            get
+            {
+                switch (GameVersion)
+                {
+                    case 1:
+                        return ME1Directory.BaseGameFiles;
+                    case 2:
+                        return ME2Directory.BaseGameFiles;
+                    case 3:
+                        return ME3Directory.BaseGameFiles;
+                    default:
+                        return null;
+                }
             }
         }
         #endregion
