@@ -7,7 +7,7 @@
         xmlns:dVM="clr-namespace:WPF_ME3Explorer.UI.ViewModels.DesignTime"
         xmlns:VM="clr-namespace:WPF_ME3Explorer.UI.ViewModels"
         mc:Ignorable="d"
-        Title="Texplorer" Height="800.334" Width="1748.575" Closing="Window_Closing" d:DataContext="{d:DesignInstance Type=dVM:DESIGN_TexplorerVM}">
+        Title="Texplorer" Height="900.334" Width="1748.575" Closing="Window_Closing">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -38,14 +38,53 @@
         <StackPanel x:Name="GameAndTreeIndicators" Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right" Margin="0,0,-0.333,0.333">
             <ContentControl x:Name="GameIndicatorPanel" Template="{StaticResource GameIndicators}"/>
             <ContentControl x:Name="TreeIndicatorPanel" Template="{StaticResource TreeIndicators}"/>
-            <Button Content="Settings" Style="{StaticResource MainButtonStyle}"/>
+            <Button Content="Settings" Style="{StaticResource MainButtonStyle}">
+                <Button.Triggers>
+                    <EventTrigger RoutedEvent="Button.Click">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="0" To="1500" Duration="0:0:1" DecelerationRatio="1">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+
+                                <DoubleAnimation Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:1" DecelerationRatio="1">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+
+                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="Visibility">
+                                    <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Visible}"/>
+                                </ObjectAnimationUsingKeyFrames>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Button.Triggers>
+            </Button>
         </StackPanel>
 
         <TreeView x:Name="MainTreeView" Grid.Row="1">
 
         </TreeView>
 
-        <WrapPanel x:Name="MainDisplayPanel" Grid.Column="1" Grid.Row="1"/>
+        <ListBox x:Name="MainDisplayPanel" Grid.Column="1" Grid.Row="1" ItemsSource="{Binding CurrentTree.Textures}">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel/>
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <DockPanel>
+                        <Image Source="{Binding Thumb, Converter={StaticResource ThumbnailConverter}}" Width="128" Height="128" DockPanel.Dock="Top"/>
+                        <TextBlock Text="{Binding TexName}" HorizontalAlignment="Center" VerticalAlignment="Bottom" DockPanel.Dock="Bottom"/>
+                    </DockPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
 
         <Grid x:Name="DetailsArea" Grid.Row="1" Grid.Column="2">
             <Grid.RowDefinitions>
@@ -53,135 +92,321 @@
                 <RowDefinition Height="287*"/>
             </Grid.RowDefinitions>
 
+            <Grid.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="VerticalAlignment" Value="Top"/>
+                </Style>
+            </Grid.Resources>
+
             <TextBox Template="{StaticResource SearchBoxTemplate}" Tag="Search..." VerticalAlignment="Top" BorderBrush="{x:Null}"/>
-            <ListBox x:Name="SearchResultsBox" Margin="0,32,0.333,286.333"/>
+            <ListBox x:Name="SearchResultsBox" Margin="0,32,0.333,0" Height="0" VerticalAlignment="Top"/>
+
+            <DockPanel Margin="0,35,0,0" LastChildFill="False" DataContext="{Binding ElementName=MainDisplayPanel,Path=SelectedItem}">
+                <DockPanel.Resources>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="DockPanel.Dock" Value="Top"/>
+                        <Setter Property="Margin" Value="2,1"/>
+                    </Style>
+                </DockPanel.Resources>
+                <TextBlock>
+                    <Run Text="Texture Name: "/>
+                    <Run Text="{Binding TexName}"/>
+                </TextBlock>
+
+                <TextBlock>
+                    <Run Text="Format: "/>
+                    <Run Text="{Binding Format}"/>
+                </TextBlock>
+
+                <TextBlock>
+                    <Run Text="Width: "/>
+                    <Run Text="{Binding Width}"/>
+                    <Run Text="    Height: "/>
+                    <Run Text="{Binding Height}"/>
+                </TextBlock>
+
+                <TextBlock>
+                    <Run Text="Mipmaps: "/>
+                    <Run Text="{Binding Mips}"/>
+                </TextBlock>
+                
+                <TextBlock>
+                    <Run Text="Storage Type: "/>
+                    <Run Text="{Binding StorageType}"/>
+                </TextBlock>
+
+                <TextBlock>
+                    <Run Text="LODGroup: "/>
+                    <Run Text="{Binding  LODGroup}"/>
+                </TextBlock>
+
+                <TextBlock>
+                    <Run Text="Texmod Hash: "/>
+                    <Run Text="{Binding Path, Converter={StaticResource HashStringConverter}}"/>
+                </TextBlock>
+
+                <TextBlock>
+                    <Run Text="Texture Cache: "/>
+                    <Run Text="{Binding TextureCache}"/>
+                </TextBlock>
+            </DockPanel>
+            
 
             <Label Content="PCC's" Grid.Row="1" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Top"/>
-            <ListBox x:Name="PCCsListBox" Grid.Row="1" Margin="0,34.333,0.333,0.333"/>
+            <ListBox x:Name="PCCsListBox" Grid.Row="1" Margin="0,34.333,0.333,0.333" ItemsSource="{Binding ElementName=MainDisplayPanel, Path=SelectedItem}"/>
         </Grid>
 
         <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="2" Grid.ColumnSpan="3"/>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" Background="Black">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="200*"/>
-                <ColumnDefinition Width="631*"/>
-            </Grid.ColumnDefinitions>
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black" d:IsHidden="True">
+            <Grid.Resources>
+                <Storyboard x:Key="ClosePanelAnimation">
+                    <DoubleAnimation Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
+                        <DoubleAnimation.EasingFunction>
+                            <CubicEase EasingMode="EaseOut"/>
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
 
-            <Grid Background="White" Grid.Column="1">
+                    <DoubleAnimation Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:1" DecelerationRatio="1">
+                        <DoubleAnimation.EasingFunction>
+                            <CubicEase EasingMode="EaseOut"/>
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+
+                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="Visibility">
+                        <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Collapsed}"/>
+                    </ObjectAnimationUsingKeyFrames>
+                </Storyboard>
+            </Grid.Resources>
+            <Grid x:Name="TreeScanPanel"  Background="White" HorizontalAlignment="Right" Margin="0,0,0,0.333" Width="1500">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="491*"/>
-                    <ColumnDefinition Width="422"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="354"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="50*"/>
                     <RowDefinition Height="713*"/>
                 </Grid.RowDefinitions>
+
+                <Button Content="-->" VerticalAlignment="Center" HorizontalAlignment="Left" Background="White" FontSize="20" Height="31" Margin="0,10,0,9.667" Width="34">
+                    <Button.Triggers>
+                        <EventTrigger RoutedEvent="Button.Click">
+                            <BeginStoryboard Storyboard="{StaticResource ClosePanelAnimation}"/>
+                        </EventTrigger>
+                    </Button.Triggers>
+                </Button>
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Grid.ColumnSpan="2">
+                    <TextBlock.Resources>
+                        <Style TargetType="Run">
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="FontSize" Value="25"/>
+                        </Style>
+                    </TextBlock.Resources>
                 
-                <Button Content="-->" VerticalAlignment="Center" HorizontalAlignment="Left" Background="White" FontSize="20"/>
-                <TextBlock Text="{Binding GameVersion, StringFormat=ME{0} Information}" Margin="0,0,-0.667,-0.667" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="25"/>
-                
-                <DockPanel x:Name="GameFileInfoPanel" Grid.Row="1">
-                    <DockPanel DockPanel.Dock="Top">
-                        <CheckBox Content="Only new" DockPanel.Dock="Left" VerticalAlignment="Center" IsChecked="{Binding DLCFilterNewOnly, Mode=TwoWay}" IsEnabled="{Binding CurrentTree.Valid}"/>
+                <Run Text="Tree Scan Information for ME"/>
+                <Run Text="{Binding GameVersion, Mode=OneWay}"/>
+                </TextBlock>
 
-                        <TextBox Text="Search..." VerticalAlignment="Center" Margin="5,0"/>
-                    </DockPanel>
+                <DockPanel x:Name="GameFileInfoPanel" Grid.Row="1" Margin="0,0.333,17,0.333">
+                    <TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Text="Exclusions" FontWeight="Bold" FontSize="30"/>
+                    <TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Text="This panel is for removing specific DLC's or PCC's from the Tree Scanning process. You may have a DLC you don't want included, or a file that is causing trouble." Margin="0,10,0,0"/>
+                    <TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Text="NOTE: If a tree is loaded, exclusions are the files already scanned for that tree." Margin="0,0,0,5"/>
 
-                    <ListBox DockPanel.Dock="Left"/>
+                    <Button x:Name="BeginScanButton" DockPanel.Dock="Bottom" HorizontalAlignment="Center" FontSize="20" Margin="0,2" Padding="7,0" Click="BeginScanButton_Click">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Content" Value="Begin Scan!"/>
 
-                    <DockPanel DockPanel.Dock="Bottom" LastChildFill="False">
-                        <TextBlock Text="{Binding ElementName=DLCsListBox, Path=SelectedItem.SizeString, StringFormat=DLC Size:   {0}}" DockPanel.Dock="Left"/>
-                        <TextBlock Text="{Binding ElementName=FilesListBox, Path=SelectedItem.DateModified, StringFormat=Date Modified:   {0}}" DockPanel.Dock="Right"/>
-                        <TextBlock Text="{Binding ElementName=FilesListBox, Path=SelectedItem.SizeString, StringFormat=File Size:   {0}}" DockPanel.Dock="Right" Margin="0,0,10,0"/>
-                        <Button HorizontalAlignment="Center" DockPanel.Dock="Top" FontSize="20">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Content" Value="Begin Scan!"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentTree.Valid}" Value="true">
+                                        <Setter Property="Content" Value="Add to Tree!"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+
+                        <Button.Triggers>
+                            <EventTrigger RoutedEvent="Button.Click">
+                                <BeginStoryboard Storyboard="{StaticResource ClosePanelAnimation}"/>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TreeScanProgressPanel" Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Visible}"/>
+                                        </ObjectAnimationUsingKeyFrames>
+
+                                        <DoubleAnimation Storyboard.TargetName="TreeScanProgressPanel" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:1" DecelerationRatio="1">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Button.Triggers>
+                    </Button>
+
+                    <Grid DockPanel.Dock="Right">
+                        <Grid.Resources>
+                            <DataTemplate x:Key="ListTemplate">
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}"/>
+                                    <TextBlock Text="{Binding Name}" Margin="5,0,0,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+
+                            <Style TargetType="Label">
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="DockPanel.Dock" Value="Top"/>
+                            </Style>
+
+                            <Style TargetType="ListBox">
+                                <Setter Property="ItemTemplate" Value="{StaticResource ListTemplate}"/>
+                                <Setter Property="Margin" Value="5,0"/>
+                            </Style>
+
+                            <Style TargetType="TextBox">
+                                <Setter Property="Margin" Value="5,3"/>
+                                <Setter Property="DockPanel.Dock" Value="Top"/>
+                            </Style>
+                        </Grid.Resources>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="173*"/>
+                            <ColumnDefinition Width="362*"/>
+                            <ColumnDefinition Width="361*"/>
+                        </Grid.ColumnDefinitions>
+                        <DockPanel>
+                            <Label Content="DLCs"/>
+                            <ListBox x:Name="DLCsListBox" ItemsSource="{Binding DLCItemsView}"/>
+                        </DockPanel>
+
+                        <DockPanel Grid.Column="1">
+                            <Label Content="All Game Files incl DLC"/>
+                            <TextBox Text="Search..."/>
+                            <ListBox x:Name="FilesListBox" ItemsSource="{Binding FileItemsView}"/>
+                        </DockPanel>
+
+                        <DockPanel Grid.Column="2">
+                            <Label Content="Excluded from Tree Scan"/>
+                            <TextBox Text="Search..."/>
+                            <ListBox x:Name="ExclusionsListBox" ItemsSource="{Binding ExclusionsItemsView}" Background="Pink"/>
+                        </DockPanel>
+                    </Grid>
+                </DockPanel>
+
+                <StackPanel x:Name="TreeInfoPanel" Grid.Column="1" Grid.Row="1" Margin="1,0.333,0,0.333">
+                    <StackPanel DockPanel.Dock="Right">
+                        <Label Content="Tree Valid?" FontWeight="Bold" FontSize="30" HorizontalAlignment="Center"/>
+                        <TextBlock HorizontalAlignment="Center" FontSize="50" FontWeight="Bold">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="YES"/>
+                                    <Setter Property="Foreground" Value="Green"/>
 
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentTree.Valid}" Value="true">
-                                            <Setter Property="Content" Value="Add to Tree!"/>
+                                        <DataTrigger Binding="{Binding CurrentTree.Valid}" Value="false">
+                                            <Setter Property="Text" Value="NO"/>
+                                            <Setter Property="Foreground" Value="Red"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </Button.Style>
-                        </Button>
-                    </DockPanel>
-
-                    <DockPanel DockPanel.Dock="Right">
-                        <DockPanel.Resources>
-                            <DataTemplate x:Key="ListTemplate">
-                                <StackPanel Orientation="Horizontal">
-                                    <CheckBox IsChecked="{Binding Using, Mode=TwoWay}"/>
-                                    <TextBlock Text="{Binding Name}"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </DockPanel.Resources>
-                        <ListBox x:Name="DLCsListBox" DockPanel.Dock="Left" ItemsSource="{Binding DLCItemsView}" ItemTemplate="{StaticResource ListTemplate}"/>
-                        <ListBox x:Name="FilesListBox" DockPanel.Dock="Right" ItemsSource="{Binding ElementName=DLCsListBox, Path=SelectedItem.FilesView}" ItemTemplate="{StaticResource ListTemplate}"/>
-                    </DockPanel>
-                </DockPanel>
-
-                <StackPanel x:Name="TreeInfoPanel" Grid.Column="1" Grid.Row="1">
-                    <DockPanel LastChildFill="False">
-                        <StackPanel DockPanel.Dock="Left">
-                            <Label Content="Tree Exists?" FontWeight="Bold" FontSize="30"/>
-                            <TextBlock HorizontalAlignment="Center" FontSize="50" FontWeight="Bold">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="YES"/>
-                                        <Setter Property="Foreground" Value="Green"/>
-                                        
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding CurrentTree.Exists}" Value="false">
-                                                <Setter Property="Text" Value="NO"/>
-                                                <Setter Property="Foreground" Value="Red"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </StackPanel>
-
-                        <StackPanel DockPanel.Dock="Right">
-                            <Label Content="Tree Valid?" FontWeight="Bold" FontSize="30"/>
-                            <TextBlock HorizontalAlignment="Center" FontSize="50" FontWeight="Bold">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="YES"/>
-                                        <Setter Property="Foreground" Value="Green"/>
-
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding CurrentTree.Valid}" Value="false">
-                                                <Setter Property="Text" Value="NO"/>
-                                                <Setter Property="Foreground" Value="Red"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </StackPanel>
-                    </DockPanel>
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Visibility="{Binding CurrentTree.Valid, Converter={StaticResource BoolToVisConverter}}">
-                        <Label Content="Tree Version:   " HorizontalAlignment="Center" FontSize="20" FontWeight="Bold"/>
-                        <TextBlock Text="{Binding CurrentTree.TreeVersion}" VerticalAlignment="Center"/>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
-                    
-                    
-                    <Label Content="Tree Operations" HorizontalAlignment="Center" FontWeight="Bold" FontSize="15" Margin="0,10,0,0"/>
 
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="Import Tree"/>
-                        <Button Content="Export Tree"/>
-                        <Button Content="Remove Current Tree"/>
-                        <Button Content="Export Tree as CSV"/>
+
+                    <TextBlock HorizontalAlignment="Center" Visibility="{Binding CurrentTree.Valid, Converter={StaticResource BoolToVisConverter}}" Margin="0,0,0,40">
+                        <Run Text="Tree Version:" FontSize="20" FontWeight="Bold"/>
+                        <Run Text="{Binding CurrentTree.TreeVersion}" FontWeight="Bold"/>
+                    </TextBlock>
+                    <StackPanel>
+                        <StackPanel.Resources>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Margin" Value="0,2,0,2"/>
+                            </Style>
+                            <Style TargetType="Image">
+                                <Setter Property="Height" Value="70"/>
+                                <Setter Property="VerticalAlignment" Value="Top"/>
+                            </Style>
+
+                            <Style TargetType="Label">
+                                <Setter Property="Margin" Value="0,70,0,0"/>
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                <Setter Property="FontSize" Value="20"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Style>
+                        </StackPanel.Resources>
+                        <Button>
+                            <Grid>
+                                <Image Source="/WPF_ME3Explorer;component/Resources/Import Tree.png"/>
+                                <Label Content="Import Tree"/>
+                            </Grid>
+                        </Button>
+                        <Button>
+                            <Grid>
+                                <Image Source="/WPF_ME3Explorer;component/Resources/Export Tree.png"/>
+                                <Label Content="Export Tree"/>
+                            </Grid>
+                        </Button>
+                        <Button>
+                            <Grid>
+                                <Image Source="/WPF_ME3Explorer;component/Resources/Delete Tree.png"/>
+                                <Label Content="Remove Current Tree"/>
+                            </Grid>
+                        </Button>
+                        <Button>
+                            <Grid>
+                                <Image Source="/WPF_ME3Explorer;component/Resources/Export CSV.png"/>
+                                <Label Content="Export Tree to CSV"/>
+                            </Grid>
+                        </Button>
                     </StackPanel>
                 </StackPanel>
             </Grid>
+        </Grid>
 
+        <Grid x:Name="TreeScanProgressPanel" Background="#CC000000" Grid.RowSpan="3" Grid.ColumnSpan="3" Visibility="Collapsed">
+            <Grid.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontSize" Value="50"/>
+                </Style>
+            </Grid.Resources>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="342*"/>
+                <RowDefinition Height="529*"/>
+            </Grid.RowDefinitions>
+            <TextBlock x:Name="Title" Text="Tree Scan in progress..." VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="80" Margin="471,0,470,0" Height="106" Width="801"/>
 
+            <TextBlock x:Name="MemoryUsage" HorizontalAlignment="Right" VerticalAlignment="Bottom" Grid.Row="1">
+                <Run Text="{Binding MemoryUsage}"/>
+                <Run Text=" :Memory Usage"/>
+            </TextBlock>
+
+            <TextBlock x:Name="CPUUsage" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,0,0,-0.667" Grid.Row="1">
+                <Run Text="CPU Usage: "/>
+                <Run Text="{Binding CPUUsage}"/>
+            </TextBlock>
+
+            <TextBlock x:Name="ElapsedTime" VerticalAlignment="Bottom" Margin="500,0,0,0" Grid.Row="1">
+                <Run Text="Elapsed Time: "/>
+                <Run Text="{Binding ElapsedTime, StringFormat=hh\\:mm\\:ss}"/>
+            </TextBlock>
+
+            <ProgressBar x:Name="ProgressBar" Margin="171,120,171,10" Value="{Binding Progress}" Maximum="{Binding MaxProgress}"/>
+            <Button x:Name="ErrorsShowButton" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="50" Background="Transparent" Foreground="White" BorderBrush="White" Padding="10,5">
+                <Button.Content>
+                    <TextBlock>
+                        <Run Foreground="White" Text="Errors during Scanning: "/>
+                        <Run Foreground="Red" Text="{Binding Errors.Count, Mode=OneWay}" FontWeight="Bold"/>
+                    </TextBlock>
+                </Button.Content>
+            </Button>
+            <ListBox x:Name="ErrorsDisplay" Margin="5,80,5,80.333" ItemsSource="{Binding Errors}" Grid.Row="1"/>
+            <Border x:Name="Status" HorizontalAlignment="Center" Margin="{Binding ElementName=ProgressBar, Path=Margin}">
+                <TextBlock Text="{Binding Status}" VerticalAlignment="Center"/>
+            </Border>
         </Grid>
     </Grid>
 </Window>

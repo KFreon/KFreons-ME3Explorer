@@ -5,14 +5,20 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WPF_ME3Explorer.Debugging"
         mc:Ignorable="d"
-        Title="DebugWindow" Height="300" Width="579.406">
+        Title="DebugWindow" Height="300" Width="1000">
     <DockPanel>
-        <Menu DockPanel.Dock="Top" MaxHeight="40">
+        <Menu DockPanel.Dock="Top">
             <MenuItem>
-                <Button Content="Save Log"/>
+                <Button x:Name="SaveLogButton" Content="Save Log" Click="SaveLogButton_Click"/>
             </MenuItem>
         </Menu>
 
-        <RichTextBox x:Name="rtb" DockPanel.Dock="Bottom" Background="Black" Foreground="#FF29AA00"/>
+        <RichTextBox x:Name="rtb" DockPanel.Dock="Bottom" Background="Black" Foreground="#FF29AA00" VerticalScrollBarVisibility="Visible">
+            <RichTextBox.Resources>
+                <Style TargetType="Paragraph">
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </RichTextBox.Resources>
+        </RichTextBox>
     </DockPanel>
 </Window>

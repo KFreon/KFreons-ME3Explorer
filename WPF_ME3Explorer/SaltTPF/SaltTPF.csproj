@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>SaltTPF</RootNamespace>
     <AssemblyName>SaltTPF</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
@@ -54,7 +54,7 @@
   <ItemGroup>
     <Compile Include="CRC32.cs" />
     <Compile Include="HashTree.cs" />
-    <Compile Include="KFreonZipCrypto.cs" />
+    <Compile Include="ZipDecrypto.cs" />
     <Compile Include="TargaImage.cs" />
     <Compile Include="TPFExtract.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -72,12 +72,6 @@
     <EmbeddedResource Include="TPFView.resx">
       <DependentUpon>TPFView.cs</DependentUpon>
     </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\AmaroK86.ImageFormat\AmaroK86.ImageFormat\AmaroK86.ImageFormat.csproj">
-      <Project>{f1c6a2a0-5f1a-414a-be17-a2fda2a79e7f}</Project>
-      <Name>AmaroK86.ImageFormat</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

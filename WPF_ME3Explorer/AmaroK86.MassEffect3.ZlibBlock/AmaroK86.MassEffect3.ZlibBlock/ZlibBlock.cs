@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
-using Gibbed.IO;
+using UsefulThings;
 
 namespace AmaroK86.MassEffect3.ZlibBlock
 {
@@ -42,10 +42,10 @@ namespace AmaroK86.MassEffect3.ZlibBlock
 
             int numSeg = (int)Math.Ceiling((double)count / (double)maxSegmentSize);
 
-            headBlock.WriteValueU32(magic);
-            headBlock.WriteValueU32(maxSegmentSize);
-            headBlock.WriteValueU32(0x0);            //total compressed size, still to calculate
-            headBlock.WriteValueS32(count);          //total uncompressed size
+            headBlock.WriteUInt32(magic);
+            headBlock.WriteUInt32(maxSegmentSize);
+            headBlock.WriteUInt32(0x0);            //total compressed size, still to calculate
+            headBlock.WriteInt32(count);          //total uncompressed size
 
             for (int i = count; i > 0; i -= (int)maxSegmentSize)
             {
@@ -55,13 +55,13 @@ namespace AmaroK86.MassEffect3.ZlibBlock
                 zipStream.Write(buffer, offset + (count - i), copyBytes);
                 zipStream.Flush();
                 zipStream.Finish();
-                headBlock.WriteValueU32((uint)dataBlock.Length - precCompSize); //compressed segment size
-                headBlock.WriteValueS32(copyBytes); //uncompressed segment size
+                headBlock.WriteUInt32((uint)dataBlock.Length - precCompSize); //compressed segment size
+                headBlock.WriteInt32(copyBytes); //uncompressed segment size
                 //Console.WriteLine("  Segment size: {0}, total read: {1}, compr size: {2}", maxSegmentSize, copyBytes, (uint)dataBlock.Length - precCompSize);
             }
 
             headBlock.Seek(8, SeekOrigin.Begin);
-            headBlock.WriteValueS32((int)dataBlock.Length); // total compressed size
+            headBlock.WriteInt32((int)dataBlock.Length); // total compressed size
 
             byte[] finalBlock = new byte[headBlock.Length + dataBlock.Length];
             Buffer.BlockCopy(headBlock.ToArray(), 0, finalBlock, 0, (int)headBlock.Length);
@@ -136,20 +136,20 @@ namespace AmaroK86.MassEffect3.ZlibBlock
             using (MemoryStream buffStream = new MemoryStream(buffer, offset, count))
             {
                 InflaterInputStream zipStream;
-                uint magicStream = buffStream.ReadValueU32();
-                if (magicStream != magic && magicStream.Swap() != magic)
+                uint magicStream = buffStream.ReadUInt32();
+                if (magicStream != magic)
                 {
                     throw new InvalidDataException("found an invalid zlib block");
                 }
 
-                uint buffMaxSegmentSize = buffStream.ReadValueU32();
+                uint buffMaxSegmentSize = buffStream.ReadUInt32();
                 if (buffMaxSegmentSize != maxSegmentSize)
                 {
                     throw new FormatException();
                 }
 
-                uint totComprSize = buffStream.ReadValueU32();
-                uint totUncomprSize = buffStream.ReadValueU32();
+                uint totComprSize = buffStream.ReadUInt32();
+                uint totUncomprSize = buffStream.ReadUInt32();
 
                 byte[] outputBuffer = new byte[totUncomprSize];
                 int numOfSegm = (int)Math.Ceiling((double)totUncomprSize / (double)maxSegmentSize);
@@ -160,8 +160,8 @@ namespace AmaroK86.MassEffect3.ZlibBlock
                 for (int i = 0; i < numOfSegm; i++)
                 {
                     buffStream.Seek(headSegm, SeekOrigin.Begin);
-                    int comprSegm = buffStream.ReadValueS32();
-                    int uncomprSegm = buffStream.ReadValueS32();
+                    int comprSegm = buffStream.ReadInt32();
+                    int uncomprSegm = buffStream.ReadInt32();
                     headSegm = (int)buffStream.Position;
 
                     buffStream.Seek(dataSegm, SeekOrigin.Begin);

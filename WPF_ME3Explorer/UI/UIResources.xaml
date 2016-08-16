@@ -2,11 +2,13 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:s="clr-namespace:System;assembly=mscorlib"
                     xmlns:local="clr-namespace:WPF_ME3Explorer"
-                    xmlns:useful="clr-namespace:UsefulThings.WPF;assembly=UsefulThings">
+                    xmlns:localConverters="clr-namespace:WPF_ME3Explorer.UI.ValueConverters"
+                    xmlns:useful="clr-namespace:UsefulThings.WPF.TypeConverters;assembly=UsefulThings">
 
     <useful:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
     <useful:InverseBooleanConverter x:Key="InverseBoolConverter"/>
-    <local:HashToStringConverter x:Key="HashStringConverter"/>
+    <localConverters:HashToStringConverter x:Key="HashStringConverter"/>
+    <localConverters:ThumbnailConverter x:Key="ThumbnailConverter"/>
 
     <!-- Default images to display -->
     <BitmapImage x:Key="Folder_Closed" UriSource="/WPF_ME3Explorer;component/Resources/Folder_Closed.png" DecodePixelHeight="32"/>
@@ -81,12 +83,12 @@
                     <Setter Property="Margin" Value="3,0,3,0"/>
                 </Style>
             </DockPanel.Resources>
-            <ProgressBar x:Name="PrimaryProgressBar" Width="200" Height="25" Value="{Binding PrimaryProgress}" Maximum="{Binding MaxPrimaryProgress}" IsIndeterminate="{Binding PrimaryIndeterminate}" DockPanel.Dock="Left"/>
-            <TextBlock x:Name="PrimaryStatusText" Text="{Binding PrimaryStatus}" Margin="5,0"/>
+            <ProgressBar x:Name="PrimaryProgressBar" Width="200" Height="25" Value="{Binding Progress}" Maximum="{Binding MaxProgress}" IsIndeterminate="{Binding ProgressIndeterminate}" DockPanel.Dock="Left"/>
+            <TextBlock x:Name="PrimaryStatusText" Text="{Binding Status}" Margin="5,0"/>
             <Button Content="Cancel" Visibility="{Binding Busy, Converter={StaticResource BoolToVisConverter}}" DockPanel.Dock="Right"/>
             <TextBlock Text="WV, AK, Salt, Gibbed = The Real Heros" DockPanel.Dock="Right"/>
             <Label Content="|" DockPanel.Dock="Right" Foreground="Gray"/>
-            <TextBlock x:Name="VersionString" Text="{Binding ToolsetVersionString}" DockPanel.Dock="Right" FontStyle="Italic"/>
+            <TextBlock x:Name="VersionString" Text="{Binding ToolsetVersion}" DockPanel.Dock="Right" FontStyle="Italic"/>
             <StackPanel x:Name="SystemDetails" Orientation="Vertical" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="3,0,3,0">
                 <TextBlock Text="{Binding MemoryUsage, StringFormat=Memory: {0}}" FontSize="8"/>
                 <TextBlock Text="{Binding CPUUsage, StringFormat=CPU: {0}}" FontSize="8"/>
@@ -115,7 +117,7 @@
 
     <Style x:Key="Game1Indicator" TargetType="Button" BasedOn="{StaticResource IndicatorStyle}">
         <Style.Triggers>
-            <DataTrigger Binding="{Binding MEExDirecs.DoesGame1Exist}" Value="true">
+            <DataTrigger Binding="{Binding GameDirecs.DoesGame1Exist}" Value="true">
                 <Setter Property="Foreground" Value="LawnGreen"/>
             </DataTrigger>
         </Style.Triggers>
@@ -123,7 +125,7 @@
 
     <Style x:Key="Game2Indicator" TargetType="Button" BasedOn="{StaticResource IndicatorStyle}">
         <Style.Triggers>
-            <DataTrigger Binding="{Binding MEExDirecs.DoesGame2Exist}" Value="true">
+            <DataTrigger Binding="{Binding GameDirecs.DoesGame2Exist}" Value="true">
                 <Setter Property="Foreground" Value="LawnGreen"/>
             </DataTrigger>
         </Style.Triggers>
@@ -131,7 +133,7 @@
 
     <Style x:Key="Game3Indicator" TargetType="Button" BasedOn="{StaticResource IndicatorStyle}">
         <Style.Triggers>
-            <DataTrigger Binding="{Binding MEExDirecs.DoesGame3Exist}" Value="true">
+            <DataTrigger Binding="{Binding GameDirecs.DoesGame3Exist}" Value="true">
                 <Setter Property="Foreground" Value="LawnGreen"/>
             </DataTrigger>
         </Style.Triggers>

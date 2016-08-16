@@ -41,9 +41,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 // KFreon: Adjust other properties if necessary
                 if (!AllowExtraMods)
                 {
-                    BIOGamePath = MEDirectories.MEDirectories.GetBIOGameFromExe(exepath, WhichGame);
+                    /*BIOGamePath = MEDirectories.MEDirectories.GetBIOGameFromExe(exepath, WhichGame);
                     CookedPath = MEDirectories.MEDirectories.GetCookedFromBIOGame(BIOGamePath, WhichGame);
-                    DLCPath = MEDirectories.MEDirectories.GetDLCFromBIOGame(BIOGamePath, WhichGame);
+                    DLCPath = MEDirectories.MEDirectories.GetDLCFromBIOGame(BIOGamePath, WhichGame);*/
                 }
                 OnPropertyChanged();
             }

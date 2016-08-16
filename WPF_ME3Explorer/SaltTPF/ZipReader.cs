@@ -110,7 +110,7 @@ namespace SaltTPF
                     throw new InvalidDataException("Footer not as expected");
 
                 //ZipCrypto.DecryptData(this, databuff, dataoff, (int)ComprSize);
-                KFreonZipCrypto crypto = new KFreonZipCrypto(this, databuff, dataoff, (int)ComprSize);
+                ZipDecrypto crypto = new ZipDecrypto(this, databuff, dataoff, (int)ComprSize);
                 databuff = crypto.GetBlocks();
 
                 databuff = Deflate(databuff, 12 + dataoff, (int)ComprSize - 12);

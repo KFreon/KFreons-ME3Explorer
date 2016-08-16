@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using WPF_ME3Explorer.Debugging;
 
 namespace WPF_ME3Explorer
 {
@@ -27,9 +28,12 @@ namespace WPF_ME3Explorer
         public MainWindow()
         {
             InitializeComponent();
+            DebugOutput.StartDebugger("The Toolset");
+
             TPFToolsInstance = new UI.TPFTools();
             TexplorerInstance = new UI.Texplorer();
             ModmakerInstance = new UI.Modmaker();
+
         }
 
         private void TPFToolsButton_MouseDown(object sender, MouseButtonEventArgs e)
@@ -58,6 +62,7 @@ namespace WPF_ME3Explorer
             TPFToolsInstance.Close();
             TexplorerInstance.Close();
             ModmakerInstance.Close();
+            DebugOutput.Close();
         }
     }
 }

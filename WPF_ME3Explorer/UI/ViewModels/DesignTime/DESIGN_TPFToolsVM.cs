@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WPF_ME3Explorer.UI.ViewModels.DesignTime
 {
-    public class DESIGN_TPFToolsVM : TPFToolsViewModel
+    /*public class DESIGN_TPFToolsVM : TPFToolsViewModel
     {
         public DESIGN_TPFToolsVM() : base()
         {
@@ -14,5 +14,5 @@ namespace WPF_ME3Explorer.UI.ViewModels.DesignTime
             Textures.AddRange(texes);
             Textures[0].EnumerateDetails();
         }
-    }
+    }*/
 }

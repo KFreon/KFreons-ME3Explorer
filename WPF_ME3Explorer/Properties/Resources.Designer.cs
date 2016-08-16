@@ -83,6 +83,36 @@ namespace WPF_ME3Explorer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Delete_Tree {
+            get {
+                object obj = ResourceManager.GetObject("Delete_Tree", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Export_CSV {
+            get {
+                object obj = ResourceManager.GetObject("Export_CSV", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Export_Tree {
+            get {
+                object obj = ResourceManager.GetObject("Export_Tree", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Folder_Closed {
             get {
                 object obj = ResourceManager.GetObject("Folder_Closed", resourceCulture);
@@ -96,6 +126,16 @@ namespace WPF_ME3Explorer.Properties {
         internal static System.Drawing.Bitmap Folder_Open {
             get {
                 object obj = ResourceManager.GetObject("Folder_Open", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Import_Tree {
+            get {
+                object obj = ResourceManager.GetObject("Import_Tree", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

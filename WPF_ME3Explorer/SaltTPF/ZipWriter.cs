@@ -28,7 +28,7 @@ namespace SaltTPF
         public static uint tpfxor = 0x3FA43FA4;
         public const UInt32 ExternalAttr = 0x81B40020;
 
-        public static void Repack(String filename, List<String> files)
+        public static void Repack(String filename, List<String> files, string Author = "", string Comment = "")
         {
             List<ZipEntry> Entries = new List<ZipEntry>();
             foreach (String file in files)
@@ -151,7 +151,13 @@ namespace SaltTPF
                 fs.Write(BitConverter.GetBytes((ushort)Entries.Count), 0, 2);
                 fs.Write(BitConverter.GetBytes(cdlen), 0, 4);
                 fs.Write(BitConverter.GetBytes(cdpos), 0, 4);
-                fs.Write(BitConverter.GetBytes(0), 0, 2);
+
+                // KFreon: This is the created by/comment section. Seems to be required for Texmod.
+                //fs.Write(BitConverter.GetBytes(0), 0, 2);  
+                string createdByANDComment = Author + "\n" + Comment;  // KFreon: Newline required by Texmod to seperate author and comment.
+                byte[] bytes = Encoding.Default.GetBytes(createdByANDComment);
+                fs.Write(bytes, 0, bytes.Length);
+
 
                 long streamlen = fs.Length;
                 fs.Seek(0, SeekOrigin.Begin); // XOR the file

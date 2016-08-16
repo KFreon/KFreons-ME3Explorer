@@ -33,5 +33,10 @@ namespace WPF_ME3Explorer.UI
         {
             IsClosed = true;
         }
+
+        private async void BeginScanButton_Click(object sender, RoutedEventArgs e)
+        {
+            await vm.BeginTreeScan();
+        }
     }
 }

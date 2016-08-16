@@ -67,12 +67,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             try
             {
-                ExePath = MEExDirec.ExePath;
+                //ExePath = MEExDirec.ExePath;
                 BIOGamePath = MEExDirec.PathBIOGame;
                 DLCPath = MEExDirec.DLCPath;
-                CookedPath = MEExDirec.pathCooked;
+                CookedPath = MEExDirec.PathCooked;
 
-                DLCs = new MTObservableCollection<string>(MEDirectories.MEDirectories.GetInstalledDLC(DLCPath).Select(t => MEDirectories.MEDirectories.GetDLCNameFromPath(t)));
+                //DLCs = new MTObservableCollection<string>(MEDirectories.MEDirectories.GetInstalledDLC(DLCPath).Select(t => MEDirectories.MEDirectories.GetDLCNameFromPath(t)));
             }
             catch(Exception e)
             {
@@ -110,7 +110,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         internal virtual void Save()
         {
-            if (!String.IsNullOrEmpty(BIOGamePath))
+            /*if (!String.IsNullOrEmpty(BIOGamePath))
                 MEExDirec.PathBIOGame = BIOGamePath;
 
             if (!String.IsNullOrEmpty(CookedPath))
@@ -120,7 +120,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 MEExDirec.ExePath = ExePath;
 
             if (!String.IsNullOrEmpty(DLCPath))
-                MEExDirec.DLCPath = DLCPath;
+                MEExDirec.DLCPath = DLCPath;*/
 
             //MEExDirec.SaveInstanceSettings();
         }

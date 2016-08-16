@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using UsefulThings;
 using UsefulThings.WPF;
 
 namespace WPF_ME3Explorer.Debugging
@@ -26,13 +29,31 @@ namespace WPF_ME3Explorer.Debugging
 
     public static class DebugOutput
     {
-        static DebugWindow Debugger = null;
         static MTObservableCollection<Error> AllErrors = new MTObservableCollection<Error>();
         static System.Windows.Controls.RichTextBox rtb = null;
         static DispatcherTimer UpdateTimer;
         static string DebugFilePath = null;
         static StreamWriter debugFileWriter = null;
         static StringBuilder waiting = new StringBuilder();
+        static Action Closer = null;
+
+        internal static string Save(string fileName)
+        {
+            lock (_sync)
+            {
+                try
+                {
+                    File.WriteAllText(fileName, rtb.Document.GetText());
+                    return null;
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine("Unable to save to file because: " + e.Message);
+                    return e.Message;
+                }
+            }
+        }
+
         static DateTime LastPrint = DateTime.Now;
         static readonly object _sync = new object();
 
@@ -79,7 +100,7 @@ namespace WPF_ME3Explorer.Debugging
                     {
                         string temp = waiting.ToString();
                         waiting.Clear();
-                        rtb.AppendText(temp);
+                        rtb.Dispatcher.Invoke(() => rtb.AppendText(temp));
 
                         try
                         {
@@ -97,7 +118,7 @@ namespace WPF_ME3Explorer.Debugging
 
         public static void PrintLn(string line = "")
         {
-            PrintLn("", null);
+            PrintLn(line, null);
         }
 
         public static void PrintLn(string line, string toolDisplayName, Exception e, params object[] bits)
@@ -108,6 +129,8 @@ namespace WPF_ME3Explorer.Debugging
             lock (_sync)
             {
                 string DTs = DateTime.Now.ToLongTimeString() + ":  " + (bits != null && bits.Length > 0 ? String.Format(line, bits) : line);
+                if (String.IsNullOrEmpty(line))
+                    DTs = "";
 
                 // KFreon: Add error to list and format output accordingly
                 if (e != null)
@@ -150,7 +173,7 @@ namespace WPF_ME3Explorer.Debugging
                 {
                     try
                     {
-                        DebugFilePath = Path.GetDirectoryName(UsefulThings.General.GetExecutingLoc()) + "\\DebugOutput" + appender + ".txt";
+                        DebugFilePath = Path.Combine(MEDirectories.MEDirectories.StorageFolder, "DebugOutput" + appender + ".txt");
                         debugFileWriter = new StreamWriter(DebugFilePath);
                         break;
                     }
@@ -165,35 +188,56 @@ namespace WPF_ME3Explorer.Debugging
                     PrintLn("Failed to open any debug output files. Disk cached debugging disabled for this session.");
 
                 // KFreon: Thread debugger
-                Task.Factory.StartNew(() =>
+                Thread thread = new Thread(() =>
                 {
-                    DebugWindow debugger = new DebugWindow();
-                    debugger.WindowState = System.Windows.WindowState.Minimized;
-                    try
+                    DebugWindow Debugger = new DebugWindow();
+                    Debugger.WindowState = System.Windows.WindowState.Minimized;
+                    Debugger.Show();
+                    Debugger.Closed += (sender, args) => Debugger.Dispatcher.InvokeShutdown();
+
+                    Closer = new Action(() =>
                     {
-                        debugger.ShowDialog();
-                    }
-                    catch (NullReferenceException e)
-                    {
-                        // KFreon: Happens when exiting sometimes. Dunno why.
-                    }
-                }, TaskCreationOptions.LongRunning);
+                        if (!Debugger.Dispatcher.HasShutdownStarted)
+                            try
+                            {
+                                Debugger.Dispatcher.Invoke(() => Debugger.Close());
+                            }
+                            catch { } // Fails when closing toolset when debugger has already been closed.
+                    });
+
+                    Dispatcher.Run();
+                });
+                thread.SetApartmentState(ApartmentState.STA);
+                thread.Start();
+
 
                 waiting = new StringBuilder();
 
                 // KFreon: Print basic info
                 System.Threading.Thread.Sleep(200);
-                PrintLn("-----New Execution of " + toolName + "-----");
+                PrintLn($"-----New Execution of {toolName}-----");
                 PrintLn(".........Environment Information.........");
-                PrintLn("Build Version: " + UsefulThings.General.GetStartingVersion());
-                PrintLn("OS Version: " + Environment.OSVersion);
-                PrintLn("Architecture: " + (Environment.Is64BitOperatingSystem ? "x64 (64 bit)" : "x86 (32 bit)"));
-                PrintLn("Using debug file: " + DebugFilePath);
+                PrintLn($"Build Version: {ToolsetInfo.Version}");
+                PrintLn($"OS Version: {Environment.OSVersion}");
+                PrintLn($"Architecture: " + (Environment.Is64BitOperatingSystem ? "x64 (64 bit)" : "x86 (32 bit)"));
+                PrintLn($"Using debug file: {DebugFilePath}");
                 PrintLn(".........................................");
                 PrintLn();
             }
             else
-                PrintLn("-----New Execution of " + toolName + "-----");
+                PrintLn($"-----New Execution of {toolName}-----");
+        }
+
+        internal static void Close()
+        {
+            try
+            {
+                Closer();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine();
+            }
         }
     }
 }

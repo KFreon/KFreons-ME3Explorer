@@ -21,7 +21,7 @@ namespace WPF_ME3Explorer.UI
     /// </summary>
     public partial class TPFTools : Window
     {
-        TPFToolsViewModel vm = null;
+        //TPFToolsViewModel vm = null;
         string[] AcceptedFiles = { "DirectX Images", "JPEG Images", "Bitmap Images", "PNG Images" , "Texmod Archives", "ME3Explorer Archives" };
         string[] AcceptedExtensions = { ".dds", ".jpg", ".bmp", ".png", ".tpf", ".metpf" };
 
@@ -31,8 +31,8 @@ namespace WPF_ME3Explorer.UI
         {
             InitializeComponent();
 
-            vm = new TPFToolsViewModel();
-            DataContext = vm;
+            //vm = new TPFToolsViewModel();
+            //DataContext = vm;
         }
 
         private void LoadButton_Click(object sender, RoutedEventArgs e)
@@ -43,13 +43,13 @@ namespace WPF_ME3Explorer.UI
             ofd.Filter = filter;
             ofd.Multiselect = true;
 
-            if (ofd.ShowDialog() == true)
-                vm.LoadFiles(ofd.FileNames);
+            //if (ofd.ShowDialog() == true)
+                //vm.LoadFiles(ofd.FileNames);
         }
 
         private void ClearAllButton_Click(object sender, RoutedEventArgs e)
         {
-            vm.ClearAll();
+            //vm.ClearAll();
         }
 
 
@@ -57,8 +57,8 @@ namespace WPF_ME3Explorer.UI
         {
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
 
-            if (files?.Length != 0)
-                vm.LoadFiles(files);
+            //if (files?.Length != 0)
+                //vm.LoadFiles(files);
         }
 
         private void Window_DragOver(object sender, DragEventArgs e)
@@ -87,7 +87,7 @@ namespace WPF_ME3Explorer.UI
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             IsClosed = true;
-            vm.Shutdown();
+            //vm.Shutdown();
         }
     }
 }
