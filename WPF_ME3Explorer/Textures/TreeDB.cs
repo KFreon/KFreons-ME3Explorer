@@ -132,11 +132,9 @@ namespace WPF_ME3Explorer.Textures
                                 for (int j = 0; j < numPccs; j++)
                                 {
                                     string userAgnosticPath = bin.ReadString();
-                                    tex.PCCS.Add(Path.Combine(GameDirecs.BasePath, userAgnosticPath));
+                                    int ExpID = bin.ReadInt32();
+                                    tex.PCCS.Add(new PCCEntry(Path.Combine(GameDirecs.BasePath, userAgnosticPath), ExpID));
                                 }
-
-                                for (int k = 0; k < numPccs; k++)
-                                    tex.ExpIDs.Add(bin.ReadInt32());
 
                                 Textures.Add(tex);
                             }
@@ -184,13 +182,12 @@ namespace WPF_ME3Explorer.Textures
                             bw.Write(tex.Thumb.Offset);
                             bw.Write(tex.Thumb.Length);
                             bw.Write(tex.PCCS.Count);
-                            foreach (string pcc in tex.PCCS)
+                            foreach (PCCEntry pcc in tex.PCCS)
                             {
-                                string tempPath = pcc.Remove(0, GameDirecs.BasePath.Length + 1);
+                                string tempPath = pcc.Name.Remove(0, GameDirecs.BasePath.Length + 1);
                                 bw.Write(tempPath);
+                                bw.Write(pcc.ExpID);
                             }
-
-                            tex.ExpIDs.ForEach(exp => bw.Write(exp));
                         }
                     }
                 }

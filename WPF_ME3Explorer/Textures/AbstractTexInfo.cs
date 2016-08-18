@@ -13,8 +13,7 @@ namespace WPF_ME3Explorer.Textures
     public abstract class AbstractTexInfo
     {
         public string TexName { get; set; }
-        public List<string> PCCS { get; set; } = new List<string>();
-        public List<int> ExpIDs { get; set; } = new List<int>();
+        public List<PCCEntry> PCCS { get; set; } = new List<PCCEntry>();
         public uint Hash { get; set; }
         public ImageEngineFormat Format { get; set; } = ImageEngineFormat.Unknown;
         public int GameVersion { get; set; } = -1;

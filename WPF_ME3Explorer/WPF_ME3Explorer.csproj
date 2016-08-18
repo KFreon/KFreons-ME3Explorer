@@ -87,6 +87,7 @@
     </Compile>
     <Compile Include="DLCEntry.cs" />
     <Compile Include="GameFileEntry.cs" />
+    <Compile Include="Textures\PCCEntry.cs" />
     <Compile Include="UI\TexplorerTextureFolder.cs" />
     <Compile Include="UI\ValueConverters\HashStringConverter.cs" />
     <Compile Include="MEDirectories\MEDirectories.cs" />
@@ -121,7 +122,6 @@
       <DependentUpon>TPFTools.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\ValueConverters\MipmapCountConverter.cs" />
-    <Compile Include="UI\ValueConverters\PCCsExpIDsConverter.cs" />
     <Compile Include="UI\ValueConverters\ImageEngineFormatConverter.cs" />
     <Compile Include="UI\ValueConverters\ThumbnailConverter.cs" />
     <Compile Include="UI\ViewModels\DesignTime\DESIGN_TexplorerVM.cs" />

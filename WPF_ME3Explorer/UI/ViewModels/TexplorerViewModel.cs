@@ -31,8 +31,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
         ThumbnailWriter ThumbnailWriter = null;
         public MTRangedObservableCollection<string> Errors { get; set; } = new MTRangedObservableCollection<string>();
         public MTRangedObservableCollection<TexplorerTextureFolder> TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
-        public MTRangedObservableCollection<TexplorerTextureFolder> AllTextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
-        public ICollectionView TexturesView { get; set; }
 
 
         bool isTreePanelRequired = true;
@@ -62,14 +60,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             ExclusionsItemsView = CollectionViewSource.GetDefaultView(FTSExclusions);
             ExclusionsItemsView.Filter = item => ((AbstractFileEntry)item).IsChecked && ((item as GameFileEntry)?.FilterOut != true);
-
-            TexturesView = CollectionViewSource.GetDefaultView(Textures);
-            TexturesView.Filter = item =>
-            {
-                var items = AllTextureFolders.Where(folder => folder.IsSelect && ((TreeTexInfo)item).FullPackage == folder.Filter);dsfg
-                return items.Any();
-            };
-            TexplorerTextureFolder.view = TexturesView;
 
             GameDirecs.GameVersion = Properties.Settings.Default.TexplorerGameVersion;
             OnPropertyChanged(nameof(GameVersion));
@@ -292,44 +282,50 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Top all encompassing node
             TexplorerTextureFolder TopTextureFolder = new TexplorerTextureFolder("All Texture Files", null);
 
+            List<TexplorerTextureFolder> AllFolders = new List<TexplorerTextureFolder>();
+
             // Normal nodes
             foreach (var tex in CurrentTree.Textures)
             {
                 int dotInd = tex.FullPackage.IndexOf('.') + 1;
-                string filter = null;
+                string filter = tex.FullPackage;
                 if (dotInd != 0)
                     filter = tex.FullPackage.Substring(0, dotInd).Trim('.');
 
-                TexplorerTextureFolder folder = RecursivelyConstructFolders(tex.FullPackage, filter);
+                TexplorerTextureFolder folder = RecursivelyConstructFolders(tex.FullPackage, filter, AllFolders);
                 bool isExisting = RecursivelyCheckFolders(TopTextureFolder, folder);
 
                 if (!isExisting)
-                {
                     TopTextureFolder.Folders.Add(folder);
-                    AllTextureFolders.Add(folder);
-                }
             }
+
+            // Assign textures to their folders as determined above.
+            SortTexturesIntoFolders(AllFolders);
 
             TextureFolders.Add(TopTextureFolder);  // Only one item in this list. Chuckles.
             
             DebugOutput.PrintLn("Tree Constructed!");
         }
 
-        TexplorerTextureFolder RecursivelyConstructFolders(string packageString, string filter)
+        TexplorerTextureFolder RecursivelyConstructFolders(string packageString, string filter, List<TexplorerTextureFolder> AllFolders)
         {
             string tempPackage = packageString.Trim('.');
             int dotInd = tempPackage.IndexOf('.') + 1;
             if (dotInd == 0)
-                return new TexplorerTextureFolder(tempPackage, filter + tempPackage);
+            {
+                var fold = new TexplorerTextureFolder(tempPackage, filter);
+                AllFolders.Add(fold);
+                return fold;
+            }
 
             string name = tempPackage.Substring(0, dotInd).Trim('.');
             TexplorerTextureFolder folder = new TexplorerTextureFolder(name, filter);
-            AllTextureFolders.Add(folder);
+            AllFolders.Add(folder);
 
 
             string newName = tempPackage.Substring(dotInd);
             string newFilter = filter + '.' + newName;
-            folder.Folders.Add(RecursivelyConstructFolders(newName, newFilter));
+            folder.Folders.Add(RecursivelyConstructFolders(newName, newFilter, AllFolders));
 
             return folder;
         }
@@ -356,6 +352,21 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
 
             return false;
+        }
+
+        void SortTexturesIntoFolders(List<TexplorerTextureFolder> AllFolders)
+        {
+            Parallel.ForEach(CurrentTree.Textures, texture =>
+            {
+                foreach (var folder in AllFolders)
+                {
+                    if (folder.Filter == texture.FullPackage)
+                    {
+                        folder.Textures.Add(texture);
+                        break;
+                    }
+                }
+            });
         }
     }
 }

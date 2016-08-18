@@ -141,12 +141,12 @@ namespace WPF_ME3Explorer.Textures
             // Don't generate thumbnail till necessary i.e. not a duplicate texture - This is done after the check in the TreeDB
             GenerateThumbnail = new Action(() => CreateThumbnail(imgData, tex2D, ThumbWriter, info));
 
-            PCCS.AddRange(tex2D.allPccs);
-            ExpIDs.AddRange(tex2D.expIDs);
+            for (int i = 0; i < tex2D.allPccs.Count; i++)
+                PCCS.Add(new PCCEntry(tex2D.allPccs[i], tex2D.expIDs[i]));
 
             // KFreon: ME2 only?
             if (export.PackageFullName == "Base Package")
-                FullPackage = Path.GetFileNameWithoutExtension(PCCS[0]).ToUpperInvariant();   // Maybe not right?
+                FullPackage = Path.GetFileNameWithoutExtension(PCCS[0].Name).ToUpperInvariant();   // Maybe not right?
             else
                 FullPackage = export.PackageFullName.ToUpperInvariant();
         }
@@ -156,7 +156,7 @@ namespace WPF_ME3Explorer.Textures
             byte[] thumbImageData = imgData;
 
             // Try to get a smaller mipmap to use so don't need to resize.
-            var thumbInfo = tex2D.ImageList.Where(img => img.ImageSize.Width <= 64 && img.ImageSize.Height <= 64).FirstOrDefault();
+            var thumbInfo = tex2D.ImageList.Where(img => img.ImageSize.Width <= 128 && img.ImageSize.Height <= 128).FirstOrDefault();
             if (thumbInfo.ImageSize != null) // i.e.image size doesn't exist.
                 thumbImageData = tex2D.ExtractImage(thumbInfo.ImageSize);
 
@@ -165,7 +165,7 @@ namespace WPF_ME3Explorer.Textures
                 uint width = info.ImageSize.Width;
                 uint height = info.ImageSize.Height;
 
-                MemoryStream thumbStream = ImageEngine.GenerateThumbnailToStream(ms, width > height ? 64 : 0, width > height ? 0 : 64);
+                MemoryStream thumbStream = ImageEngine.GenerateThumbnailToStream(ms, width > height ? 128 : 0, width > height ? 0 : 128);
                 thumbStream = ToolsetTextureEngine.OverlayAndPickDetailed(thumbStream);
                 if (thumbStream != null)
                     Thumb = ThumbWriter.Add(thumbStream);
@@ -178,19 +178,17 @@ namespace WPF_ME3Explorer.Textures
             {
                 for (int i = 0; i < PCCS.Count; i++)
                 {
-                    using (PCCObject pcc = new PCCObject(PCCS[i], GameVersion))
+                    using (PCCObject pcc = new PCCObject(PCCS[i].Name, GameVersion))
                     {
-                        using (Texture2D tex = new Texture2D(pcc, ExpIDs[i], GameVersion))
+                        using (Texture2D tex = new Texture2D(pcc, PCCS[i].ExpID, GameVersion))
                         {
                             string arc = tex.arcName;
                             if (i == 0 && (arc != "None" && !String.IsNullOrEmpty(arc)))
                                 break;
                             else if (arc != "None" && !String.IsNullOrEmpty(arc))
                             {
-                                string file = PCCS.Pop(i);  // Removes and returns
-                                int expid = ExpIDs.Pop(i);
+                                PCCEntry file = PCCS.Pop(i);  // Removes and returns
                                 PCCS.Insert(0, file);
-                                ExpIDs.Insert(0, expid);
                                 break;
                             }
                         }
@@ -210,7 +208,7 @@ namespace WPF_ME3Explorer.Textures
                     for (int j = 0; j < PCCS.Count; j++)
                     {
                         // To be a "duplicate", both pcc and expid must be the same.
-                        if (PCCS[j] == tex.PCCS[i] && ExpIDs[j] == tex.ExpIDs[i])
+                        if (PCCS[j] == tex.PCCS[i])
                         {
                             duplicateDetected = true;
                             break;
@@ -223,7 +221,6 @@ namespace WPF_ME3Explorer.Textures
                 }
 
                 PCCS.Add(tex.PCCS[i]);
-                ExpIDs.Add(tex.ExpIDs[i]);
             }
 
             foreach (Texture2D tex2D in tex.Textures)

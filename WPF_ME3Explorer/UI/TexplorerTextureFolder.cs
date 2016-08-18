@@ -5,13 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UsefulThings.WPF;
+using WPF_ME3Explorer.Textures;
 
 namespace WPF_ME3Explorer.UI
 {
     public class TexplorerTextureFolder : ViewModelBase
     {
-        public static ICollectionView view = null;
-
         bool isOpen = false;
         public bool IsOpen
         {
@@ -22,7 +21,6 @@ namespace WPF_ME3Explorer.UI
             set
             {
                 SetProperty(ref isOpen, value);
-                view.Refresh();
             }
         }
 
@@ -36,7 +34,6 @@ namespace WPF_ME3Explorer.UI
             set
             {
                 SetProperty(ref isSelect, value);
-                view.Refresh();
             }
         }
 
@@ -56,6 +53,7 @@ namespace WPF_ME3Explorer.UI
         }
 
         public MTRangedObservableCollection<TexplorerTextureFolder> Folders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+        public MTRangedObservableCollection<TreeTexInfo> Textures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
 
         public TexplorerTextureFolder(string folderName, string filter)
         {

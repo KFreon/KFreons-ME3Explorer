@@ -83,7 +83,7 @@
                                     <Setter Property="Source" Value="{StaticResource Folder_Closed}"/>
 
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsOpen}">
+                                        <DataTrigger Binding="{Binding IsOpen}" Value="True">
                                             <Setter Property="Source" Value="{StaticResource Folder_Open}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
@@ -97,17 +97,17 @@
             </TreeView.ItemTemplate>
         </TreeView>
 
-        <ListBox x:Name="MainDisplayPanel" Grid.Column="1" Grid.Row="1" ItemsSource="{Binding TexturesView}">
+        <ListBox x:Name="MainDisplayPanel" Grid.Column="1" Grid.Row="1" ItemsSource="{Binding ElementName=MainTreeView, Path=SelectedItem.Textures}">
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Vertical" IsItemsHost="True"/>
+                    <WrapPanel Orientation="Horizontal" IsItemsHost="True"/>
                 </ItemsPanelTemplate>
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <DockPanel>
-                        <Image Source="{Binding Thumb, Converter={StaticResource ThumbnailConverter}}" Width="64" Height="64" DockPanel.Dock="Top"/>
-                        <TextBlock Text="{Binding TexName}" HorizontalAlignment="Center" VerticalAlignment="Bottom" DockPanel.Dock="Bottom"/>
+                        <Image Source="{Binding Thumb, Converter={StaticResource ThumbnailConverter}}" Width="128" Height="128" DockPanel.Dock="Top" Margin="5,0"/>
+                        <TextBlock Text="{Binding TexName}" HorizontalAlignment="Center" VerticalAlignment="Bottom" DockPanel.Dock="Bottom" Margin="0,2,0,5"/>
                     </DockPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
@@ -137,7 +137,7 @@
                 </DockPanel.Resources>
                 <TextBlock>
                     <Run Text="Texture Name: "/>
-                    <Run Text="{Binding TexName}"/>
+                    <Run Text="{Binding TexName, Mode=OneWay}"/>
                 </TextBlock>
 
                 <TextBlock>
@@ -159,7 +159,7 @@
                 
                 <TextBlock>
                     <Run Text="Storage Type: "/>
-                    <Run Text="{Binding StorageType}"/>
+                    <Run Text="{Binding StorageType, Mode=OneWay}"/>
                 </TextBlock>
 
                 <TextBlock>
@@ -174,49 +174,66 @@
 
                 <TextBlock>
                     <Run Text="Texture Cache: "/>
-                    <Run Text="{Binding TextureCache}"/>
+                    <Run Text="{Binding TextureCache, Mode=OneWay}"/>
                 </TextBlock>
             </DockPanel>
             
 
             <Label Content="PCC's" Grid.Row="1" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Top"/>
-            <ListBox x:Name="PCCsListBox" Grid.Row="1" Margin="0,34.333,0.333,0.333" ItemsSource="{Binding ElementName=MainDisplayPanel, Path=SelectedItem}"/>
+            <ListBox x:Name="PCCsListBox" Grid.Row="1" Margin="0,34.333,0.333,0.333" ItemsSource="{Binding ElementName=MainDisplayPanel, Path=SelectedItem.PCCS}"/>
         </Grid>
 
         <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="2" Grid.ColumnSpan="3"/>
 
         <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black">
             <Grid.Resources>
+                <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
+                    <DoubleAnimation.EasingFunction>
+                        <CubicEase EasingMode="EaseOut"/>
+                    </DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+
+                <DoubleAnimation x:Key="TreeScanBackGroundFader" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:1" DecelerationRatio="1">
+                    <DoubleAnimation.EasingFunction>
+                        <CubicEase EasingMode="EaseOut"/>
+                    </DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+
+                <ObjectAnimationUsingKeyFrames x:Key="TreeScanBackGroundVisibility" Storyboard.TargetProperty="Visibility">
+                    <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Collapsed}"/>
+                </ObjectAnimationUsingKeyFrames>
+
                 <Storyboard x:Key="ClosePanelAnimation">
-                    <DoubleAnimation Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
-                        <DoubleAnimation.EasingFunction>
-                            <CubicEase EasingMode="EaseOut"/>
-                        </DoubleAnimation.EasingFunction>
-                    </DoubleAnimation>
-
-                    <DoubleAnimation Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:1" DecelerationRatio="1">
-                        <DoubleAnimation.EasingFunction>
-                            <CubicEase EasingMode="EaseOut"/>
-                        </DoubleAnimation.EasingFunction>
-                    </DoubleAnimation>
-
-                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="Visibility">
-                        <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Collapsed}"/>
-                    </ObjectAnimationUsingKeyFrames>
+                    <StaticResource ResourceKey="TreeScanPanelClose"/>
+                    <StaticResource ResourceKey="TreeScanBackGroundFader"/>
+                    <StaticResource ResourceKey="TreeScanBackGroundVisibility"/>
                 </Storyboard>
             </Grid.Resources>
 
             <Grid.Style>
                 <Style TargetType="Grid">
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsTreePanelRequired}">
-                            <DataTrigger.Value>
-                                <BeginStoryboard Storyboard="{StaticResource ClosePanelAnimation}"/>
-                            </DataTrigger.Value>
+                        <DataTrigger Binding="{Binding IsTreePanelRequired}" Value="False">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:1" DecelerationRatio="1">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+
+                                        <ObjectAnimationUsingKeyFrames  Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Collapsed}"/>
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
             </Grid.Style>
+            
             <Grid x:Name="TreeScanPanel"  Background="White" HorizontalAlignment="Right" Margin="0,0,0,0.333" Width="1500">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition/>
@@ -226,6 +243,26 @@
                     <RowDefinition Height="50*"/>
                     <RowDefinition Height="713*"/>
                 </Grid.RowDefinitions>
+
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsTreePanelRequired}" Value="False">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <CubicEase EasingMode="EaseOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
 
                 <Button Content="-->" VerticalAlignment="Center" HorizontalAlignment="Left" Background="White" FontSize="20" Height="31" Margin="0,10,0,9.667" Width="34">
                     <Button.Triggers>
