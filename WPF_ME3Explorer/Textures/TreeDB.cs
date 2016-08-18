@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.Debugging;
+using UsefulThings;
+using CSharpImageLibrary;
 
 namespace WPF_ME3Explorer.Textures
 {
@@ -19,7 +21,14 @@ namespace WPF_ME3Explorer.Textures
 
         public string TreeVersion { get; set; }
 
-        public string TreePath { get; set; }
+        public string TreePath
+        {
+            get
+            {
+                return Path.Combine(MEDirectories.MEDirectories.StorageFolder, "Trees", $"ME{GameVersion}.tree");
+            }
+        }
+
         public int GameVersion
         {
             get
@@ -63,20 +72,28 @@ namespace WPF_ME3Explorer.Textures
                 {
                     var existing = Textures[Textures.IndexOf(tex)];
                     existing.Update(tex);
+                    tex.GenerateThumbnail = null; // clear generation code - frees up many large objects for GC.
+                    return;
                 }
             }
+
+            // Generate thumbnail if new texture
+            tex.GenerateThumbnail();
+            tex.GenerateThumbnail = null; // clear generation code - frees up many large objects for GC.
         }
 
-        public bool ReadFromFile(string fileName)
+        public bool ReadFromFile(string fileName = null)
         {
-            if (!File.Exists(fileName))
-                return false;
+            string tempFilename = fileName;
+            if (fileName == null)
+                tempFilename = TreePath;
 
-            TreePath = fileName;
+            if (!File.Exists(tempFilename))
+                return false;
 
             try
             {
-                using (FileStream fs = new FileStream(fileName, FileMode.Open))
+                using (FileStream fs = new FileStream(tempFilename, FileMode.Open))
                 {
                     using (GZipStream compressed = new GZipStream(fs, CompressionMode.Decompress))  // Compressed for nice small trees
                     {
@@ -95,30 +112,26 @@ namespace WPF_ME3Explorer.Textures
                             if (GameDirecs.GameVersion != GameVersion)
                                 throw new InvalidOperationException($"Incorrect Tree Loaded. Expected: ME{GameDirecs.GameVersion}, Got: {GameVersion}");
 
-                            int length = bin.ReadInt32();
-                            TreeVersion = new string(bin.ReadChars(length));
+                            TreeVersion = bin.ReadString();
                             int texCount = bin.ReadInt32();
                             for (int i = 0; i < texCount; i++)
                             {
                                 TreeTexInfo tex = new TreeTexInfo();
-                                length = bin.ReadInt32();
-                                tex.TexName = new string(bin.ReadChars(length));
+                                tex.TexName = bin.ReadString();
                                 tex.Hash = bin.ReadUInt32();
                                 tex.StorageType = (Texture2D.storage)bin.ReadInt32();
-                                length = bin.ReadInt32();
-                                tex.FullPackage = new string(bin.ReadChars(length));
-                                tex.Format = (TextureFormat)bin.ReadInt32();
+                                tex.FullPackage = bin.ReadString();
+                                tex.Format = (ImageEngineFormat)bin.ReadInt32();
 
                                 Thumbnail thumb = new Thumbnail(GameDirecs.ThumbnailCachePath);
-                                thumb.Offset = bin.ReadInt32();
+                                thumb.Offset = bin.ReadInt64();
                                 thumb.Length = bin.ReadInt32();
                                 tex.Thumb = thumb;
 
                                 int numPccs = bin.ReadInt32();
                                 for (int j = 0; j < numPccs; j++)
                                 {
-                                    length = bin.ReadInt32();
-                                    string userAgnosticPath = new string(bin.ReadChars(length));
+                                    string userAgnosticPath = bin.ReadString();
                                     tex.PCCS.Add(Path.Combine(GameDirecs.BasePath, userAgnosticPath));
                                 }
 
@@ -141,9 +154,16 @@ namespace WPF_ME3Explorer.Textures
             return true;
         }
 
-        public void SaveToFile(string fileName)
+        public void SaveToFile(string fileName = null)
         {
-            using (FileStream fs = new FileStream(fileName, FileMode.Create))
+            string tempFilename = fileName;
+
+            if (fileName == null)
+                tempFilename = TreePath;
+
+            Directory.CreateDirectory(TreePath.GetDirParent()); // Create Trees directory if required
+
+            using (FileStream fs = new FileStream(tempFilename, FileMode.Create))
             {
                 using (GZipStream compressed = new GZipStream(fs, CompressionMode.Compress))  // Compress for nice small trees
                 {
@@ -151,17 +171,14 @@ namespace WPF_ME3Explorer.Textures
                     {
                         bw.Write(631991);
                         bw.Write(GameVersion);
-                        bw.Write(ToolsetInfo.Version.Length);
                         bw.Write(ToolsetInfo.Version);
                         bw.Write(Textures.Count);
 
                         foreach (TreeTexInfo tex in Textures)
                         {
-                            bw.Write(tex.TexName.Length);
                             bw.Write(tex.TexName);
                             bw.Write(tex.Hash);
                             bw.Write((int)tex.StorageType);
-                            bw.Write(tex.FullPackage.Length);
                             bw.Write(tex.FullPackage);
                             bw.Write((int)tex.Format);
                             bw.Write(tex.Thumb.Offset);
@@ -170,7 +187,6 @@ namespace WPF_ME3Explorer.Textures
                             foreach (string pcc in tex.PCCS)
                             {
                                 string tempPath = pcc.Remove(0, GameDirecs.BasePath.Length + 1);
-                                bw.Write(tempPath.Length);
                                 bw.Write(tempPath);
                             }
 

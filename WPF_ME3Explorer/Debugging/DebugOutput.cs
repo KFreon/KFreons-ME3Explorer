@@ -30,12 +30,13 @@ namespace WPF_ME3Explorer.Debugging
     public static class DebugOutput
     {
         static MTObservableCollection<Error> AllErrors = new MTObservableCollection<Error>();
-        static System.Windows.Controls.RichTextBox rtb = null;
+        static System.Windows.Controls.TextBox rtb = null;
         static DispatcherTimer UpdateTimer;
         static string DebugFilePath = null;
         static StreamWriter debugFileWriter = null;
         static StringBuilder waiting = new StringBuilder();
         static Action Closer = null;
+        static System.Windows.Controls.ScrollViewer Scroller = null;
 
         internal static string Save(string fileName)
         {
@@ -43,7 +44,7 @@ namespace WPF_ME3Explorer.Debugging
             {
                 try
                 {
-                    File.WriteAllText(fileName, rtb.Document.GetText());
+                    File.WriteAllText(fileName, rtb.Text);
                     return null;
                 }
                 catch (Exception e)
@@ -67,7 +68,7 @@ namespace WPF_ME3Explorer.Debugging
         /// Sets textbox to output to.
         /// </summary>
         /// <param name="box">Textbox to output debug info to.</param>
-        public static void SetBox(System.Windows.Controls.RichTextBox box)
+        public static void SetBox(System.Windows.Controls.TextBox box, System.Windows.Controls.ScrollViewer scroller)
         {
             try
             {
@@ -76,6 +77,7 @@ namespace WPF_ME3Explorer.Debugging
                 UpdateTimer.Tick += UpdateTimer_Tick;
                 UpdateTimer.Start();
                 rtb = box;
+                Scroller = scroller;
             }
             catch { }
         }
@@ -100,7 +102,11 @@ namespace WPF_ME3Explorer.Debugging
                     {
                         string temp = waiting.ToString();
                         waiting.Clear();
-                        rtb.Dispatcher.Invoke(() => rtb.AppendText(temp));
+                        rtb.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                        {
+                            rtb.AppendText(temp);
+                            Scroller.ScrollToBottom();
+                        }));
 
                         try
                         {
@@ -108,7 +114,7 @@ namespace WPF_ME3Explorer.Debugging
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine();
+                            Console.WriteLine(ex.ToString());
                         }
                     }
                 }
@@ -193,7 +199,11 @@ namespace WPF_ME3Explorer.Debugging
                     DebugWindow Debugger = new DebugWindow();
                     Debugger.WindowState = System.Windows.WindowState.Minimized;
                     Debugger.Show();
-                    Debugger.Closed += (sender, args) => Debugger.Dispatcher.InvokeShutdown();
+                    Debugger.Closed += (sender, args) =>
+                    {
+                        rtb = null;  // Nullify rtb to indicate window is closed.
+                        Debugger.Dispatcher.InvokeShutdown();
+                    };
 
                     Closer = new Action(() =>
                     {

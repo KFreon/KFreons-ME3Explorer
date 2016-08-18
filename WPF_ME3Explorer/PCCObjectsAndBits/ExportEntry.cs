@@ -141,7 +141,8 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
         public ExportEntry(PCCObject pccFile, byte[] importData, uint exportOffset)
         {
             pccRef = pccFile;
-            info = (byte[])importData.Clone();
+            //info = (byte[])importData.Clone();  // COULD BE PROBLEM HERE
+            info = importData;
             InfoOffset = exportOffset;
             hasChanged = false;
         }

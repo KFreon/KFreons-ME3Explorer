@@ -14,6 +14,8 @@ namespace WPF_ME3Explorer.Textures
 {
     public class TreeTexInfo : AbstractTexInfo, IEquatable<TreeTexInfo>, IComparable
     {
+        public Action GenerateThumbnail = null;
+
         public List<Texture2D> Textures = new List<Texture2D>();
         public string FullPackage = null;
         public string Package
@@ -101,8 +103,9 @@ namespace WPF_ME3Explorer.Textures
         public TreeTexInfo(Texture2D tex2D, ThumbnailWriter ThumbWriter, ExportEntry export) : this()
         {
             TexName = tex2D.texName;
-            Format = Misc.ConvertFormat(tex2D.texFormat);
+            Format = tex2D.texFormat;
             GameVersion = tex2D.GameVersion;
+            FullPackage = export.PackageFullName;
 
             // Hash
             ImageInfo info = tex2D.ImageList[0];
@@ -110,7 +113,7 @@ namespace WPF_ME3Explorer.Textures
             CRC32 crcgen = new CRC32();
             StorageType = info.storageType;
 
-            byte[] imgData = tex2D.ExtractImage(info.ImageSize, ThumbWriter.GameDirecs.PathBIOGame);
+            byte[] imgData = tex2D.ExtractImage(info.ImageSize);
 
             if (info.storageType == storage.pccSto)
             {
@@ -135,16 +138,8 @@ namespace WPF_ME3Explorer.Textures
             tex2D.Hash = hash;
             Hash = hash;
 
-            // Thumbnail
-            using (MemoryStream ms = new MemoryStream(imgData))
-            {
-                uint width = info.ImageSize.Width;
-                uint height = info.ImageSize.Height;
-
-                MemoryStream thumbStream = ImageEngine.GenerateThumbnailToStream(ms, width > height ? 128 : 0, width > height ? 0 : 128);
-                if (thumbStream != null)
-                    Thumb = ThumbWriter.Add(thumbStream);                    
-            }
+            // Don't generate thumbnail till necessary i.e. not a duplicate texture - This is done after the check in the TreeDB
+            GenerateThumbnail = new Action(() => CreateThumbnail(imgData, tex2D, ThumbWriter, info));
 
             PCCS.AddRange(tex2D.allPccs);
             ExpIDs.AddRange(tex2D.expIDs);
@@ -156,7 +151,28 @@ namespace WPF_ME3Explorer.Textures
                 FullPackage = export.PackageFullName.ToUpperInvariant();
         }
 
-        public void ReorderME2Files(string pathBIOGame)
+        void CreateThumbnail(byte[] imgData, Texture2D tex2D, ThumbnailWriter ThumbWriter, ImageInfo info)
+        {
+            byte[] thumbImageData = imgData;
+
+            // Try to get a smaller mipmap to use so don't need to resize.
+            var thumbInfo = tex2D.ImageList.Where(img => img.ImageSize.Width <= 64 && img.ImageSize.Height <= 64).FirstOrDefault();
+            if (thumbInfo.ImageSize != null) // i.e.image size doesn't exist.
+                thumbImageData = tex2D.ExtractImage(thumbInfo.ImageSize);
+
+            using (MemoryStream ms = new MemoryStream(thumbImageData))
+            {
+                uint width = info.ImageSize.Width;
+                uint height = info.ImageSize.Height;
+
+                MemoryStream thumbStream = ImageEngine.GenerateThumbnailToStream(ms, width > height ? 64 : 0, width > height ? 0 : 64);
+                thumbStream = ToolsetTextureEngine.OverlayAndPickDetailed(thumbStream);
+                if (thumbStream != null)
+                    Thumb = ThumbWriter.Add(thumbStream);
+            }
+        }
+
+        public void ReorderME2Files()
         {
             if (GameVersion == 2 && (!String.IsNullOrEmpty(Textures[0].arcName) && Textures[0].arcName != "None"))
             {
@@ -164,7 +180,7 @@ namespace WPF_ME3Explorer.Textures
                 {
                     using (PCCObject pcc = new PCCObject(PCCS[i], GameVersion))
                     {
-                        using (Texture2D tex = new Texture2D(pcc, ExpIDs[i], pathBIOGame, GameVersion))
+                        using (Texture2D tex = new Texture2D(pcc, ExpIDs[i], GameVersion))
                         {
                             string arc = tex.arcName;
                             if (i == 0 && (arc != "None" && !String.IsNullOrEmpty(arc)))
@@ -228,7 +244,11 @@ namespace WPF_ME3Explorer.Textures
 
         public override bool Equals(object obj)
         {
-            return Equals((TreeTexInfo)obj);
+            TreeTexInfo tex = obj as TreeTexInfo;
+            if (tex == null)
+                return false;
+
+            return Equals(tex);
         }
 
         public override int GetHashCode()

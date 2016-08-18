@@ -3,9 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:WPF_ME3Explorer.UI"
+        xmlns:localUI="clr-namespace:WPF_ME3Explorer.UI"
+        xmlns:local="clr-namespace:WPF_ME3Explorer"
         xmlns:dVM="clr-namespace:WPF_ME3Explorer.UI.ViewModels.DesignTime"
         xmlns:VM="clr-namespace:WPF_ME3Explorer.UI.ViewModels"
+        xmlns:usefulUIElements="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
         Title="Texplorer" Height="900.334" Width="1748.575" Closing="Window_Closing">
 
@@ -65,21 +67,46 @@
             </Button>
         </StackPanel>
 
-        <TreeView x:Name="MainTreeView" Grid.Row="1">
+        <TreeView x:Name="MainTreeView" Grid.Row="1" ItemsSource="{Binding TextureFolders}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+            <TreeView.Resources>
+                <Style TargetType="TreeViewItem">
+                    <Setter Property="IsExpanded" Value="{Binding IsOpen, Mode=OneWayToSource}"/>
+                    <Setter Property="IsSelected" Value="{Binding IsSelect, Mode=OneWayToSource}"/>
+                </Style>
+            </TreeView.Resources>
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate ItemsSource="{Binding Folders}">
+                    <StackPanel Orientation="Horizontal">
+                        <Image>
+                            <Image.Style>
+                                <Style TargetType="Image">
+                                    <Setter Property="Source" Value="{StaticResource Folder_Closed}"/>
 
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsOpen}">
+                                            <Setter Property="Source" Value="{StaticResource Folder_Open}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Image.Style>
+                        </Image>
+
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
         </TreeView>
 
-        <ListBox x:Name="MainDisplayPanel" Grid.Column="1" Grid.Row="1" ItemsSource="{Binding CurrentTree.Textures}">
+        <ListBox x:Name="MainDisplayPanel" Grid.Column="1" Grid.Row="1" ItemsSource="{Binding TexturesView}">
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <WrapPanel/>
+                    <WrapPanel Orientation="Vertical" IsItemsHost="True"/>
                 </ItemsPanelTemplate>
             </ListBox.ItemsPanel>
-
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <DockPanel>
-                        <Image Source="{Binding Thumb, Converter={StaticResource ThumbnailConverter}}" Width="128" Height="128" DockPanel.Dock="Top"/>
+                        <Image Source="{Binding Thumb, Converter={StaticResource ThumbnailConverter}}" Width="64" Height="64" DockPanel.Dock="Top"/>
                         <TextBlock Text="{Binding TexName}" HorizontalAlignment="Center" VerticalAlignment="Bottom" DockPanel.Dock="Bottom"/>
                     </DockPanel>
                 </DataTemplate>
@@ -98,10 +125,10 @@
                 </Style>
             </Grid.Resources>
 
-            <TextBox Template="{StaticResource SearchBoxTemplate}" Tag="Search..." VerticalAlignment="Top" BorderBrush="{x:Null}"/>
+            <TextBox x:Name="SearchBox" Template="{StaticResource SearchBoxTemplate}" Tag="Search..." VerticalAlignment="Top" BorderBrush="{x:Null}"/>
             <ListBox x:Name="SearchResultsBox" Margin="0,32,0.333,0" Height="0" VerticalAlignment="Top"/>
 
-            <DockPanel Margin="0,35,0,0" LastChildFill="False" DataContext="{Binding ElementName=MainDisplayPanel,Path=SelectedItem}">
+            <DockPanel x:Name="SelectedTextureDetails" Margin="0,35,0,0" LastChildFill="False" DataContext="{Binding ElementName=MainDisplayPanel,Path=SelectedItem}">
                 <DockPanel.Resources>
                     <Style TargetType="TextBlock">
                         <Setter Property="DockPanel.Dock" Value="Top"/>
@@ -115,7 +142,7 @@
 
                 <TextBlock>
                     <Run Text="Format: "/>
-                    <Run Text="{Binding Format}"/>
+                    <Run Text="{Binding Format, Converter={StaticResource ImageEngineFormatConverter}}"/>
                 </TextBlock>
 
                 <TextBlock>
@@ -137,7 +164,7 @@
 
                 <TextBlock>
                     <Run Text="LODGroup: "/>
-                    <Run Text="{Binding  LODGroup}"/>
+                    <Run Text="{Binding  LODGroup, Mode=OneWay}"/>
                 </TextBlock>
 
                 <TextBlock>
@@ -158,7 +185,7 @@
 
         <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="2" Grid.ColumnSpan="3"/>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black" d:IsHidden="True">
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black">
             <Grid.Resources>
                 <Storyboard x:Key="ClosePanelAnimation">
                     <DoubleAnimation Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
@@ -178,6 +205,18 @@
                     </ObjectAnimationUsingKeyFrames>
                 </Storyboard>
             </Grid.Resources>
+
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsTreePanelRequired}">
+                            <DataTrigger.Value>
+                                <BeginStoryboard Storyboard="{StaticResource ClosePanelAnimation}"/>
+                            </DataTrigger.Value>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
             <Grid x:Name="TreeScanPanel"  Background="White" HorizontalAlignment="Right" Margin="0,0,0,0.333" Width="1500">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition/>
@@ -377,7 +416,27 @@
                 <RowDefinition Height="342*"/>
                 <RowDefinition Height="529*"/>
             </Grid.RowDefinitions>
-            <TextBlock x:Name="Title" Text="Tree Scan in progress..." VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="80" Margin="471,0,470,0" Height="106" Width="801"/>
+            <TextBlock x:Name="TreeScanTitle" Text="Tree Scan in progress..." VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="80"/>
+            <Button x:Name="HiderButton" Content="Close" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="30" Background="Transparent" BorderBrush="White" Foreground="White" Padding="10,2">
+                <Button.Resources>
+                    <Storyboard x:Key="TreeScanProgressPanelCloser">
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TreeScanProgressPanel" Storyboard.TargetProperty="Visibility">
+                            <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Visible}"/>
+                        </ObjectAnimationUsingKeyFrames>
+
+                        <DoubleAnimation Storyboard.TargetName="TreeScanProgressPanel" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:1" DecelerationRatio="1">
+                            <DoubleAnimation.EasingFunction>
+                                <CubicEase EasingMode="EaseOut"/>
+                            </DoubleAnimation.EasingFunction>
+                        </DoubleAnimation>
+                    </Storyboard>
+                </Button.Resources>
+                <Button.Triggers>
+                    <EventTrigger RoutedEvent="Button.Click">
+                        <BeginStoryboard Storyboard="{StaticResource TreeScanProgressPanelCloser}"/>
+                    </EventTrigger>
+                </Button.Triggers>
+            </Button>
 
             <TextBlock x:Name="MemoryUsage" HorizontalAlignment="Right" VerticalAlignment="Bottom" Grid.Row="1">
                 <Run Text="{Binding MemoryUsage}"/>

@@ -62,6 +62,8 @@ namespace WPF_ME3Explorer.Textures
         public int pccExpIdx { get; set; }
         public bool NoRenderFix { get; set; }
 
+        public static List<string> ME3TFCs = new List<string>();
+
 
         public Texture2D()
         {
@@ -70,7 +72,7 @@ namespace WPF_ME3Explorer.Textures
             hasChanged = false;
         }
 
-        public Texture2D(string name, List<string> pccs, List<int> ExpIDs, uint hash, string pathBIOGame, int gameVersion)  // Not calling base constructor to avoid double assigning expIDs and allPccs.
+        public Texture2D(string name, List<string> pccs, List<int> ExpIDs, uint hash, int gameVersion)  // Not calling base constructor to avoid double assigning expIDs and allPccs.
         {
             texName = name;
             hasChanged = false;
@@ -85,7 +87,7 @@ namespace WPF_ME3Explorer.Textures
             GameVersion = gameVersion;
         }
 
-        public Texture2D(PCCObject pccObj, int texIdx, String pathBioGame, int gameVersion, uint hash = 0) : this()
+        public Texture2D(PCCObject pccObj, int texIdx, int gameVersion, uint hash = 0) : this()
         {
             GameVersion = gameVersion;
             allPccs.Add(pccObj.pccFileName);
@@ -98,7 +100,8 @@ namespace WPF_ME3Explorer.Textures
                 ME1_PackageFullName = expEntry.PackageFullName;
                 Class = expEntry.ClassName;
                 properties = new Dictionary<string, SaltPropertyReader.Property>();
-                byte[] rawData = (byte[])expEntry.Data.Clone();
+                //byte[] rawData = (byte[])expEntry.Data.Clone();
+                byte[] rawData = expEntry.Data;
                 int propertiesOffset = SaltPropertyReader.detectStart(pccObj, rawData);
                 headerData = new byte[propertiesOffset];
                 Buffer.BlockCopy(rawData, 0, headerData, 0, propertiesOffset);
@@ -126,7 +129,7 @@ namespace WPF_ME3Explorer.Textures
                     }
                 }
                 if (GameVersion == 3 && !String.IsNullOrEmpty(arcName))
-                    FullArcPath = GetTexArchive(pathBioGame);
+                    FullArcPath = GetTexArchive();
 
                 // if "None" property isn't found throws an exception
                 if (dataOffset == 0)
@@ -185,17 +188,17 @@ namespace WPF_ME3Explorer.Textures
             dataStream.Dispose();
         }
 
-        public byte[] ExtractImage(ImageSize size, string archiveDir = null)
+        public byte[] ExtractImage(ImageSize size)
         {
             byte[] retval;
             if (ImageList.Exists(img => img.ImageSize == size))
-                retval = ExtractImage(ImageList.Find(img => img.ImageSize == size), archiveDir);
+                retval = ExtractImage(ImageList.Find(img => img.ImageSize == size));
             else
                 throw new FileNotFoundException($"Image with resolution { size.ToString() } not found");
             return retval;
         }
 
-        public byte[] ExtractImage(ImageInfo imgInfo, string archiveDir = null)
+        public byte[] ExtractImage(ImageInfo imgInfo)
         {
             byte[] imgBuffer = null;
 
@@ -209,7 +212,7 @@ namespace WPF_ME3Explorer.Textures
                 case storage.arcUnc:
                     string archivePath = FullArcPath;
                     if (String.IsNullOrEmpty(archivePath))
-                        GetTexArchive(archiveDir);
+                        GetTexArchive();
 
                     if (archivePath == null)
                         throw new FileNotFoundException("Texture archive not found!");
@@ -219,7 +222,7 @@ namespace WPF_ME3Explorer.Textures
                     using (FileStream archiveStream = File.OpenRead(archivePath))
                     {
                         archiveStream.Seek(imgInfo.Offset, SeekOrigin.Begin);
-                        if (imgInfo.storageType == storage.arcCpr)
+                        if (imgInfo.storageType == storage.ME3arcCpr)
                             imgBuffer = ZBlock.Decompress(archiveStream, imgInfo.CompressedSize);
                         else
                         {
@@ -243,8 +246,8 @@ namespace WPF_ME3Explorer.Textures
                     {
                         if (String.Compare(texName, temp.Exports[i].ObjectName, true) == 0 && temp.Exports[i].ValidTextureClass())
                         {
-                            Texture2D temptex = new Texture2D(temp, i, MEDirectories.MEDirectories.ME1BIOGame, 1);
-                            imgBuffer = temptex.ExtractImage(imgInfo.ImageSize, null);
+                            Texture2D temptex = new Texture2D(temp, i, 1);
+                            imgBuffer = temptex.ExtractImage(imgInfo.ImageSize);
                         }
                     }
                     break;
@@ -277,25 +280,25 @@ namespace WPF_ME3Explorer.Textures
                 return dds.Save(texFormat, MipHandling.KeepTopOnly);
         }
 
-        public void ExtractImageToFile(string fileName, ImageInfo info, string archiveDir = null)
+        public void ExtractImageToFile(string fileName, ImageInfo info)
         {
-            byte[] data = ExtractImage(info, archiveDir);
+            byte[] data = ExtractImage(info);
             using (FileStream outputImg = new FileStream(fileName, FileMode.Create, FileAccess.Write))
                 outputImg.Write(data, 0, data.Length);
         }
 
-        public void ExtractImageToFile(string fileName, ImageSize size, string archiveDir = null)
+        public void ExtractImageToFile(string fileName, ImageSize size)
         {
             if (ImageList.Exists(img => img.ImageSize == size))
                 ExtractImageToFile(fileName, ImageList.Find(img => img.ImageSize == size));
         }
 
-        public byte[] ExtractMaxImage(string archiveDir = null)
+        public byte[] ExtractMaxImage()
         {
             // select max image size, excluding void images with offset = -1
             ImageSize maxImgSize = ImageList.Where(img => img.Offset != -1).Max(image => image.ImageSize);
             // extracting max image
-            return ExtractImage(ImageList.Find(img => img.ImageSize == maxImgSize), archiveDir);
+            return ExtractImage(ImageList.Find(img => img.ImageSize == maxImgSize));
         }
 
         int GetUncompressedSize(ImageEngineImage img)
@@ -408,7 +411,7 @@ namespace WPF_ME3Explorer.Textures
                 case storage.arcUnc:
                     string archivePath = FullArcPath;
                     if (String.IsNullOrEmpty(archivePath))
-                        archivePath = GetTexArchive(archiveDir);
+                        archivePath = GetTexArchive();
                     if (archivePath == null)
                         throw new FileNotFoundException("Teture archive not found!");
                     if (!File.Exists(archivePath))
@@ -844,32 +847,25 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        private String GetTexArchive(string dir)
+        private String GetTexArchive()
         {
-            List<String> arclist;
-            List<string> parts = new List<string>(dir.Split('\\'));
-            parts.Remove("");
-            if (parts[parts.Count - 1] == "CookedPCConsole")
-                arclist = Directory.GetFiles(dir, "*.tfc", SearchOption.TopDirectoryOnly).ToList();
-            else
-                arclist = Directory.GetFiles(Path.Combine(dir, "CookedPCConsole"), "*.tfc", SearchOption.TopDirectoryOnly).ToList();
-            if (Directory.Exists(Path.Combine(dir, "TexplorerDLCCache")))
-                arclist.AddRange(Directory.GetFiles(Path.Combine(dir, "TexplorerDLCCache"), "*.tfc", SearchOption.AllDirectories));
-
-            //string[] arcs = Directory.GetFiles(dir, "*.tfc", SearchOption.AllDirectories);
-            foreach (String arc in arclist)
+            // Currently ME1 and 2 never get here. They use FindFile.
+            if (!String.IsNullOrEmpty(arcName))
             {
-                string test = arcName.Substring(arcName.Length - 4, 4);
-                if (test.Equals(".tfc"))
-                {
-                    arcName = arcName.Split('.')[0];
-                }
-                if (String.Compare(Path.GetFileNameWithoutExtension(arc), arcName, true) == 0)
-                    return Path.GetFullPath(arc);
+                int dotInd = arcName.IndexOf('.');
+                if (dotInd != -1)
+                    arcName = arcName.Substring(0, dotInd);
             }
 
-            // KFreon: If not found, either broken, or DLC
-            return dir + "\\DLC\\" + arcName.Substring(9, arcName.Length - 9) + "\\CookedPCConsole\\" + arcName + ".tfc";
+
+            if (ME3TFCs.Count == 0)
+                ME3TFCs = MEDirectories.MEDirectories.ME3Files.Where(file => file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList();
+
+            string arc =  ME3TFCs.Where(file => String.Compare(Path.GetFileNameWithoutExtension(file), arcName, true) == 0).FirstOrDefault();
+            if (arc == null)
+                throw new FileNotFoundException($"Texture archive called {arcName} not found in BIOGame.");
+            else
+                return Path.GetFullPath(arc);
         }
 
         /// <summary>
@@ -879,11 +875,8 @@ namespace WPF_ME3Explorer.Textures
         {
             // KFreon:  All files should have been added elsewhere rather than searched for here
             if (allPccs == null)
-            {
-                allPccs = new List<string>(MEDirectories.MEDirectories.ME1Files);
+                allPccs = MEDirectories.MEDirectories.ME1Files;
 
-
-            }
             string package = ME1_PackageFullName.Split('.')[0];
             for (int i = 0; i < allPccs.Count; i++)
             {
@@ -892,8 +885,7 @@ namespace WPF_ME3Explorer.Textures
                 if (String.Compare(package, tempFile, true) == 0)
                     return allPccs[i];
             }
-            /*if (!KFreonLib.Misc.Methods.DisplayYesNoDialogBox("Package guessing failed. Would you like to do the thorough check? (LONG)", "Continue?"))
-                return null;*/
+
             for (int i = 0; i < allPccs.Count; i++)
             {
                 PCCObject temp = new PCCObject(allPccs[i], GameVersion);
@@ -902,7 +894,7 @@ namespace WPF_ME3Explorer.Textures
                     ExportEntry exp = temp.Exports[j];
                     if (String.Compare(texName, exp.ObjectName, true) == 0 && exp.ClassName == "ME1Texture2D")
                     {
-                        Texture2D temptex = new Texture2D(temp, j, MEDirectories.MEDirectories.ME1BIOGame, 1);
+                        Texture2D temptex = new Texture2D(temp, j, 1);
                         if (temptex.ImageList[0].storageType == storage.pccCpr || temptex.ImageList[0].storageType == storage.pccSto)
                         {
                             return allPccs[i];

@@ -75,7 +75,8 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
         public ImportEntry(PCCObject pccFile, byte[] importData)
         {
             pccRef = pccFile;
-            data = (byte[])importData.Clone();
+            //data = (byte[])importData.Clone();  // COULD BE PROBLEM HERE
+            data = importData;
         }
 
         public ImportEntry(PCCObject pccFile, Stream importData)

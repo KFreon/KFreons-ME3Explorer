@@ -26,7 +26,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
-        public MTRangedObservableCollection<T> Textures { get; private set; } = new MTRangedObservableCollection<T>();
+        public MTRangedObservableCollection<T> Textures { get; protected set; } = new MTRangedObservableCollection<T>();
         public TreeDB[] Trees { get; private set; } = new TreeDB[3];
         public MEDirectories.MEDirectories GameDirecs { get; set; } = new MEDirectories.MEDirectories();
 
@@ -187,9 +187,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         public void LoadTrees()
         {
-            Trees[0].ReadFromFile(Path.Combine(MEDirectories.MEDirectories.StorageFolder, "Trees", "ME1.tree"));
-            Trees[1].ReadFromFile(Path.Combine(MEDirectories.MEDirectories.StorageFolder, "Trees", "ME2.tree"));
-            Trees[2].ReadFromFile(Path.Combine(MEDirectories.MEDirectories.StorageFolder, "Trees", "ME3.tree"));
+            Trees[0].ReadFromFile();
+            Trees[1].ReadFromFile();
+            Trees[2].ReadFromFile();
         }
 
         

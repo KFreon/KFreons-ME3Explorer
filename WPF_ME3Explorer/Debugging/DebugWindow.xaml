@@ -12,13 +12,8 @@
                 <Button x:Name="SaveLogButton" Content="Save Log" Click="SaveLogButton_Click"/>
             </MenuItem>
         </Menu>
-
-        <RichTextBox x:Name="rtb" DockPanel.Dock="Bottom" Background="Black" Foreground="#FF29AA00" VerticalScrollBarVisibility="Visible">
-            <RichTextBox.Resources>
-                <Style TargetType="Paragraph">
-                    <Setter Property="Margin" Value="0"/>
-                </Style>
-            </RichTextBox.Resources>
-        </RichTextBox>
+        <ScrollViewer x:Name="DebugScroller" VerticalScrollBarVisibility="Visible">
+            <TextBox x:Name="rtb" DockPanel.Dock="Bottom" Background="Black" Foreground="#FF29AA00" IsReadOnly="True"/>
+        </ScrollViewer>
     </DockPanel>
 </Window>

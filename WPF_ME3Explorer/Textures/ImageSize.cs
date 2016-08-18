@@ -82,7 +82,7 @@ namespace WPF_ME3Explorer.Textures
                 return true;
 
             // If one is null, but not both, return false.
-            if (a == null || b == null)
+            if (Object.ReferenceEquals(a, null) || Object.ReferenceEquals(b, null)) // Need to check reference. a == null, results in stack overflow.
                 return false;
 
             // Return true if the fields match:

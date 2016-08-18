@@ -25,7 +25,7 @@ namespace WPF_ME3Explorer.Debugging
         public DebugWindow()
         {
             InitializeComponent();
-            DebugOutput.SetBox(rtb);
+            DebugOutput.SetBox(rtb, DebugScroller);
         }
 
         private void SaveLogButton_Click(object sender, RoutedEventArgs e)

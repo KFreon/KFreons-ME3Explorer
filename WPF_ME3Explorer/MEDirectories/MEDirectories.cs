@@ -175,20 +175,7 @@ namespace WPF_ME3Explorer.MEDirectories
             get
             {
                 if (me1Files == null && ME1BIOGame != null && Directory.Exists(ME1BIOGame))
-                {
-                    List<string> baseGame = EnumerateGameFiles(1, ME1BIOGame);
-                    List<string> dlc = null;
-                    if (ME1DLCPath != null && Directory.Exists(ME1DLCPath))
-                        dlc = EnumerateGameFiles(1, ME1DLCPath);
-
-
-                    if (baseGame == null)
-                        me1Files = dlc;
-                    else if (dlc == null)
-                        me1Files = baseGame;
-                    else
-                        me1Files = baseGame.Concat(dlc).ToList();
-                }
+                    me1Files = EnumerateGameFiles(1, ME1BIOGame);
 
                 return me1Files;
             }
@@ -200,20 +187,7 @@ namespace WPF_ME3Explorer.MEDirectories
             get
             {
                 if (me2Files == null && ME2BIOGame != null && Directory.Exists(ME2BIOGame))
-                {
-                    List<string> baseGame = EnumerateGameFiles(2, ME2BIOGame);
-                    List<string> dlc = null;
-                    if (ME2DLCPath != null && Directory.Exists(ME2DLCPath))
-                        dlc = EnumerateGameFiles(2, ME2DLCPath);
-
-
-                    if (baseGame == null)
-                        me2Files = dlc;
-                    else if (dlc == null)
-                        me2Files = baseGame;
-                    else
-                        me2Files = baseGame.Concat(dlc).ToList();
-                }
+                    me2Files = EnumerateGameFiles(2, ME2BIOGame);
 
                 return me2Files;
             }
@@ -225,20 +199,7 @@ namespace WPF_ME3Explorer.MEDirectories
             get
             {
                 if (me3Files == null && ME3BIOGame != null && Directory.Exists(ME3BIOGame))
-                {
-                    List<string> baseGame = EnumerateGameFiles(3, ME3BIOGame, predicate: s => s.ToLowerInvariant().EndsWith(".pcc", true, null));
-                    List<string> dlc = null;
-                    if (ME3DLCPath != null && Directory.Exists(ME3DLCPath))
-                        dlc = EnumerateGameFiles(3, ME3DLCPath, predicate: s => s.ToLowerInvariant().EndsWith(".pcc", true, null));
-
-
-                    if (baseGame == null)
-                        me3Files = dlc;
-                    else if (dlc == null)
-                        me3Files = baseGame;
-                    else
-                        me3Files = baseGame.Concat(dlc).ToList();
-                }
+                    me3Files = EnumerateGameFiles(3, ME3BIOGame);  // Includes DLC
 
                 return me3Files;
             }

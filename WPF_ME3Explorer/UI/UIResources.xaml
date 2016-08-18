@@ -3,16 +3,18 @@
                     xmlns:s="clr-namespace:System;assembly=mscorlib"
                     xmlns:local="clr-namespace:WPF_ME3Explorer"
                     xmlns:localConverters="clr-namespace:WPF_ME3Explorer.UI.ValueConverters"
+                    xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
                     xmlns:useful="clr-namespace:UsefulThings.WPF.TypeConverters;assembly=UsefulThings">
 
     <useful:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
     <useful:InverseBooleanConverter x:Key="InverseBoolConverter"/>
     <localConverters:HashToStringConverter x:Key="HashStringConverter"/>
     <localConverters:ThumbnailConverter x:Key="ThumbnailConverter"/>
+    <localConverters:ImageEngineFormatConverter x:Key="ImageEngineFormatConverter"/>
 
     <!-- Default images to display -->
-    <BitmapImage x:Key="Folder_Closed" UriSource="/WPF_ME3Explorer;component/Resources/Folder_Closed.png" DecodePixelHeight="32"/>
-    <BitmapImage x:Key="Folder_Open" UriSource="/WPF_ME3Explorer;component/Resources/Folder_Open.png" DecodePixelHeight="32"/>
+    <BitmapImage x:Key="Folder_Closed" po:Freeze="True" UriSource="/WPF_ME3Explorer;component/Resources/Folder_Closed.png" DecodePixelHeight="32"/>
+    <BitmapImage x:Key="Folder_Open" po:Freeze="True" UriSource="/WPF_ME3Explorer;component/Resources/Folder_Open.png" DecodePixelHeight="32"/>
     <BitmapImage x:Key="DefaultTexture" UriSource="/WPF_ME3Explorer;component/Resources/Placeholder.png" DecodePixelHeight="64"/>
     <BitmapImage x:Key="DefaultMesh" UriSource="/WPF_ME3Explorer;component/Resources/DefaultMesh.png" DecodePixelHeight="64"/>
     <BitmapImage x:Key="DefaultText" UriSource="/WPF_ME3Explorer;component/Resources/DefaultText.png" DecodePixelHeight="64"/>

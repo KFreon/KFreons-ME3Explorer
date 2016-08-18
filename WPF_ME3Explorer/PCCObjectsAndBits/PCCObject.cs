@@ -77,7 +77,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
         }
 
 
-        List<Block> blockList = null;
+
 
         protected class Block
         {
@@ -92,10 +92,8 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
 
         public List<ImportEntry> Imports { get; set; }
         public List<ExportEntry> Exports { get; set; }
-        List<Block> blocklist = null;
         public int NumChunks;
         public MemoryStream listsStream;
-        public MemoryStream DataStream;
 
 
 
@@ -112,19 +110,12 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
                 throw new FileNotFoundException("File not found: " + pccFileName);
 
             int trycout = 0;
-            while (trycout < 50)
+            while (trycout < 5)
             {
                 try
                 {
                     using (FileStream fs = new FileStream(pccFileName, FileMode.Open, FileAccess.Read))
-                    {
-                        FileInfo tempInfo = new FileInfo(pccFileName);
-                        tempStream.ReadFrom(fs, tempInfo.Length);
-                        if (tempStream.Length != tempInfo.Length)
-                        {
-                            throw new FileLoadException("File not fully read in. Try again later");
-                        }
-                    }
+                        tempStream.ReadFrom(fs, fs.Length);
                     break;
                 }
                 catch (Exception e)
@@ -143,8 +134,6 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
         void PCCObjectHelper(MemoryStream tempStream, string filePath)
         {
             tempStream.Seek(0, SeekOrigin.Begin);
-            DataStream = new MemoryStream();
-            tempStream.WriteTo(DataStream);
             Names = new List<string>();
             Imports = new List<ImportEntry>();
             Exports = new List<ExportEntry>();
@@ -160,6 +149,8 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
 
             if (compressed)
             {
+                List<Block> blockList = null;
+
                 // seeks the blocks info position
                 tempStream.Seek(idxOffsets + 60, SeekOrigin.Begin);
                 int generator = tempStream.ReadInt32();
@@ -215,7 +206,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             else
             {
                 listsStream = new MemoryStream();
-                listsStream.WriteBytes(tempStream.ToArray());
+                tempStream.WriteTo(listsStream);
             }
             tempStream.Dispose();
 
@@ -231,9 +222,11 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
                 Names.Add(name);               
             }
 
+            byte[] buffer = null;
+
             // fill import list
             listsStream.Seek(ImportOffset, SeekOrigin.Begin);
-            byte[] buffer = new byte[ImportEntry.byteSize];
+            buffer = new byte[ImportEntry.byteSize];
             for (int i = 0; i < ImportCount; i++)
                 Imports.Add(new ImportEntry(this, listsStream));
 
@@ -242,7 +235,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             for (int i = 0; i < ExportCount; i++)
             {
                 uint expInfoOffset = (uint)listsStream.Position;
-
+                
                 listsStream.Seek(44, SeekOrigin.Current);
                 int count = listsStream.ReadInt32();
                 listsStream.Seek(-48, SeekOrigin.Current);
@@ -296,18 +289,14 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
                 try
                 {
                     using (FileStream fs = new FileStream(newFileName, FileMode.Create, FileAccess.Write))
-                    {
-                        byte[] test = listsStream.ToArray();
-                        fs.WriteBytes(test);
-                        test = null;
-                    }
+                        listsStream.WriteTo(fs);
                     break;
                 }
                 catch (IOException)
                 {
                     System.Threading.Thread.Sleep(50);
                     tries++;
-                    if (tries > 100)
+                    if (tries > 5)
                     {
                         throw new IOException("The PCC can't be written to disk because of an IOException");
                     }
@@ -436,13 +425,6 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
                         try
                         {
                             listsStream.Dispose();
-                        }
-                        catch { }
-
-                    if (DataStream != null)
-                        try
-                        {
-                            DataStream.Dispose();
                         }
                         catch { }
                 }

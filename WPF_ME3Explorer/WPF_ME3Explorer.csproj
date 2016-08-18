@@ -87,6 +87,7 @@
     </Compile>
     <Compile Include="DLCEntry.cs" />
     <Compile Include="GameFileEntry.cs" />
+    <Compile Include="UI\TexplorerTextureFolder.cs" />
     <Compile Include="UI\ValueConverters\HashStringConverter.cs" />
     <Compile Include="MEDirectories\MEDirectories.cs" />
     <Compile Include="MiniLZO.cs" />
@@ -101,7 +102,6 @@
     <Compile Include="Textures\ImageSize.cs" />
     <Compile Include="Textures\Misc.cs" />
     <Compile Include="Textures\Texture2D.cs" />
-    <Compile Include="Textures\TextureFormat.cs" />
     <Compile Include="Textures\Thumbnail.cs" />
     <Compile Include="Textures\ThumbnailWriter.cs" />
     <Compile Include="Textures\ToolsetTextureEngine.cs" />
@@ -122,6 +122,7 @@
     </Compile>
     <Compile Include="UI\ValueConverters\MipmapCountConverter.cs" />
     <Compile Include="UI\ValueConverters\PCCsExpIDsConverter.cs" />
+    <Compile Include="UI\ValueConverters\ImageEngineFormatConverter.cs" />
     <Compile Include="UI\ValueConverters\ThumbnailConverter.cs" />
     <Compile Include="UI\ViewModels\DesignTime\DESIGN_TexplorerVM.cs" />
     <Compile Include="UI\ViewModels\DesignTime\DESIGN_TPFToolsVM.cs" />
