@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media.Animation;
+using UsefulThings;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.Debugging;
 using WPF_ME3Explorer.PCCObjectsAndBits;
@@ -31,6 +32,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
         ThumbnailWriter ThumbnailWriter = null;
         public MTRangedObservableCollection<string> Errors { get; set; } = new MTRangedObservableCollection<string>();
         public MTRangedObservableCollection<TexplorerTextureFolder> TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+
+        bool isTreeScanCompelete = false;
+        public bool IsTreeScanComplete
+        {
+            get
+            {
+                return isTreeScanCompelete;
+            }
+            set
+            {
+                SetProperty(ref isTreeScanCompelete, value);
+            }
+        }
 
 
         bool isTreePanelRequired = true;
@@ -192,8 +206,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             await Task.Run(() => ConstructTree());
 
             // Put away TreeScanProgress Window
-            Storyboard closer = (Storyboard)Application.Current.Resources.FindName("TreeScanProgressPanelCloser");
-            closer.Begin();
+            IsTreeScanComplete = true;
 
             Busy = false;
         }
@@ -209,23 +222,57 @@ namespace WPF_ME3Explorer.UI.ViewModels
             MaxProgress = pccs?.Count ?? CurrentTree.ScannedPCCs.Count;
             Status = $"Scanned: 0 / {MaxProgress}";
 
-            IList<string> PCCsToScan = CurrentTree.ScannedPCCs;  // Can't use ?? here as ScannedPCCs and pccs are different classes.
+            // Remove localisations - english only for now.
+            IList<string> PCCsToScan = CurrentTree.ScannedPCCs.Where(file => !file.Contains("_LOC_")).ToList();  // Can't use ?? here as ScannedPCCs and pccs are different classes.
             if (pccs != null)
                 PCCsToScan = pccs;
 
+            
+
+
+            //////// Basegame
+            // Read in TFC's
+            Dictionary<string, MemoryStream> TFCs = new Dictionary<string, MemoryStream>();
+            var tfcFiles = GameDirecs.Files.Where(file => file.EndsWith("tfc"));// && !file.Contains("DLC\\DLC_"));
+
+            await Task.Run(() =>
+            {
+                foreach (var tfc in tfcFiles)
+                {
+                    using (FileStream fs = new FileStream(tfc, FileMode.Open))
+                    {
+                        MemoryStream ms = RecyclableMemoryManager.GetStream((int)fs.Length);
+                        ms.ReadFrom(fs, fs.Length);
+                        TFCs.Add(tfc, ms);
+                    }
+                }
+            });
+
+
+            // Get PCC's
+            IList<string> basegamePCCs = PCCsToScan;//.Where(pcc => !pcc.Contains("DLC\\DLC_")).ToList();
+
+            // Perform scan - count goes in, gets updated internally and locally, thus returns the updated result for use out here.
+            int count = await ScanPCCsInternal(basegamePCCs, 0, TFCs);
+
+            Progress = MaxProgress;
+            Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures.";
+        }
+
+        async Task<int> ScanPCCsInternal(IList<string> PCCs, int count, Dictionary<string, MemoryStream> TFCs)
+        {
             // Parallel scanning
             ParallelOptions po = new ParallelOptions();
             po.MaxDegreeOfParallelism = NumThreads;
-            int count = 0;
 
-            await Task.Run(() => Parallel.For(0, MaxProgress, po, (index, loopstate) =>
+            await Task.Run(() => Parallel.For(0, PCCs.Count, po, (index, loopstate) =>
             {
                 // TODO: Cancellation
 
-                string file = PCCsToScan[index];
+                string file = PCCs[index];
                 DebugOutput.PrintLn($"Scanning: {file}");
 
-                string error = ScanPCCForTextures(file);  // Ignore errors for now. Might display them later?
+                string error = ScanPCCForTextures(file, TFCs);  // Ignore errors for now. Might display them later?
                 if (error != null)
                     Errors.Add(error);
 
@@ -239,11 +286,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 }
             }));
 
-            Progress = MaxProgress;
-            Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures.";
+            return count;
         }
 
-        string ScanPCCForTextures(string filename)
+        string ScanPCCForTextures(string filename, Dictionary<string, MemoryStream> TFCs)
         {
             try
             {
@@ -261,7 +307,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         if (tex2D.ImageList.Count == 0)
                             continue;
 
-                        TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export);
+                        TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs);
                         CurrentTree.AddTexture(info);
                     }
                 }

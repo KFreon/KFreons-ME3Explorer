@@ -188,17 +188,17 @@ namespace WPF_ME3Explorer.Textures
             dataStream.Dispose();
         }
 
-        public byte[] ExtractImage(ImageSize size)
+        public byte[] ExtractImage(ImageSize size, Dictionary<string, MemoryStream> TFCs = null)
         {
             byte[] retval;
             if (ImageList.Exists(img => img.ImageSize == size))
-                retval = ExtractImage(ImageList.Find(img => img.ImageSize == size));
+                retval = ExtractImage(ImageList.Find(img => img.ImageSize == size), TFCs);
             else
                 throw new FileNotFoundException($"Image with resolution { size.ToString() } not found");
             return retval;
         }
 
-        public byte[] ExtractImage(ImageInfo imgInfo)
+        public byte[] ExtractImage(ImageInfo imgInfo, Dictionary<string, MemoryStream> TFCs = null)
         {
             byte[] imgBuffer = null;
 
@@ -212,22 +212,22 @@ namespace WPF_ME3Explorer.Textures
                 case storage.arcUnc:
                     string archivePath = FullArcPath;
                     if (String.IsNullOrEmpty(archivePath))
-                        GetTexArchive();
+                        archivePath = GetTexArchive();
 
                     if (archivePath == null)
                         throw new FileNotFoundException("Texture archive not found!");
                     if (!File.Exists(archivePath))
                         throw new FileNotFoundException("Texture archive not found in " + archivePath);
 
-                    using (FileStream archiveStream = File.OpenRead(archivePath))
+                    lock (TFCs[archivePath])
                     {
-                        archiveStream.Seek(imgInfo.Offset, SeekOrigin.Begin);
+                        TFCs[archivePath].Seek(imgInfo.Offset, SeekOrigin.Begin);
                         if (imgInfo.storageType == storage.ME3arcCpr)
-                            imgBuffer = ZBlock.Decompress(archiveStream, imgInfo.CompressedSize);
+                            imgBuffer = ZBlock.Decompress(TFCs[archivePath], imgInfo.CompressedSize);
                         else
                         {
                             imgBuffer = new byte[imgInfo.UncompressedSize];
-                            archiveStream.Read(imgBuffer, 0, imgBuffer.Length);
+                            TFCs[archivePath].Read(imgBuffer, 0, imgBuffer.Length);
                         }
                     }
                     break;

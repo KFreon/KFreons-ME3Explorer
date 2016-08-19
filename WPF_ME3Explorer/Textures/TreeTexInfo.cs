@@ -100,7 +100,7 @@ namespace WPF_ME3Explorer.Textures
 
         }
 
-        public TreeTexInfo(Texture2D tex2D, ThumbnailWriter ThumbWriter, ExportEntry export) : this()
+        public TreeTexInfo(Texture2D tex2D, ThumbnailWriter ThumbWriter, ExportEntry export, Dictionary<string, MemoryStream> TFCs) : this()
         {
             TexName = tex2D.texName;
             Format = tex2D.texFormat;
@@ -113,7 +113,7 @@ namespace WPF_ME3Explorer.Textures
             CRC32 crcgen = new CRC32();
             StorageType = info.storageType;
 
-            byte[] imgData = tex2D.ExtractImage(info.ImageSize);
+            byte[] imgData = tex2D.ExtractImage(info.ImageSize, TFCs);
 
             if (info.storageType == storage.pccSto)
             {
@@ -139,7 +139,7 @@ namespace WPF_ME3Explorer.Textures
             Hash = hash;
 
             // Don't generate thumbnail till necessary i.e. not a duplicate texture - This is done after the check in the TreeDB
-            GenerateThumbnail = new Action(() => CreateThumbnail(imgData, tex2D, ThumbWriter, info));
+            GenerateThumbnail = new Action(() => CreateThumbnail(imgData, tex2D, ThumbWriter, info, TFCs));
 
             for (int i = 0; i < tex2D.allPccs.Count; i++)
                 PCCS.Add(new PCCEntry(tex2D.allPccs[i], tex2D.expIDs[i]));
@@ -151,14 +151,14 @@ namespace WPF_ME3Explorer.Textures
                 FullPackage = export.PackageFullName.ToUpperInvariant();
         }
 
-        void CreateThumbnail(byte[] imgData, Texture2D tex2D, ThumbnailWriter ThumbWriter, ImageInfo info)
+        void CreateThumbnail(byte[] imgData, Texture2D tex2D, ThumbnailWriter ThumbWriter, ImageInfo info, Dictionary<string, MemoryStream> TFCs)
         {
             byte[] thumbImageData = imgData;
 
             // Try to get a smaller mipmap to use so don't need to resize.
             var thumbInfo = tex2D.ImageList.Where(img => img.ImageSize.Width <= 128 && img.ImageSize.Height <= 128).FirstOrDefault();
             if (thumbInfo.ImageSize != null) // i.e.image size doesn't exist.
-                thumbImageData = tex2D.ExtractImage(thumbInfo.ImageSize);
+                thumbImageData = tex2D.ExtractImage(thumbInfo.ImageSize, TFCs);
 
             using (MemoryStream ms = new MemoryStream(thumbImageData))
             {
