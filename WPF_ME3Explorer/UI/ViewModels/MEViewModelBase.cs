@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -6,12 +7,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using UsefulThings;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.Textures;
 
 namespace WPF_ME3Explorer.UI.ViewModels
 {
-    public class MEViewModelBase<T> : ViewModelBase
+    public class MEViewModelBase<T> : ViewModelBase where T : AbstractTexInfo
     {
         bool busy = false;
         public bool Busy
@@ -25,6 +27,27 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 SetProperty(ref busy, value);
             }
         }
+
+        string textureSearch = null;
+        public string TextureSearch
+        {
+            get
+            {
+                return textureSearch;
+            }
+            set
+            {
+                SetProperty(ref textureSearch, value);
+
+                // Clear results if empty string or search.
+                if (String.IsNullOrEmpty(value))
+                    TextureSearchResults.Clear();
+                else
+                    Search(value);
+            }
+        }
+
+        public MTRangedObservableCollection<T> TextureSearchResults { get; protected set; } = new MTRangedObservableCollection<T>();
 
         public MTRangedObservableCollection<T> Textures { get; protected set; } = new MTRangedObservableCollection<T>();
         public TreeDB[] Trees { get; private set; } = new TreeDB[3];
@@ -192,6 +215,21 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Trees[2].ReadFromFile();
         }
 
-        
+        public virtual void Search(string searchText)
+        {
+            TextureSearchResults.Clear();
+
+            ConcurrentBag<T> tempResults = new ConcurrentBag<T>();
+
+            Parallel.ForEach(Textures, texture =>
+            //foreach(T texture in Textures)
+            {
+                bool found = texture.Searchables.Any(searchable => searchable.Contains(searchText, StringComparison.OrdinalIgnoreCase));
+                if (found)
+                    tempResults.Add(texture);
+            });
+
+            TextureSearchResults.AddRange(tempResults);
+        }
     }
 }

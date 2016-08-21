@@ -24,7 +24,7 @@ namespace WPF_ME3Explorer.Textures
             pccCpr = 0x10 // PCC Compressed, ME1 Only
         }
 
-        public struct ImageInfo
+        public struct ImageInfo : IComparable
         {
             public storage storageType;
             public int CompressedSize { get; set; }
@@ -32,6 +32,14 @@ namespace WPF_ME3Explorer.Textures
             public int Offset { get; set; }
             public int GameVersion { get; set; }
             public int UncompressedSize { get; set; }
+
+            public int CompareTo(object obj)
+            {
+                if (obj == null)
+                    throw new ArgumentNullException();
+
+                return ImageSize.CompareTo(((ImageInfo)obj).ImageSize);
+            }
         }
 
         public string texName { get; set; }
@@ -219,17 +227,28 @@ namespace WPF_ME3Explorer.Textures
                     if (!File.Exists(archivePath))
                         throw new FileNotFoundException("Texture archive not found in " + archivePath);
 
-                    lock (TFCs[archivePath])
+                    // Treescanning uses full list of TFCs read in, switch based on whether scanning or just getting texture.
+                    Stream archiveStream = null;
+                    if (TFCs != null)
+                        archiveStream = TFCs[archivePath];
+                    else
+                        archiveStream = File.OpenRead(archivePath);
+
+                    lock (archiveStream)
                     {
-                        TFCs[archivePath].Seek(imgInfo.Offset, SeekOrigin.Begin);
+                        archiveStream.Seek(imgInfo.Offset, SeekOrigin.Begin);
                         if (imgInfo.storageType == storage.ME3arcCpr)
-                            imgBuffer = ZBlock.Decompress(TFCs[archivePath], imgInfo.CompressedSize);
+                            imgBuffer = ZBlock.Decompress(archiveStream, imgInfo.CompressedSize);
                         else
                         {
                             imgBuffer = new byte[imgInfo.UncompressedSize];
-                            TFCs[archivePath].Read(imgBuffer, 0, imgBuffer.Length);
+                            archiveStream.Read(imgBuffer, 0, imgBuffer.Length);
                         }
                     }
+
+                    // Can dispose of stream if not treescanning
+                    if (TFCs == null)
+                        archiveStream.Dispose();
                     break;
                 case storage.arcCpr:  // ME1, ME2?
                     archivePath = FullArcPath;
@@ -262,7 +281,6 @@ namespace WPF_ME3Explorer.Textures
                     throw new FormatException("Unsupported texture storage type");
             }
 
-            //TEST
             using (MemoryStream ms = new MemoryStream())
             {
                 using (BinaryWriter bw = new BinaryWriter(ms, Encoding.Default, true))
@@ -270,14 +288,9 @@ namespace WPF_ME3Explorer.Textures
                     var header = CSharpImageLibrary.DDSGeneral.Build_DDS_Header(1, (int)imgInfo.ImageSize.Height, (int)imgInfo.ImageSize.Width, texFormat);
                     CSharpImageLibrary.DDSGeneral.Write_DDS_Header(header, bw);
                     bw.Write(imgBuffer);
-
                 }
                 return ms.ToArray();
             }
-
-            // old?
-            using (ImageEngineImage dds = new ImageEngineImage(imgBuffer, texFormat, (int)imgInfo.ImageSize.Width, (int)imgInfo.ImageSize.Height))
-                return dds.Save(texFormat, MipHandling.KeepTopOnly);
         }
 
         public void ExtractImageToFile(string fileName, ImageInfo info)
@@ -295,8 +308,8 @@ namespace WPF_ME3Explorer.Textures
 
         public byte[] ExtractMaxImage()
         {
-            // select max image size, excluding void images with offset = -1
-            ImageSize maxImgSize = ImageList.Where(img => img.Offset != -1).Max(image => image.ImageSize);
+            // select max image size
+            ImageSize maxImgSize = ImageList.Max(image => image.ImageSize);
             // extracting max image
             return ExtractImage(ImageList.Find(img => img.ImageSize == maxImgSize));
         }
@@ -865,7 +878,10 @@ namespace WPF_ME3Explorer.Textures
             if (arc == null)
                 throw new FileNotFoundException($"Texture archive called {arcName} not found in BIOGame.");
             else
-                return Path.GetFullPath(arc);
+            {
+                FullArcPath = Path.GetFullPath(arc);
+                return FullArcPath;
+            }
         }
 
         /// <summary>

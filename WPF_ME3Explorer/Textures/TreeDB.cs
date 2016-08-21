@@ -122,6 +122,7 @@ namespace WPF_ME3Explorer.Textures
                                 tex.StorageType = (Texture2D.storage)bin.ReadInt32();
                                 tex.FullPackage = bin.ReadString();
                                 tex.Format = (ImageEngineFormat)bin.ReadInt32();
+                                tex.GameVersion = gameVersion;
 
                                 Thumbnail thumb = new Thumbnail(GameDirecs.ThumbnailCachePath);
                                 thumb.Offset = bin.ReadInt64();

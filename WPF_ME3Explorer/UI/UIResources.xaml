@@ -11,6 +11,7 @@
     <localConverters:HashToStringConverter x:Key="HashStringConverter"/>
     <localConverters:ThumbnailConverter x:Key="ThumbnailConverter"/>
     <localConverters:ImageEngineFormatConverter x:Key="ImageEngineFormatConverter"/>
+    <useful:DebugConverter x:Key="DebugConverter"/>
 
     <!-- Default images to display -->
     <BitmapImage x:Key="Folder_Closed" po:Freeze="True" UriSource="/WPF_ME3Explorer;component/Resources/Folder_Closed.png" DecodePixelHeight="32"/>
@@ -24,9 +25,9 @@
     <s:Boolean x:Key="False">False</s:Boolean>
 
     <ControlTemplate x:Key="SearchBoxTemplate" TargetType="TextBox">
-        <Grid Margin="3">
-            <TextBox x:Name="SearchBox" Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
-            <Label x:Name="BlankText" Content="{TemplateBinding Tag}"  IsHitTestVisible="False" Foreground="Gray" Background="{x:Null}">
+        <Grid>
+            <TextBox x:Name="SearchBox" Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Text, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" VerticalContentAlignment="Center"/>
+            <Label x:Name="BlankText" Content="{TemplateBinding Tag}"  IsHitTestVisible="False" Foreground="Gray" Background="{x:Null}" Margin="2,0,0,0" Padding="3">
                 <Label.Style>
                     <Style TargetType="Label">
                         <Style.Resources>
@@ -40,35 +41,21 @@
                         </Style.Resources>
                         <Setter Property="Opacity" Value="1"/>
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding Searching}" Value="true">
-                                <DataTrigger.EnterActions>
-                                    <BeginStoryboard Storyboard="{StaticResource FadeOutStoryboard}"/>
-                                </DataTrigger.EnterActions>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding ElementName=SearchBox, Path=Text}" Value=""/>
+                                    <Condition Binding="{Binding ElementName=SearchBox, Path=IsMouseOver}" Value="false"/>
+                                    <Condition Binding="{Binding ElementName=SearchBox, Path=IsFocused}" Value="false"/>
+                                </MultiDataTrigger.Conditions>
 
-                                <DataTrigger.ExitActions>
+                                <MultiDataTrigger.EnterActions>
                                     <BeginStoryboard Storyboard="{StaticResource FadeInStoryboard}"/>
-                                </DataTrigger.ExitActions>
-                            </DataTrigger>
+                                </MultiDataTrigger.EnterActions>
 
-                            <DataTrigger Binding="{Binding ElementName=SearchBox, Path=IsMouseOver}" Value="true">
-                                <DataTrigger.EnterActions>
+                                <MultiDataTrigger.ExitActions>
                                     <BeginStoryboard Storyboard="{StaticResource FadeOutStoryboard}"/>
-                                </DataTrigger.EnterActions>
-
-                                <DataTrigger.ExitActions>
-                                    <BeginStoryboard Storyboard="{StaticResource FadeInStoryboard}"/>
-                                </DataTrigger.ExitActions>
-                            </DataTrigger>
-
-                            <DataTrigger Binding="{Binding ElementName=SearchBox,Path=IsFocused}" Value="true">
-                                <DataTrigger.EnterActions>
-                                    <BeginStoryboard Storyboard="{StaticResource FadeOutStoryboard}"/>
-                                </DataTrigger.EnterActions>
-
-                                <DataTrigger.ExitActions>
-                                    <BeginStoryboard Storyboard="{StaticResource FadeInStoryboard}"/>
-                                </DataTrigger.ExitActions>
-                            </DataTrigger>
+                                </MultiDataTrigger.ExitActions>
+                            </MultiDataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Label.Style>

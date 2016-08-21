@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using UsefulThings;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.Debugging;
@@ -21,6 +22,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
 {
     public class TexplorerViewModel : MEViewModelBase<TreeTexInfo>
     {
+        public Action TreePanelCloser = null;
+        public Action TreeScanProgressCloser = null;
+
         public bool Changes { get; set; }
 
         List<DLCEntry> FTSDLCs { get; set; } = new List<DLCEntry>();
@@ -33,33 +37,73 @@ namespace WPF_ME3Explorer.UI.ViewModels
         public MTRangedObservableCollection<string> Errors { get; set; } = new MTRangedObservableCollection<string>();
         public MTRangedObservableCollection<TexplorerTextureFolder> TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
 
-        bool isTreeScanCompelete = false;
-        public bool IsTreeScanComplete
+        string ftsFilesSearch = null;
+        public string FTSFilesSearch
         {
             get
             {
-                return isTreeScanCompelete;
+                return ftsFilesSearch;
             }
             set
             {
-                SetProperty(ref isTreeScanCompelete, value);
+                SetProperty(ref ftsFilesSearch, value);
+                FileItemsView.Refresh();
             }
         }
 
-
-        bool isTreePanelRequired = true;
-        public bool IsTreePanelRequired
+        string ftsExclusionsSearch = null;
+        public string FTSExclusionsSearch
         {
             get
             {
-                return isTreePanelRequired;
+                return ftsExclusionsSearch;
             }
             set
             {
-                SetProperty(ref isTreePanelRequired, value);
+                SetProperty(ref ftsExclusionsSearch, value);
+                ExclusionsItemsView.Refresh();
             }
         }
         
+
+        bool showingPreview = false;
+        public bool ShowingPreview
+        {
+            get
+            {
+                return showingPreview;
+            }
+            set
+            {
+                SetProperty(ref showingPreview, value);
+            }
+        }
+
+        BitmapSource previewImage = null;
+        public BitmapSource PreviewImage
+        {
+            get
+            {
+                return previewImage;
+            }
+            set
+            {
+                SetProperty(ref previewImage, value);
+            }
+        }
+
+        bool ftsReady = false;
+        public bool FTSReady
+        {
+            get
+            {
+                return ftsReady;
+            }
+            set
+            {
+                SetProperty(ref ftsReady, value);
+            }
+        }
 
 
         public TexplorerViewModel() : base()
@@ -70,10 +114,22 @@ namespace WPF_ME3Explorer.UI.ViewModels
             DLCItemsView.Filter = item => !((DLCEntry)item).IsChecked;
 
             FileItemsView = CollectionViewSource.GetDefaultView(FTSGameFiles);
-            FileItemsView.Filter = item => !((GameFileEntry)item).IsChecked && !((GameFileEntry)item).FilterOut;
+            FileItemsView.Filter = item =>
+            {
+                GameFileEntry entry = (GameFileEntry)item;
+                return !entry.IsChecked && !entry.FilterOut && 
+                    (String.IsNullOrEmpty(FTSFilesSearch) ? true : 
+                    entry.Name.Contains(FTSFilesSearch, StringComparison.OrdinalIgnoreCase) || entry.FilePath?.Contains(FTSFilesSearch, StringComparison.OrdinalIgnoreCase) == true);
+            };
 
             ExclusionsItemsView = CollectionViewSource.GetDefaultView(FTSExclusions);
-            ExclusionsItemsView.Filter = item => ((AbstractFileEntry)item).IsChecked && ((item as GameFileEntry)?.FilterOut != true);
+            ExclusionsItemsView.Filter = item =>
+            {
+                AbstractFileEntry entry = (AbstractFileEntry)item;
+                return entry.IsChecked && ((entry as GameFileEntry)?.FilterOut != true) && 
+                    (String.IsNullOrEmpty(FTSExclusionsSearch) ? true : 
+                    entry.Name.Contains(FTSExclusionsSearch, StringComparison.OrdinalIgnoreCase) || entry.FilePath?.Contains(FTSExclusionsSearch, StringComparison.OrdinalIgnoreCase) == true);
+            };
 
             GameDirecs.GameVersion = Properties.Settings.Default.TexplorerGameVersion;
             OnPropertyChanged(nameof(GameVersion));
@@ -89,18 +145,22 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Status = "Loading Trees...";
 
             AbstractFileEntry.Updater = new Action(() => UpdateFTS());
-            AbstractFileEntry.BasePathLength = GameDirecs.BasePath.Length + 9;  // BasePath is C:\etc\mass effect, also want to remove \BIOGame\.
 
-            await Task.Run(() => base.LoadTrees());
-
-            // KFreon: Populate game files info with tree info
-            if (GameDirecs.Files?.Count <= 0)
+            await Task.Run(() =>
             {
-                DebugOutput.PrintLn($"Game files not found for ME{GameDirecs.GameVersion} at {GameDirecs.PathBIOGame}");
-                Status = "Game Files not found!";
-                Busy = false;
-                return;
-            }
+                // Load all three trees
+                base.LoadTrees();
+
+                /// Can take a long time if disk is busy
+                // KFreon: Populate game files info with tree info
+                if (GameDirecs.Files?.Count <= 0)
+                {
+                    DebugOutput.PrintLn($"Game files not found for ME{GameDirecs.GameVersion} at {GameDirecs.PathBIOGame}");
+                    Status = "Game Files not found!";
+                    Busy = false;
+                    return;
+                }
+            });
 
             // Populate exclusions areas
             DLCEntry basegame = new DLCEntry("BaseGame", GameDirecs.Files.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList());
@@ -111,14 +171,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
             foreach (DLCEntry dlc in FTSDLCs)
                 FTSGameFiles.AddRange(dlc.Files);
 
-            
             if (CurrentTree.Valid)
             {
                 // Add textures to UI textures list.
                 Textures.AddRange(CurrentTree.Textures);
 
                 // Put away TreeScan Panel since it isn't required if tree is valid.
-                IsTreePanelRequired = false;
+                if (TreePanelCloser != null)
+                    TreePanelCloser();
 
 
                 /* Find any existing exclusions from when tree was created.*/
@@ -129,12 +189,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 foreach (DLCEntry dlc in FTSDLCs.Where(dlc => !dlc.IsChecked))
                     dlc.Files.ForEach(file => file.IsChecked = !CurrentTree.ScannedPCCs.Contains(file.FilePath));
 
+
                 await Task.Run(() => ConstructTree());
             }
 
             FTSExclusions.AddRange(FTSDLCs);
             FTSExclusions.AddRange(FTSGameFiles);
 
+            FTSReady = true;
             UpdateFTS();
 
             Status = "Ready!";
@@ -206,7 +268,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             await Task.Run(() => ConstructTree());
 
             // Put away TreeScanProgress Window
-            IsTreeScanComplete = true;
+            if (TreeScanProgressCloser != null)
+                TreeScanProgressCloser();
 
             Busy = false;
         }
@@ -323,96 +386,82 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         void ConstructTree()
         {
+            Busy = true;
             DebugOutput.PrintLn("Constructing Tree...");
 
             // Top all encompassing node
             TexplorerTextureFolder TopTextureFolder = new TexplorerTextureFolder("All Texture Files", null);
 
-            List<TexplorerTextureFolder> AllFolders = new List<TexplorerTextureFolder>();
-
             // Normal nodes
             foreach (var tex in CurrentTree.Textures)
-            {
-                int dotInd = tex.FullPackage.IndexOf('.') + 1;
-                string filter = tex.FullPackage;
-                if (dotInd != 0)
-                    filter = tex.FullPackage.Substring(0, dotInd).Trim('.');
+                RecursivelyCreateFolders(tex.FullPackage, "", TopTextureFolder, tex);
 
-                TexplorerTextureFolder folder = RecursivelyConstructFolders(tex.FullPackage, filter, AllFolders);
-                bool isExisting = RecursivelyCheckFolders(TopTextureFolder, folder);
-
-                if (!isExisting)
-                    TopTextureFolder.Folders.Add(folder);
-            }
-
-            // Assign textures to their folders as determined above.
-            SortTexturesIntoFolders(AllFolders);
+            // Alphabetical order
+            TopTextureFolder.Folders = new MTRangedObservableCollection<TexplorerTextureFolder>(TopTextureFolder.Folders.OrderBy(p => p));
 
             TextureFolders.Add(TopTextureFolder);  // Only one item in this list. Chuckles.
             
             DebugOutput.PrintLn("Tree Constructed!");
+            Busy = false;
         }
 
-        TexplorerTextureFolder RecursivelyConstructFolders(string packageString, string filter, List<TexplorerTextureFolder> AllFolders)
+        void RecursivelyCreateFolders(string package, string oldFilter, TexplorerTextureFolder topFolder, TreeTexInfo texture)
         {
-            string tempPackage = packageString.Trim('.');
-            int dotInd = tempPackage.IndexOf('.') + 1;
-            if (dotInd == 0)
+            int dotInd = package.IndexOf('.') + 1;
+            string name = package;
+            if (dotInd != 0)
+                name = package.Substring(0, dotInd).Trim('.');
+
+            string filter = oldFilter + '.' + name;
+            filter = filter.Trim('.');
+
+            TexplorerTextureFolder newFolder = new TexplorerTextureFolder(name, filter);
+
+            // Add texture if part of this folder
+            if (newFolder.Filter == texture.FullPackage)
+                newFolder.Textures.Add(texture);
+
+            TexplorerTextureFolder existingFolder = topFolder.Folders.FirstOrDefault(folder => newFolder.Name == folder.Name);
+            if (existingFolder == null)  // newFolder not found in existing folders
             {
-                var fold = new TexplorerTextureFolder(tempPackage, filter);
-                AllFolders.Add(fold);
-                return fold;
+                topFolder.Folders.Add(newFolder);
+
+                // No more folders in package
+                if (dotInd == 0)
+                    return;
+
+                string newPackage = package.Substring(dotInd).Trim('.');
+                RecursivelyCreateFolders(newPackage, filter, newFolder, texture);
             }
+            else
+            {  // No subfolders for newFolder yet, need to make them if there are any
 
-            string name = tempPackage.Substring(0, dotInd).Trim('.');
-            TexplorerTextureFolder folder = new TexplorerTextureFolder(name, filter);
-            AllFolders.Add(folder);
+                // Add texture if necessary
+                if (existingFolder.Filter == texture.FullPackage)
+                    existingFolder.Textures.Add(texture);
 
+                // No more folders in package
+                if (dotInd == 0)
+                    return;
 
-            string newName = tempPackage.Substring(dotInd);
-            string newFilter = filter + '.' + newName;
-            folder.Folders.Add(RecursivelyConstructFolders(newName, newFilter, AllFolders));
-
-            return folder;
+                string newPackage = package.Substring(dotInd).Trim('.');
+                RecursivelyCreateFolders(newPackage, filter, existingFolder, texture);
+            }
         }
 
-        bool RecursivelyCheckFolders(TexplorerTextureFolder TopTextureFolder, TexplorerTextureFolder folder)
+        internal void LoadPreview(TreeTexInfo texInfo)
         {
-            if (TopTextureFolder.Folders?.Count < 1) // Empty or null
+            using (PCCObject pcc = new PCCObject(texInfo.PCCS[0].Name, GameVersion))
             {
-                // New folder has subfolders
-                if (folder.Folders?.Count > 0)
-                    TopTextureFolder.Folders.Add(folder);
-
-                // New folder has no subfolders
-                return true;    
-            }
-            else if (folder.Folders?.Count < 1)
-                return true;
-
-            foreach (var texFolder in TopTextureFolder.Folders)
-            {
-                if (texFolder.Name == folder.Name)
-                    foreach (var newFolder in folder.Folders)
-                        return RecursivelyCheckFolders(texFolder, newFolder);
-            }
-
-            return false;
-        }
-
-        void SortTexturesIntoFolders(List<TexplorerTextureFolder> AllFolders)
-        {
-            Parallel.ForEach(CurrentTree.Textures, texture =>
-            {
-                foreach (var folder in AllFolders)
+                using (Texture2D tex2D = new Texture2D(pcc, texInfo.PCCS[0].ExpID, GameVersion))
                 {
-                    if (folder.Filter == texture.FullPackage)
-                    {
-                        folder.Textures.Add(texture);
-                        break;
-                    }
+                    byte[] img = tex2D.ExtractMaxImage();
+                    using (ImageEngineImage jpg = new ImageEngineImage(img))
+                        PreviewImage = jpg.GetWPFBitmap();
+
+                    img = null;
                 }
-            });
+            }
         }
     }
 }

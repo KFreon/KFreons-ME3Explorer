@@ -9,7 +9,7 @@ using WPF_ME3Explorer.Textures;
 
 namespace WPF_ME3Explorer.UI
 {
-    public class TexplorerTextureFolder : ViewModelBase
+    public class TexplorerTextureFolder : ViewModelBase, IComparable
     {
         bool isOpen = false;
         public bool IsOpen
@@ -59,6 +59,14 @@ namespace WPF_ME3Explorer.UI
         {
             Name = folderName;
             Filter = filter;
+        }
+
+        public int CompareTo(object obj)
+        {
+            if (obj == null)
+                throw new ArgumentNullException("Argument cannot be null.");
+
+            return Name.CompareTo(((TexplorerTextureFolder)obj).Name);
         }
     }
 }

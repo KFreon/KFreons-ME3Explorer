@@ -24,7 +24,7 @@ namespace WPF_ME3Explorer
 
         public GameFileEntry(string path) : base()
         {
-            Name = path.Remove(0, BasePathLength);
+            Name = path.Remove(0, MEDirectories.MEDirectories.BasePathLength);
             FilePath = path;
         }
     }

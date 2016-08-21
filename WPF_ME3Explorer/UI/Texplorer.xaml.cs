@@ -9,8 +9,10 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using WPF_ME3Explorer.Textures;
 using WPF_ME3Explorer.UI.ViewModels;
 
 namespace WPF_ME3Explorer.UI
@@ -26,6 +28,19 @@ namespace WPF_ME3Explorer.UI
         {
             InitializeComponent();
             vm = new TexplorerViewModel();
+
+            vm.TreeScanProgressCloser = new Action(() =>
+            {
+                Storyboard closer = (Storyboard)HiderButton.Resources.FindName("TreeScanProgressPanelCloser");
+                closer.Begin();
+            });
+
+            vm.TreePanelCloser = new Action(() =>
+            {
+                Storyboard closer = (Storyboard)TreeScanBackground.Resources["ClosePanelAnimation"];
+                closer.Begin();
+            });
+
             DataContext = vm;
         }
 
@@ -37,6 +52,30 @@ namespace WPF_ME3Explorer.UI
         private async void BeginScanButton_Click(object sender, RoutedEventArgs e)
         {
             await vm.BeginTreeScan();
+        }
+
+        private void MainListView_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+
+            if (e.ClickCount > 1)
+            {
+                vm.ShowingPreview = true;
+
+                // Async loading
+                var texInfo = (TreeTexInfo)((FrameworkElement)sender).DataContext;
+                Task.Run(() => vm.LoadPreview(texInfo));
+            }
+            else
+            {
+                var texInfo = (TreeTexInfo)((FrameworkElement)sender).DataContext;
+                texInfo.PopulateDetails();
+            }
+        }
+
+        private void PreviewPanel_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            vm.ShowingPreview = false;
+            vm.PreviewImage = null;
         }
     }
 }

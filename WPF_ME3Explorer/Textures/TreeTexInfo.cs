@@ -35,63 +35,71 @@ namespace WPF_ME3Explorer.Textures
 
         public storage StorageType { get; set; }
 
+        string textureCache = null;
         public string TextureCache
         {
             get
             {
-                // TODO
-                return null;
+                return textureCache;
+            }
+            set
+            {
+                SetProperty(ref textureCache, value);
             }
         }
 
+        string lodGroup = null;
         public string LODGroup
         {
             get
             {
-                // TODO
-                return null;
+                return lodGroup;
+            }
+            set
+            {
+                SetProperty(ref lodGroup, value);
             }
         }
 
+        int height = 0;
         public override int Height
         {
             get
             {
-                // TODO
-                return 0;
+                return height;
             }
 
             set
             {
-                throw new NotImplementedException();
+                SetProperty(ref height, value);
             }
         }
 
+        int width = 0;
         public override int Width
         {
             get
             {
-                // TODO
-                return 0;
+                return width;
             }
 
             set
             {
-                throw new NotImplementedException();
+                SetProperty(ref width, value);
             }
         }
 
+        int mips = 0;
         public override int Mips
         {
             get
             {
-                // TODO
-                return 0;
+                return mips;
             }
 
             set
             {
-                throw new NotImplementedException();
+                SetProperty(ref mips, value);
             }
         }
 
@@ -261,6 +269,22 @@ namespace WPF_ME3Explorer.Textures
                 throw new InvalidCastException("Object must be TreeTexInfo.");
 
             return TexName.CompareTo(tex.TexName);
+        }
+
+        internal void PopulateDetails()
+        {
+            using (PCCObject pcc = new PCCObject(PCCS[0].Name, GameVersion))
+            {
+                using (Texture2D tex2D = new Texture2D(pcc, PCCS[0].ExpID, GameVersion))
+                {
+                    ImageInfo maxImg = tex2D.ImageList.Max();
+                    Width = (int)maxImg.ImageSize.Width;
+                    Height = (int)maxImg.ImageSize.Height;
+                    TextureCache = tex2D.FullArcPath.Remove(0, MEDirectories.MEDirectories.BasePathLength);
+                    LODGroup = tex2D.LODGroup;
+                    Mips = tex2D.ImageList.Count;
+                }
+            }
         }
     }
 }

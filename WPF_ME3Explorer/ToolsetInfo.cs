@@ -23,7 +23,7 @@ namespace WPF_ME3Explorer
         {
             get
             {
-                return UsefulThings.General.GetFileSizeAsString(currentProcess.WorkingSet64);
+                return UsefulThings.General.GetFileSizeAsString(currentProcess.PrivateMemorySize64);
             }
         }
 

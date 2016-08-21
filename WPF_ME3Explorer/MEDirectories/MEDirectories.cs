@@ -64,7 +64,20 @@ namespace WPF_ME3Explorer.MEDirectories
         public static string CachePath { get; set; }
 
         static List<string> BIOGames = new List<string>() { "", "", "" };
-        public int GameVersion { get; set; }
+
+        int gameVersion = 0;
+        public int GameVersion
+        {
+            get
+            {
+                return gameVersion;
+            }
+            set
+            {
+                gameVersion = value;
+                BasePathLength = BasePath == null ? -1 : BasePath.Length + 1;
+            }
+        }
 
         #region Individuals based on BIOGames
         public static string ME1BIOGame
@@ -206,6 +219,8 @@ namespace WPF_ME3Explorer.MEDirectories
         }
         #endregion Individuals based on BIOGames
 
+        public static int BasePathLength { get; set; }
+
         public string PathCooked
         {
             get
@@ -274,6 +289,9 @@ namespace WPF_ME3Explorer.MEDirectories
         {
             get
             {
+                if (String.IsNullOrEmpty(PathBIOGame))
+                    return null;
+
                 return Path.GetDirectoryName(PathBIOGame);
             }
         }

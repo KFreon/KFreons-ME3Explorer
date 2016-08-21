@@ -9,6 +9,7 @@ namespace WPF_ME3Explorer.Textures
 {
     public class PCCEntry : ViewModelBase
     {
+
         string name = null;
         public string Name
         {
@@ -43,7 +44,7 @@ namespace WPF_ME3Explorer.Textures
 
         public override string ToString()
         {
-            return $"{Name} @ {ExpID}";
+            return $"{Name.Remove(0, MEDirectories.MEDirectories.BasePathLength)} @ {ExpID}";
         }
     }
 }

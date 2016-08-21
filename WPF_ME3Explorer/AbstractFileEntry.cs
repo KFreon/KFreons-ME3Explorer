@@ -10,7 +10,6 @@ namespace WPF_ME3Explorer
     public abstract class AbstractFileEntry : ViewModelBase
     {
         internal static Action Updater = null;
-        internal static int BasePathLength = 0;
 
         bool isChecked = false;
         public virtual bool IsChecked
