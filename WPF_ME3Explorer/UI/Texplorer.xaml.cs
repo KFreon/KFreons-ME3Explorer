@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using WPF_ME3Explorer.Textures;
 using WPF_ME3Explorer.UI.ViewModels;
 
@@ -76,6 +77,86 @@ namespace WPF_ME3Explorer.UI
         {
             vm.ShowingPreview = false;
             vm.PreviewImage = null;
+        }
+
+        private async void SearchResultsItem_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // Select folder
+            TreeTexInfo tex = (TreeTexInfo)((FrameworkElement)sender).DataContext;
+            TexplorerTextureFolder treeFolder = vm.AllFolders.FirstOrDefault(folder => folder.Textures.Contains(tex));
+            vm.SelectedFolder = treeFolder;
+
+            // Select texture in folder
+            // Find VirtualizingWrapPanel and ensure item is in view
+            while (MainDisplayPanel.ItemContainerGenerator.Status != System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated)
+                await Task.Delay(100);
+
+            var container = MainDisplayPanel.ItemContainerGenerator.ContainerFromIndex(0);  // First visual that exists
+            var current = VisualTreeHelper.GetParent(container);
+            while (current != null)
+            {
+                if ((current as VirtualizingWrapPanel) != null)
+                    break;
+                
+                current = VisualTreeHelper.GetParent(current);
+            }
+
+            VirtualizingWrapPanel wrapper = current as VirtualizingWrapPanel;
+            wrapper.BringItemIntoView(tex);
+
+            // Select item
+            vm.SelectedTexture = tex;
+
+            return;
+        }
+
+
+        DispatcherTimer TreeSearchResetTimer = null;
+        StringBuilder TreeSearchMemory = null;
+        private void MainTreeView_KeyDown(object sender, KeyEventArgs e)
+        {
+            // Only want letters in here.
+            char key = e.Key.ToString()[0];
+            if (!Char.IsLetter(key))
+                return;
+
+            if (TreeSearchMemory == null)
+            {
+                // Setup memory and timer
+                TreeSearchMemory = new StringBuilder();
+                
+                if (TreeSearchResetTimer == null)
+                {
+                    TreeSearchResetTimer = new DispatcherTimer();
+                    TreeSearchResetTimer.Interval = TimeSpan.FromSeconds(3);  // Waits x seconds before forgetting previous search
+                    TreeSearchResetTimer.Tick += (unused1, unused2) =>
+                    {
+                        TreeSearchMemory = null;
+                        TreeSearchResetTimer.Stop();
+                    };
+                }
+
+                TreeSearchResetTimer.Start();
+            }
+
+            TreeSearchMemory.Append(key);  // Add to memory
+
+            // Reset timer interval
+            TreeSearchResetTimer.Stop();
+            TreeSearchResetTimer.Start();
+
+
+            // Peform search over top level folders only
+            var topFolders = vm.TextureFolders[0].Folders;
+            string temp = TreeSearchMemory.ToString();
+            foreach (var folder in topFolders)
+                if (folder.Name.StartsWith(temp, StringComparison.OrdinalIgnoreCase))
+                {
+                    vm.SelectedFolder = folder;
+                    break;
+                }
+
+            e.Handled = true;
         }
     }
 }

@@ -19,7 +19,7 @@ namespace WPF_ME3Explorer.UI.ValueConverters
             if (thumb == null)
             {
                 // Default image
-                return (BitmapImage)Application.Current.Resources.FindName("DefaultTexture");
+                return (BitmapImage)parameter;
             }
             else
                 return thumb.GetImage();

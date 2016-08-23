@@ -62,6 +62,7 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -91,6 +92,8 @@
     </Compile>
     <Compile Include="DLCEntry.cs" />
     <Compile Include="GameFileEntry.cs" />
+    <Compile Include="TEST_WRAP2.cs" />
+    <Compile Include="TEST_WRAPPANEL.cs" />
     <Compile Include="Textures\PCCEntry.cs" />
     <Compile Include="UI\TexplorerTextureFolder.cs" />
     <Compile Include="UI\ValueConverters\HashStringConverter.cs" />

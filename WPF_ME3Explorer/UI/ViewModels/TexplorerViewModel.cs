@@ -36,6 +36,33 @@ namespace WPF_ME3Explorer.UI.ViewModels
         ThumbnailWriter ThumbnailWriter = null;
         public MTRangedObservableCollection<string> Errors { get; set; } = new MTRangedObservableCollection<string>();
         public MTRangedObservableCollection<TexplorerTextureFolder> TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+        public MTRangedObservableCollection<TexplorerTextureFolder> AllFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+
+        TexplorerTextureFolder mySelected = null;
+        public TexplorerTextureFolder SelectedFolder
+        {
+            get
+            {
+                return mySelected;
+            }
+            set
+            {
+                SetProperty(ref mySelected, value);
+            }
+        }
+
+        TreeTexInfo selectedTexture = null;
+        public TreeTexInfo SelectedTexture
+        {
+            get
+            {
+                return selectedTexture;
+            }
+            set
+            {
+                SetProperty(ref selectedTexture, value);
+            }
+        }
 
         string ftsFilesSearch = null;
         public string FTSFilesSearch
@@ -285,8 +312,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             MaxProgress = pccs?.Count ?? CurrentTree.ScannedPCCs.Count;
             Status = $"Scanned: 0 / {MaxProgress}";
 
-            // Remove localisations - english only for now.
-            IList<string> PCCsToScan = CurrentTree.ScannedPCCs.Where(file => !file.Contains("_LOC_")).ToList();  // Can't use ?? here as ScannedPCCs and pccs are different classes.
+            IList<string> PCCsToScan = CurrentTree.ScannedPCCs;//.Where(file => !file.Contains("_LOC_")).ToList();  // Can't use ?? here as ScannedPCCs and pccs are different classes.
             if (pccs != null)
                 PCCsToScan = pccs;
 
@@ -390,17 +416,40 @@ namespace WPF_ME3Explorer.UI.ViewModels
             DebugOutput.PrintLn("Constructing Tree...");
 
             // Top all encompassing node
-            TexplorerTextureFolder TopTextureFolder = new TexplorerTextureFolder("All Texture Files", null);
+            TexplorerTextureFolder TopTextureFolder = new TexplorerTextureFolder("All Texture Files", null, null);
 
             // Normal nodes
             foreach (var tex in CurrentTree.Textures)
                 RecursivelyCreateFolders(tex.FullPackage, "", TopTextureFolder, tex);
 
+            Console.WriteLine($"Total number of folders: {AllFolders.Count}");
             // Alphabetical order
             TopTextureFolder.Folders = new MTRangedObservableCollection<TexplorerTextureFolder>(TopTextureFolder.Folders.OrderBy(p => p));
 
+            // Thin out the PACKAGE folder - too many there, slows its load time down
+            /*var folder = TopTextureFolder.Folders.First(curr => curr.Name == "PACKAGE");
+            TexplorerTextureFolder lightmaps = new TexplorerTextureFolder("Lightmaps", "PACKAGE", folder);
+            TexplorerTextureFolder directionals = new TexplorerTextureFolder("DirectionalMax", "PACKAGE", folder);
+            TexplorerTextureFolder normalised = new TexplorerTextureFolder("NormalisedAverage", "PACKAGE", folder);
+
+            // Get textures from original folder
+            var lights = folder.Textures.Where(tex => tex.TexName.Contains("lightmap", StringComparison.OrdinalIgnoreCase));
+            var direcs = folder.Textures.Where(tex => tex.TexName.Contains("directional", StringComparison.OrdinalIgnoreCase));
+            var norms = folder.Textures.Where(tex => tex.TexName.Contains("normalized", StringComparison.OrdinalIgnoreCase));   // Remembered to AmericaniZe.
+
+            // Add textures to new folders
+            lightmaps.Textures.AddRange(lights);
+            directionals.Textures.AddRange(direcs);
+            normalised.Textures.AddRange(norms);
+
+            // Grab the leftovers and add new folders
+            folder.Textures = new MTRangedObservableCollection<TreeTexInfo>(folder.Textures.Where(tex => !tex.TexName.Contains("lightmap", StringComparison.OrdinalIgnoreCase) && !tex.TexName.Contains("directional", StringComparison.OrdinalIgnoreCase) && !tex.TexName.Contains("normalized", StringComparison.OrdinalIgnoreCase)));
+            folder.Folders.Add(lightmaps);
+            folder.Folders.Add(directionals);
+            folder.Folders.Add(normalised);*/
+
             TextureFolders.Add(TopTextureFolder);  // Only one item in this list. Chuckles.
-            
+
             DebugOutput.PrintLn("Tree Constructed!");
             Busy = false;
         }
@@ -415,7 +464,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             string filter = oldFilter + '.' + name;
             filter = filter.Trim('.');
 
-            TexplorerTextureFolder newFolder = new TexplorerTextureFolder(name, filter);
+            TexplorerTextureFolder newFolder = new TexplorerTextureFolder(name, filter, topFolder);
 
             // Add texture if part of this folder
             if (newFolder.Filter == texture.FullPackage)
@@ -425,6 +474,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             if (existingFolder == null)  // newFolder not found in existing folders
             {
                 topFolder.Folders.Add(newFolder);
+                AllFolders.Add(newFolder);
 
                 // No more folders in package
                 if (dotInd == 0)

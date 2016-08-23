@@ -4,14 +4,15 @@
                     xmlns:local="clr-namespace:WPF_ME3Explorer"
                     xmlns:localConverters="clr-namespace:WPF_ME3Explorer.UI.ValueConverters"
                     xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
-                    xmlns:useful="clr-namespace:UsefulThings.WPF.TypeConverters;assembly=UsefulThings">
+                    xmlns:usefulConverters="clr-namespace:UsefulThings.WPF.TypeConverters;assembly=UsefulThings">
 
-    <useful:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
-    <useful:InverseBooleanConverter x:Key="InverseBoolConverter"/>
+    <usefulConverters:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
+    <usefulConverters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
     <localConverters:HashToStringConverter x:Key="HashStringConverter"/>
     <localConverters:ThumbnailConverter x:Key="ThumbnailConverter"/>
     <localConverters:ImageEngineFormatConverter x:Key="ImageEngineFormatConverter"/>
-    <useful:DebugConverter x:Key="DebugConverter"/>
+    <usefulConverters:DebugConverter x:Key="DebugConverter"/>
+
 
     <!-- Default images to display -->
     <BitmapImage x:Key="Folder_Closed" po:Freeze="True" UriSource="/WPF_ME3Explorer;component/Resources/Folder_Closed.png" DecodePixelHeight="32"/>

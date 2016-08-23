@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -9,23 +10,31 @@ using WPF_ME3Explorer.Textures;
 
 namespace WPF_ME3Explorer.UI
 {
-    public class TexplorerTextureFolder : ViewModelBase, IComparable
+    public class TexplorerTextureFolder : ViewModelBase, IComparable, ITreeSeekable
     {
-        bool isOpen = false;
-        public bool IsOpen
+        public TexplorerTextureFolder ParentFolder = null;
+
+        int texcount = 0;
+        public int TotalTextureCount
         {
             get
             {
-                return isOpen;
-            }
-            set
-            {
-                SetProperty(ref isOpen, value);
+                if (texcount == 0)
+                {
+                    if (Textures?.Count > 0)
+                        texcount += Textures.Count;
+
+                    if (Folders?.Count > 0)
+                        foreach (var folder in Folders)
+                            texcount += folder.TotalTextureCount;
+                }
+
+                return texcount;
             }
         }
 
         bool isSelect = false;
-        public bool IsSelect
+        public bool IsSelected
         {
             get
             {
@@ -55,8 +64,49 @@ namespace WPF_ME3Explorer.UI
         public MTRangedObservableCollection<TexplorerTextureFolder> Folders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
         public MTRangedObservableCollection<TreeTexInfo> Textures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
 
-        public TexplorerTextureFolder(string folderName, string filter)
+        bool isExpanded = false;
+        public bool IsExpanded
         {
+            get
+            {
+                return isExpanded;
+            }
+
+            set
+            {
+                SetProperty(ref isExpanded, value);
+            }
+        }
+
+        public IEnumerable<ITreeSeekable> Children
+        {
+            get
+            {
+                return Folders;
+            }
+
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public ITreeSeekable Parent
+        {
+            get
+            {
+                return ParentFolder;
+            }
+
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public TexplorerTextureFolder(string folderName, string filter, TexplorerTextureFolder parent)
+        {
+            ParentFolder = parent;
             Name = folderName;
             Filter = filter;
         }

@@ -17,7 +17,20 @@ namespace WPF_ME3Explorer.Textures
         public Action GenerateThumbnail = null;
 
         public List<Texture2D> Textures = new List<Texture2D>();
-        public string FullPackage = null;
+
+        string fullPackage = null;
+        public string FullPackage
+        {
+            get
+            {
+                return fullPackage;
+            }
+            set
+            {
+                SetProperty(ref fullPackage, value);
+            }
+        }
+
         public string Package
         {
             get
@@ -280,8 +293,8 @@ namespace WPF_ME3Explorer.Textures
                     ImageInfo maxImg = tex2D.ImageList.Max();
                     Width = (int)maxImg.ImageSize.Width;
                     Height = (int)maxImg.ImageSize.Height;
-                    TextureCache = tex2D.FullArcPath.Remove(0, MEDirectories.MEDirectories.BasePathLength);
-                    LODGroup = tex2D.LODGroup;
+                    TextureCache = tex2D?.FullArcPath?.Remove(0, MEDirectories.MEDirectories.BasePathLength) ?? "PCC Stored";
+                    LODGroup = tex2D.LODGroup ?? "None (Uses World)";
                     Mips = tex2D.ImageList.Count;
                 }
             }
