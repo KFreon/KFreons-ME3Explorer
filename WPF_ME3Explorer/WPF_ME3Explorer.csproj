@@ -38,9 +38,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CSharpImageLibrary, Version=3.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="CSharpImageLibrary, Version=3.2.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Code Repository\C#\CSharpImageLibrary\CSharpImageLibrary\bin\Debug\CSharpImageLibrary.exe</HintPath>
+      <HintPath>..\..\..\Code Repository\C#\CSharpImageLibrary\CSharpImageLibrary\bin\Debug\CSharpImageLibrary.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.IO.RecyclableMemoryStream, Version=1.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -92,9 +92,10 @@
     </Compile>
     <Compile Include="DLCEntry.cs" />
     <Compile Include="GameFileEntry.cs" />
-    <Compile Include="TEST_WRAP2.cs" />
-    <Compile Include="TEST_WRAPPANEL.cs" />
     <Compile Include="Textures\PCCEntry.cs" />
+    <Compile Include="UI\GameInformation.xaml.cs">
+      <DependentUpon>GameInformation.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\TexplorerTextureFolder.cs" />
     <Compile Include="UI\ValueConverters\HashStringConverter.cs" />
     <Compile Include="MEDirectories\MEDirectories.cs" />
@@ -116,9 +117,6 @@
     <Compile Include="Textures\TreeDB.cs" />
     <Compile Include="Textures\TreeTexInfo.cs" />
     <Compile Include="ToolsetInfo.cs" />
-    <Compile Include="UI\GameInfoViewer.xaml.cs">
-      <DependentUpon>GameInfoViewer.xaml</DependentUpon>
-    </Compile>
     <Compile Include="UI\Modmaker.xaml.cs">
       <DependentUpon>Modmaker.xaml</DependentUpon>
     </Compile>
@@ -133,8 +131,7 @@
     <Compile Include="UI\ValueConverters\ThumbnailConverter.cs" />
     <Compile Include="UI\ViewModels\DesignTime\DESIGN_TexplorerVM.cs" />
     <Compile Include="UI\ViewModels\DesignTime\DESIGN_TPFToolsVM.cs" />
-    <Compile Include="UI\ViewModels\GameInfoViewerBaseVM.cs" />
-    <Compile Include="UI\ViewModels\GameInfoViewerViewModel.cs" />
+    <Compile Include="UI\ViewModels\GameInformationVM.cs" />
     <Compile Include="UI\ViewModels\MEViewModelBase.cs" />
     <Compile Include="UI\ViewModels\ModmakerViewModel.cs" />
     <Compile Include="UI\ViewModels\TexplorerViewModel.cs" />
@@ -155,7 +152,7 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="UI\GameInfoViewer.xaml">
+    <Page Include="UI\GameInformation.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

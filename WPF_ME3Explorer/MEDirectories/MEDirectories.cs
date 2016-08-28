@@ -4,11 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UsefulThings.WPF;
 using WPF_ME3Explorer.Debugging;
 
 namespace WPF_ME3Explorer.MEDirectories
 {
-    public class MEDirectories
+    public class MEDirectories : ViewModelBase
     {
         static Dictionary<string, string> CommonDLCNames = new Dictionary<string, string>()
         {
@@ -74,7 +75,7 @@ namespace WPF_ME3Explorer.MEDirectories
             }
             set
             {
-                gameVersion = value;
+                SetProperty(ref gameVersion, value);
                 BasePathLength = BasePath == null ? -1 : BasePath.Length + 1;
             }
         }
@@ -88,6 +89,10 @@ namespace WPF_ME3Explorer.MEDirectories
             }
             set
             {
+                // Clear stored files if path is different. Files will be repopulated when next requested.
+                if (BIOGames[0] != value)
+                    me1Files = null;
+
                 BIOGames[0] = value;
             }
         }
@@ -100,6 +105,9 @@ namespace WPF_ME3Explorer.MEDirectories
             }
             set
             {
+                // Clear stored files if path is different. Files will be repopulated when next requested.
+                if (BIOGames[1] != value)
+                    me2Files = null;
                 BIOGames[1] = value;
             }
         }
@@ -112,6 +120,10 @@ namespace WPF_ME3Explorer.MEDirectories
             }
             set
             {
+                // Clear stored files if path is different. Files will be repopulated when next requested.
+                if (BIOGames[2] != value)
+                    me3Files = null;
+
                 BIOGames[2] = value;
             }
         }
@@ -425,7 +437,7 @@ namespace WPF_ME3Explorer.MEDirectories
         /// <summary>
         /// Saves BIOGames set into Properties.
         /// </summary>
-        public void SaveSettings()
+        public static void SaveSettings()
         {
             try
             {
@@ -491,6 +503,17 @@ namespace WPF_ME3Explorer.MEDirectories
             }
 
             return files.Where(t => predicate(t)).ToList();
+        }
+
+        public void RefreshListeners()
+        {
+            OnPropertyChanged(nameof(DoesGame1Exist));
+            OnPropertyChanged(nameof(DoesGame2Exist));
+            OnPropertyChanged(nameof(DoesGame3Exist));
+            OnPropertyChanged(nameof(PathCooked));
+            OnPropertyChanged(nameof(PathBIOGame));
+            OnPropertyChanged(nameof(DLCPath));
+            OnPropertyChanged(nameof(Files));
         }
     }
 }

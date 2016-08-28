@@ -153,6 +153,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 return GameDirecs.GameVersion;
             }
+            private set
+            {
+                GameDirecs.GameVersion = value;
+                OnPropertyChanged(nameof(GameVersion));
+            }
         }
 
         int numthreads = 4;
@@ -230,6 +235,26 @@ namespace WPF_ME3Explorer.UI.ViewModels
             });
 
             TextureSearchResults.AddRange(tempResults);
+        }
+
+        public virtual void ChangeSelectedTree(int game)
+        {
+            // If already selected, do nothing.
+            if (GameVersion == game)
+                return;
+
+
+            GameVersion = game;
+
+            // Clear tree selections
+            Trees[0].IsSelected = false;
+            Trees[1].IsSelected = false;
+            Trees[2].IsSelected = false;
+
+            // Select new tree
+            Trees[GameVersion - 1].IsSelected = true;
+
+            OnPropertyChanged(nameof(CurrentTree));
         }
     }
 }

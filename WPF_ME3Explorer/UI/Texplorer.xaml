@@ -10,7 +10,7 @@
         xmlns:usefulUIElements="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
         mc:Ignorable="d"
-        Title="Texplorer" Height="900.334" Width="1748.575" Closing="Window_Closing">
+        Title="Texplorer" Height="900.334" Width="1748.575" Closing="Window_Closing" Icon="/WPF_ME3Explorer;component/Resources/Texplorer icon.ico">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -34,35 +34,84 @@
 
 
 
-        <Menu Background="White" Grid.ColumnSpan="2" Margin="0,0,0,0.333">
-            <MenuItem Header="Save Changes" IsEnabled="{Binding Changes}"/>
+        <Menu x:Name="MainMenuBar" Background="White" Grid.ColumnSpan="2" Margin="0,0,0,0.333">
+            <Menu.Resources>
+                <Style TargetType="MenuItem" x:Key="BaseMenuItemStyle">
+                    <Setter Property="Height" Value="25"/>
+                </Style>
+            </Menu.Resources>
+            <Menu.Style>
+                <Style TargetType="Menu">
+                    <Setter Property="IsEnabled" Value="True"/>
+
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Busy}" Value="true">
+                            <Setter Property="IsEnabled" Value="False"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Menu.Style>
+            <MenuItem Header="Save Changes">
+                <MenuItem.Style>
+                    <Style TargetType="MenuItem" BasedOn="{StaticResource BaseMenuItemStyle}">
+                        <Setter Property="IsEnabled" Value="False"/>
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ChangedTextures}" Value="True">
+                                <Setter Property="IsEnabled" Value="True"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </MenuItem.Style>
+            </MenuItem>
+            <MenuItem IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}">
+                <MenuItem.Header>
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <TextBlock Text="Regenerate Thumbnails"/>
+                        <TextBlock Text="&#x27a4;" RenderTransformOrigin="0.5,0.5" FontSize="8">
+                            <TextBlock.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform ScaleY="1.5"/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="90.4"/>
+                                    <TranslateTransform/>
+                                </TransformGroup>
+                            </TextBlock.RenderTransform>
+                        </TextBlock>
+                    </StackPanel>
+                </MenuItem.Header>
+                <MenuItem Header="All"/>
+                <MenuItem Header="Current Folder"/>
+                <MenuItem Header="Selected Texture"/>
+            </MenuItem>
         </Menu>
 
         <StackPanel x:Name="GameAndTreeIndicators" Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right" Margin="0,0,-0.333,0.333">
             <ContentControl x:Name="GameIndicatorPanel" Template="{StaticResource GameIndicators}"/>
             <ContentControl x:Name="TreeIndicatorPanel" Template="{StaticResource TreeIndicators}"/>
-            <Button Content="Settings" Style="{StaticResource MainButtonStyle}">
+            <Button x:Name="SettingsButton" Content="Settings" Style="{StaticResource MainButtonStyle}">
+                <Button.Resources>
+                    <Storyboard x:Key="TreeScanPanelOpener">
+                        <DoubleAnimation Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="0" To="1500" Duration="0:0:1" DecelerationRatio="1">
+                            <DoubleAnimation.EasingFunction>
+                                <CubicEase EasingMode="EaseOut"/>
+                            </DoubleAnimation.EasingFunction>
+                        </DoubleAnimation>
+
+                        <DoubleAnimation Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:1" DecelerationRatio="1">
+                            <DoubleAnimation.EasingFunction>
+                                <CubicEase EasingMode="EaseOut"/>
+                            </DoubleAnimation.EasingFunction>
+                        </DoubleAnimation>
+
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="Visibility">
+                            <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
+                        </ObjectAnimationUsingKeyFrames>
+                    </Storyboard>
+                </Button.Resources>
                 <Button.Triggers>
                     <EventTrigger RoutedEvent="Button.Click">
-                        <BeginStoryboard>
-                            <Storyboard>
-                                <DoubleAnimation Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="0" To="1500" Duration="0:0:1" DecelerationRatio="1">
-                                    <DoubleAnimation.EasingFunction>
-                                        <CubicEase EasingMode="EaseOut"/>
-                                    </DoubleAnimation.EasingFunction>
-                                </DoubleAnimation>
-
-                                <DoubleAnimation Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:1" DecelerationRatio="1">
-                                    <DoubleAnimation.EasingFunction>
-                                        <CubicEase EasingMode="EaseOut"/>
-                                    </DoubleAnimation.EasingFunction>
-                                </DoubleAnimation>
-
-                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="Visibility">
-                                    <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
-                                </ObjectAnimationUsingKeyFrames>
-                            </Storyboard>
-                        </BeginStoryboard>
+                        <BeginStoryboard Storyboard="{StaticResource TreeScanPanelOpener}"/>
                     </EventTrigger>
                 </Button.Triggers>
             </Button>
@@ -80,7 +129,7 @@
             </TreeView.Resources>
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding Folders}">
-                    <StackPanel Orientation="Horizontal" >
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
                         <Image>
                             <Image.Style>
                                 <Style TargetType="Image">
@@ -109,7 +158,19 @@
                         <TextBlock VerticalAlignment="Center" Margin="10,0,0,0">
                             <Run Text="{Binding Name}"/>
                             <Separator Margin="3,0"/>
-                            <Run Text="{Binding TotalTextureCount, Mode=OneWay}" Foreground="Gray"/>
+                            <Run Text="{Binding TotalTextureCount, Mode=OneWay}">
+                                <Run.Style>
+                                    <Style TargetType="Run">
+                                        <Setter Property="Foreground" Value="Gray"/>
+                                        
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="Foreground" Value="LightGray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Run.Style>
+                            </Run>
                         </TextBlock>
                     </StackPanel>
                 </HierarchicalDataTemplate>
@@ -120,12 +181,33 @@
                  SelectedItem="{Binding SelectedTexture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <local:VirtualizingWrapPanel2 x:Name="VirtualWrapper"/>
+                    <usefulUIElements:VirtualizingWrapPanel x:Name="VirtualWrapper"/>
                 </ItemsPanelTemplate>
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <DockPanel x:Name="MainListView" MouseDown="MainListView_MouseDown">
+                        <DockPanel.ContextMenu>
+                            <ContextMenu>
+                                <ContextMenu.Resources>
+                                    <Style x:Key="ME1_ItemsStyle" TargetType="MenuItem">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding GameVersion}" Value="1">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ContextMenu.Resources>
+                                <MenuItem Header="Change" Command="{Binding ChangeCommand}">
+                                    <MenuItem.Icon>
+                                        <Image Source="/WPF_ME3Explorer;component/Resources/Delete Tree.png"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Extract" Command="{Binding ExtractCommand}"/>
+                                <MenuItem Header="Try Low Res Fix" Style="{StaticResource ME1_ItemsStyle}" Command="{Binding LowResFixCommand}" CommandParameter="{Binding}"/>
+                            </ContextMenu>
+                        </DockPanel.ContextMenu>
                         <Image Source="{Binding Thumb, Converter={StaticResource ThumbnailConverter}, ConverterParameter={StaticResource DefaultTexture}}" Width="128" Height="128" DockPanel.Dock="Top" Margin="5,0"/>
                         <TextBlock Text="{Binding TexName}" HorizontalAlignment="Center" VerticalAlignment="Bottom" DockPanel.Dock="Bottom" Margin="0,2,0,5"/>
                     </DockPanel>

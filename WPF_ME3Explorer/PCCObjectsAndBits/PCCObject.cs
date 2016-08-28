@@ -98,9 +98,10 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
 
 
         /// <summary>
-        ///     PCCObject class constructor. It also load namelist, importlist and exportinfo (not exportdata) from pcc file
+        /// PCCObject class constructor. It also load namelist, importlist and exportinfo (not exportdata) from pcc file.
         /// </summary>
-        /// <param name="pccFilePath">full path + file name of desired pcc file.</param>
+        /// <param name="filePath">Path to file to read.</param>
+        /// <param name="gameVersion">Version of Mass Effect PCC is from.</param>
         public PCCObject(string filePath, int gameVersion) : this(gameVersion)
         {
             pccFileName = Path.GetFullPath(filePath);
@@ -248,20 +249,35 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             }
         }
 
-        // KFreon: Alternate intialiser to allow loading from existing stream
+        /// <summary>
+        /// Creates PCC Object from existing stream. 
+        /// Filename is not used for reading, just labelling.
+        /// </summary>
+        /// <param name="filePath">Path to file represented in <paramref name="stream"/>.</param>
+        /// <param name="stream">Stream containing entire pcc file to read from.</param>
+        /// <param name="gameVersion">Version of Mass Effect PCC is from.</param>
         public PCCObject(string filePath, MemoryStream stream, int gameVersion) : this(gameVersion)
         {
             pccFileName = filePath;
             PCCObjectHelper(stream, filePath);
         }
 
+        /// <summary>
+        /// Creates empty PCCObject.
+        /// </summary>
+        /// <param name="gameVersion">Version of Mass Effect PCC is from.</param>
         public PCCObject(int gameVersion)
         {
             GameVersion = gameVersion;
         }
 
 
-        public void saveToFile(string newFileName = null, bool WriteToMemoryStream = false)
+        /// <summary>
+        /// Saves PCC to file or MemoryStream. CURRENTLY FILE ONLY.
+        /// </summary>
+        /// <param name="newFileName">File to save to. Null if saving to stream.</param>
+        /// <param name="WriteToMemoryStream">True = writes to stream instead.</param>
+        public void SaveToFile(string newFileName = null, bool WriteToMemoryStream = false)
         {
             //Refresh header and namelist
             listsStream.Seek(expDataEndOffset, SeekOrigin.Begin);

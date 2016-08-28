@@ -14,6 +14,19 @@ namespace WPF_ME3Explorer.Textures
 {
     public class TreeDB : ViewModelBase
     {
+        bool isSelected = false;
+        public bool IsSelected
+        {
+            get
+            {
+                return isSelected;
+            }
+            set
+            {
+                SetProperty(ref isSelected, value);
+            }
+        }
+
         public MTRangedObservableCollection<TreeTexInfo> Textures { get; set; }
         readonly object Locker = new object();
         public MTRangedObservableCollection<string> ScannedPCCs { get; set; }

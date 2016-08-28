@@ -68,11 +68,13 @@ namespace WPF_ME3Explorer.Textures
         public List<string> allPccs { get; set; }
         public List<int> expIDs { get; set; }
         public int pccExpIdx { get; set; }
-        public bool NoRenderFix { get; set; }
 
         public static List<string> ME3TFCs = new List<string>();
 
 
+        /// <summary>
+        /// Creates a blank Texture2D.
+        /// </summary>
         public Texture2D()
         {
             allPccs = new List<String>();
@@ -80,6 +82,15 @@ namespace WPF_ME3Explorer.Textures
             hasChanged = false;
         }
 
+
+        /// <summary>
+        /// Creates a Texture2D based on given information.
+        /// </summary>
+        /// <param name="name">Name of texture.</param>
+        /// <param name="pccs">PCC's containing this texture.</param>
+        /// <param name="ExpIDs">Export ID's of texture in given PCC's.</param>
+        /// <param name="hash">Hash of texture.</param>
+        /// <param name="gameVersion">Version of Mass Effect texture is from.</param>
         public Texture2D(string name, List<string> pccs, List<int> ExpIDs, uint hash, int gameVersion)  // Not calling base constructor to avoid double assigning expIDs and allPccs.
         {
             texName = name;
@@ -95,6 +106,14 @@ namespace WPF_ME3Explorer.Textures
             GameVersion = gameVersion;
         }
 
+
+        /// <summary>
+        /// Creates Texture2D based on PCCObject.
+        /// </summary>
+        /// <param name="pccObj">PCCObject containing texture.</param>
+        /// <param name="texIdx">Export ID of texture in pcc.</param>
+        /// <param name="gameVersion">Version of Mass Effect texture is from.</param>
+        /// <param name="hash">Hash of texture.</param>
         public Texture2D(PCCObject pccObj, int texIdx, int gameVersion, uint hash = 0) : this()
         {
             GameVersion = gameVersion;
@@ -293,25 +312,48 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        public void ExtractImageToFile(string fileName, ImageInfo info)
+        /// <summary>
+        /// Extracts texture to file.
+        /// </summary>
+        /// <param name="fileName">Filename to save extracted image as.</param>
+        /// <param name="info">Information of texture to be extracted.</param>
+        public void ExtractImage(string fileName, ImageInfo info)
         {
             byte[] data = ExtractImage(info);
-            using (FileStream outputImg = new FileStream(fileName, FileMode.Create, FileAccess.Write))
-                outputImg.Write(data, 0, data.Length);
+            File.WriteAllBytes(fileName, data);
         }
 
-        public void ExtractImageToFile(string fileName, ImageSize size)
+        /// <summary>
+        /// Extracts texture to file
+        /// </summary>
+        /// <param name="fileName">Filename to save extracted image as.</param>
+        /// <param name="size">Size of image in texture list to extract.</param>
+        public void ExtractImage(string fileName, ImageSize size)
         {
             if (ImageList.Exists(img => img.ImageSize == size))
-                ExtractImageToFile(fileName, ImageList.Find(img => img.ImageSize == size));
+                ExtractImage(fileName, ImageList.Find(img => img.ImageSize == size));
         }
 
+        /// <summary>
+        /// Extracts largest image to byte[].
+        /// </summary>
+        /// <returns>Byte[] containing largest image.</returns>
         public byte[] ExtractMaxImage()
         {
             // select max image size
             ImageSize maxImgSize = ImageList.Max(image => image.ImageSize);
             // extracting max image
             return ExtractImage(ImageList.Find(img => img.ImageSize == maxImgSize));
+        }
+
+        /// <summary>
+        /// Extracts largest image to file.
+        /// </summary>
+        /// <param name="filename">Filename to save extracted image as.</param>
+        public void ExtractMaxImage(string filename)
+        {
+            byte[] data = ExtractMaxImage();
+            File.WriteAllBytes(filename, data);
         }
 
         int GetUncompressedSize(ImageEngineImage img)
@@ -339,7 +381,7 @@ namespace WPF_ME3Explorer.Textures
             return (int)(width * height * BPP);
         }
 
-        public void SingleImageUpscale(ImageEngineImage imgFile, string archiveDir)
+        void SingleImageUpscale(ImageEngineImage imgFile)
         {
             ImageSize biggerImageSizeOnList = ImageList.Max(image => image.ImageSize);
             // check if replacing image is supported
@@ -360,7 +402,7 @@ namespace WPF_ME3Explorer.Textures
             ImageList.RemoveAt(0);  // Remove old single image and add new one
             ImageList.Add(newImgInfo);
             //now I let believe the program that I'm doing an image replace, saving lot of code ;)
-            ReplaceImage(newImgInfo.ImageSize, imgFile, archiveDir);
+            ReplaceImage(newImgInfo.ImageSize, imgFile);
 
             // update Sizes
             int propVal = (int)newImgInfo.ImageSize.Width;
@@ -394,7 +436,7 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-	    public void ReplaceImage(ImageSize imgSize, ImageEngineImage imgFile, string archiveDir)
+	    void ReplaceImage(ImageSize imgSize, ImageEngineImage imgFile)
         {
             if (!ImageList.Exists(img => img.ImageSize == imgSize))
                 throw new FileNotFoundException($"Image with resolution {imgSize} isn't found");
@@ -434,6 +476,21 @@ namespace WPF_ME3Explorer.Textures
 
                     if (imgBuffer.Length != imgInfo.UncompressedSize)
                         throw new FormatException("image sizes do not match, original is " + imgInfo.UncompressedSize + ", new is " + imgBuffer.Length);
+
+                    // archiveDir is just BIOGame path
+                    string archiveDir = null;
+                    switch (GameVersion)
+                    {
+                        case 1:
+                            archiveDir = MEDirectories.MEDirectories.ME1BIOGame;
+                            break;
+                        case 2:
+                            archiveDir = MEDirectories.MEDirectories.ME2BIOGame;
+                            break;
+                        case 3:
+                            archiveDir = MEDirectories.MEDirectories.ME3BIOGame;
+                            break;
+                    }
 
                     if (!arcName.ToLower().Contains(Path.GetFileNameWithoutExtension(MEDirectories.MEDirectories.CachePath.ToLower())))  // CachePath is usually CustTextures, but arcName can be CustTextures#, so check for substring
                     {
@@ -506,7 +563,7 @@ namespace WPF_ME3Explorer.Textures
             ImageList[imageIdx] = imgInfo;
         }
 
-        public void AddBiggerImage(ImageEngineImage imgFile, string archiveDir)
+        void AddBiggerImage(ImageEngineImage imgFile)
         {
             ImageSize biggerImageSizeOnList = ImageList.Max(image => image.ImageSize);
             // check if replacing image is supported
@@ -533,7 +590,7 @@ namespace WPF_ME3Explorer.Textures
             newImgInfo.Offset = 0x00; // not yet filled
             ImageList.Insert(0, newImgInfo); // insert new image on top of the list
                                                   //now I let believe the program that I'm doing an image replace, saving lot of code ;)
-            ReplaceImage(newImgInfo.ImageSize, imgFile, archiveDir);
+            ReplaceImage(newImgInfo.ImageSize, imgFile);
 
             //updating num of images
             numMipMaps++;
@@ -591,7 +648,11 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        public void OneImageToRuleThemAll(string archiveDir, ImageEngineImage newImg)
+        /// <summary>
+        /// Replaces/upscales texture as required.
+        /// </summary>
+        /// <param name="newImg">Image to change to.</param>
+        public void OneImageToRuleThemAll(ImageEngineImage newImg)
         {
             // starts from the smaller image
             ImageEngineFormat mipFormat = newImg.Format.SurfaceFormat;
@@ -612,12 +673,12 @@ namespace WPF_ME3Explorer.Textures
                 if (ImageList.Exists(img => img.ImageSize == mipSize))
                 {
                     // ...but at least for now I can reuse my replaceImage function... ;)
-                    ReplaceImage(mipSize, new ImageEngineImage(mip, newImg.Format.SurfaceFormat), archiveDir);
+                    ReplaceImage(mipSize, new ImageEngineImage(mip, newImg.Format.SurfaceFormat));
                 }
                 else // if the image doesn't exists then we have to add it
                 {
                     // ...and use my addBiggerImage function! :P
-                    AddBiggerImage(new ImageEngineImage(mip, newImg.Format.SurfaceFormat), archiveDir);
+                    AddBiggerImage(new ImageEngineImage(mip, newImg.Format.SurfaceFormat));
                 }
             }
 

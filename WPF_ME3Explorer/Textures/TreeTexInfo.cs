@@ -9,11 +9,17 @@ using SaltTPF;
 using UsefulThings;
 using WPF_ME3Explorer.PCCObjectsAndBits;
 using static WPF_ME3Explorer.Textures.Texture2D;
+using UsefulThings.WPF;
 
 namespace WPF_ME3Explorer.Textures
 {
     public class TreeTexInfo : AbstractTexInfo, IEquatable<TreeTexInfo>, IComparable
     {
+        #region Properties
+        public static CommandHandler ExtractCommand = null;
+        public static CommandHandler ChangeCommand = null;
+        public static CommandHandler LowResFixCommand = null;
+
         public Action GenerateThumbnail = null;
 
         public List<Texture2D> Textures = new List<Texture2D>();
@@ -115,6 +121,7 @@ namespace WPF_ME3Explorer.Textures
                 SetProperty(ref mips, value);
             }
         }
+#endregion Properties
 
         public TreeTexInfo() : base()
         {

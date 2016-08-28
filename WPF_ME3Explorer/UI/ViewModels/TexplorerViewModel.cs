@@ -1,4 +1,5 @@
 ﻿using CSharpImageLibrary;
+using Microsoft.Win32;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -22,11 +23,57 @@ namespace WPF_ME3Explorer.UI.ViewModels
 {
     public class TexplorerViewModel : MEViewModelBase<TreeTexInfo>
     {
+        #region Commands
+        CommandHandler showGameInfo = null;
+        public CommandHandler ShowGameInfoCommand
+        {
+            get
+            {
+                if (showGameInfo == null)
+                    showGameInfo = new CommandHandler(new Action<object>(param =>
+                        {
+                            int version = int.Parse((string)param);
+                            GameInformation info = new GameInformation(version);
+                            info.Show();
+
+                            GameDirecs.RefreshListeners();
+                        }));
+
+                return showGameInfo;
+            }
+        }
+
+        CommandHandler changeTree = null;
+        public CommandHandler ChangeTreeCommand
+        {
+            get
+            {
+                if (changeTree == null)
+                    changeTree = new CommandHandler(new Action<object>(param =>
+                    {
+                        if (ChangedTextures.Count > 0)
+                        {
+                            var result = MessageBox.Show("There are unsaved changes. Do you want to continue to change trees? Continuing will NOT save changes made.", "You sure about this, Shepard?", MessageBoxButton.YesNo);
+                            if (result == MessageBoxResult.No)
+                                return;
+                        }
+                        int version = ((TreeDB)param).GameVersion;
+                        ChangeSelectedTree(version);
+                        LoadFTSandTree();
+                    }));
+
+                return changeTree;
+            }
+        }
+        #endregion Commands
+
+        #region UI Actions
         public Action TreePanelCloser = null;
         public Action TreeScanProgressCloser = null;
+        public Action TreePanelOpener = null;
+        #endregion UI Actions
 
-        public bool Changes { get; set; }
-
+        #region Properties
         List<DLCEntry> FTSDLCs { get; set; } = new List<DLCEntry>();
         public MTRangedObservableCollection<GameFileEntry> FTSGameFiles { get; set; } = new MTRangedObservableCollection<GameFileEntry>();
         List<AbstractFileEntry> FTSExclusions { get; set; } = new List<AbstractFileEntry>();
@@ -37,6 +84,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         public MTRangedObservableCollection<string> Errors { get; set; } = new MTRangedObservableCollection<string>();
         public MTRangedObservableCollection<TexplorerTextureFolder> TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
         public MTRangedObservableCollection<TexplorerTextureFolder> AllFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+        public MTRangedObservableCollection<TreeTexInfo> ChangedTextures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
 
         TexplorerTextureFolder mySelected = null;
         public TexplorerTextureFolder SelectedFolder
@@ -132,11 +180,35 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
+        #endregion Properties
+
+        public override void ChangeSelectedTree(int game)
+        {
+            Status = $"Selected Tree changed from {GameVersion} to {game}.";
+
+            base.ChangeSelectedTree(game);
+
+            // Clear texture folders
+            TextureFolders.Clear();
+            AllFolders.Clear();
+            ChangedTextures.Clear();
+            Errors.Clear();
+            PreviewImage = null;
+            SelectedFolder = null;
+            SelectedTexture = null;
+            ShowingPreview = false;
+            Textures.Clear();  // Just in case
+
+            // TODO Re-enable Texplorer game property updating. Disabled for testing.
+            /*Properties.Settings.Default.TexplorerGameVersion = game;
+            Properties.Settings.Default.Save();*/
+        }
 
         public TexplorerViewModel() : base()
         {
             DebugOutput.StartDebugger("Texplorer");
 
+            // Setup filtering on FTS views
             DLCItemsView = CollectionViewSource.GetDefaultView(FTSDLCs);
             DLCItemsView.Filter = item => !((DLCEntry)item).IsChecked;
 
@@ -161,8 +233,37 @@ namespace WPF_ME3Explorer.UI.ViewModels
             GameDirecs.GameVersion = Properties.Settings.Default.TexplorerGameVersion;
             OnPropertyChanged(nameof(GameVersion));
 
-            ThumbnailWriter = new ThumbnailWriter(GameDirecs);
+            #region Setup Texture UI Commands
+            TreeTexInfo.ChangeCommand = new CommandHandler(new Action<object>(tex =>
+            {
+                OpenFileDialog ofd = new OpenFileDialog();
+                ofd.Filter = "DirectX Images|*.dds";  // TODO Expand to allow any ImageEngine supported format for on the fly conversion. Need to have some kind of preview first though to maybe change the conversion parameters.
+                if (ofd.ShowDialog() != true)
+                    return;
 
+                ChangeTexture((TreeTexInfo)tex, ofd.FileName);
+            }));
+
+            TreeTexInfo.ExtractCommand = new CommandHandler(new Action<object>(tex =>
+            {
+                SaveFileDialog sfd = new SaveFileDialog();
+                sfd.FileName = null;
+                sfd.Filter = "DirectX Images|*.dds";  // TODO Expand to allow any ImageEngine supported format.
+                if (sfd.ShowDialog() != true)
+                    return;
+
+                ExtractTexture((TreeTexInfo)tex, sfd.FileName);
+            }));
+
+            TreeTexInfo.LowResFixCommand = new CommandHandler(new Action<object>(tex =>
+            {
+                ME1_LowResFix((TreeTexInfo)tex);
+            }));
+            #endregion Setup UI Commands
+
+
+            // Setup thumbnail writer - not used unless tree scanning.
+            ThumbnailWriter = new ThumbnailWriter(GameDirecs);
             BeginTreeLoading();
         }
 
@@ -189,10 +290,32 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 }
             });
 
-            // Populate exclusions areas
-            DLCEntry basegame = new DLCEntry("BaseGame", GameDirecs.Files.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList());
-            FTSDLCs.Add(basegame);
-            GetDLCEntries();
+            await LoadFTSandTree();
+
+            Status = "Ready!";
+            Busy = false;
+        }
+
+        async Task LoadFTSandTree()
+        {
+            FTSReady = false;
+
+            // Clear everything to start again.
+            FTSExclusions.Clear();
+            FTSGameFiles.Clear();
+            FTSDLCs.Clear();
+
+            // Tree isn't valid. Open the panel immediately.
+            if (!CurrentTree.Valid)
+                TreePanelOpener();
+
+            await Task.Run(() =>
+            {
+                // Get DLC's
+                DLCEntry basegame = new DLCEntry("BaseGame", GameDirecs.Files.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList());
+                FTSDLCs.Add(basegame);
+                GetDLCEntries();
+            });
 
             // Add all DLC files to global files list
             foreach (DLCEntry dlc in FTSDLCs)
@@ -200,13 +323,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             if (CurrentTree.Valid)
             {
-                // Add textures to UI textures list.
-                Textures.AddRange(CurrentTree.Textures);
-
-                // Put away TreeScan Panel since it isn't required if tree is valid.
-                if (TreePanelCloser != null)
-                    TreePanelCloser();
-
+                await LoadValidTree();
 
                 /* Find any existing exclusions from when tree was created.*/
                 // Set excluded DLC's checked first
@@ -215,9 +332,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 // Then set all remaining exlusions
                 foreach (DLCEntry dlc in FTSDLCs.Where(dlc => !dlc.IsChecked))
                     dlc.Files.ForEach(file => file.IsChecked = !CurrentTree.ScannedPCCs.Contains(file.FilePath));
-
-
-                await Task.Run(() => ConstructTree());
             }
 
             FTSExclusions.AddRange(FTSDLCs);
@@ -225,9 +339,17 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             FTSReady = true;
             UpdateFTS();
+        }
 
-            Status = "Ready!";
-            Busy = false;
+        async Task LoadValidTree()
+        {
+            // Put away TreeScan Panel since it isn't required if tree is valid.
+            if (TreePanelCloser != null)
+                TreePanelCloser();
+
+            CurrentTree.IsSelected = true;
+
+            await Task.Run(() => ConstructTree());
         }
 
         public void UpdateFTS()
@@ -284,13 +406,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
             StartTime = 0; // Stop Elapsed Time from counting
             ThumbnailWriter.FinishAdding();
 
-            // Update UI Texture display
-            Textures.AddRange(CurrentTree.Textures);
-
             DebugOutput.PrintLn("Saving tree to disk...");
             CurrentTree.SaveToFile();
 
-            DebugOutput.PrintLn($"Treescan completed. Elapsed time: {ElapsedTime}. Num Textures: {Textures.Count}.");
+            DebugOutput.PrintLn($"Treescan completed. Elapsed time: {ElapsedTime}. Num Textures: {CurrentTree.Textures.Count}.");
 
             await Task.Run(() => ConstructTree());
 
@@ -426,28 +545,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Alphabetical order
             TopTextureFolder.Folders = new MTRangedObservableCollection<TexplorerTextureFolder>(TopTextureFolder.Folders.OrderBy(p => p));
 
-            // Thin out the PACKAGE folder - too many there, slows its load time down
-            /*var folder = TopTextureFolder.Folders.First(curr => curr.Name == "PACKAGE");
-            TexplorerTextureFolder lightmaps = new TexplorerTextureFolder("Lightmaps", "PACKAGE", folder);
-            TexplorerTextureFolder directionals = new TexplorerTextureFolder("DirectionalMax", "PACKAGE", folder);
-            TexplorerTextureFolder normalised = new TexplorerTextureFolder("NormalisedAverage", "PACKAGE", folder);
-
-            // Get textures from original folder
-            var lights = folder.Textures.Where(tex => tex.TexName.Contains("lightmap", StringComparison.OrdinalIgnoreCase));
-            var direcs = folder.Textures.Where(tex => tex.TexName.Contains("directional", StringComparison.OrdinalIgnoreCase));
-            var norms = folder.Textures.Where(tex => tex.TexName.Contains("normalized", StringComparison.OrdinalIgnoreCase));   // Remembered to AmericaniZe.
-
-            // Add textures to new folders
-            lightmaps.Textures.AddRange(lights);
-            directionals.Textures.AddRange(direcs);
-            normalised.Textures.AddRange(norms);
-
-            // Grab the leftovers and add new folders
-            folder.Textures = new MTRangedObservableCollection<TreeTexInfo>(folder.Textures.Where(tex => !tex.TexName.Contains("lightmap", StringComparison.OrdinalIgnoreCase) && !tex.TexName.Contains("directional", StringComparison.OrdinalIgnoreCase) && !tex.TexName.Contains("normalized", StringComparison.OrdinalIgnoreCase)));
-            folder.Folders.Add(lightmaps);
-            folder.Folders.Add(directionals);
-            folder.Folders.Add(normalised);*/
-
             TextureFolders.Add(TopTextureFolder);  // Only one item in this list. Chuckles.
 
             DebugOutput.PrintLn("Tree Constructed!");
@@ -512,6 +609,65 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     img = null;
                 }
             }
+        }
+
+        void ChangeTexture(TreeTexInfo tex, string filename)
+        {
+            Busy = true;
+            Status = $"Changing Texture: {tex.TexName}...";
+
+
+            bool success = ToolsetTextureEngine.ChangeTexture(tex, filename);
+            if (success)
+            {
+                // Add only if not already added.
+                if (!ChangedTextures.Contains(tex))
+                    ChangedTextures.Add(tex);
+            }
+
+            Status = $"Texture: {tex.TexName} changed!";
+            Busy = false;
+        }
+
+        void ExtractTexture(TreeTexInfo tex, string filename)
+        {
+            Busy = true;
+            Status = $"Extracting Texture: {tex.TexName}...";
+
+            string error = null;
+            try
+            {
+                ToolsetTextureEngine.ExtractTexture(tex, filename);
+            }
+            catch (Exception e)
+            {
+                error = e.Message;
+                DebugOutput.PrintLn($"Extracting image {tex.TexName} failed. Reason: {e.ToString()}");
+            }
+
+
+            Busy = false;
+            Status = $"Texture: {tex.TexName} " + (error != null ? $"extracted to {filename}!" : $"failed to extract. Reason: {error}.");
+        }
+
+        internal void ME1_LowResFix(TreeTexInfo tex)
+        {
+            Busy = true;
+            Status = $"Applying Low Res Fix to {tex.TexName}.";
+
+            string error = null;
+            try
+            {
+                ToolsetTextureEngine.ME1_LowResFix(tex);
+            }
+            catch(Exception e)
+            {
+                error = e.Message;
+                DebugOutput.PrintLn($"Low Res Fix failed for {tex.TexName}. Reason: {e.ToString()}.");
+            }
+
+            Status = error != null ? $"Applied Low Res Fix to {tex.TexName}." : $"Failed to apply Low Res Fix to {tex.TexName}. Reason: {error}.";
+            Busy = false;
         }
     }
 }

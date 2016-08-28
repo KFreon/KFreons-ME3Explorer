@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using WPF_ME3Explorer.Debugging;
+using WPF_ME3Explorer.PCCObjectsAndBits;
 
 namespace WPF_ME3Explorer.Textures
 {
@@ -94,6 +96,96 @@ namespace WPF_ME3Explorer.Textures
             overlayed.Render(drawing);
 
             return overlayed;
+        }
+
+
+        internal static bool ChangeTexture(TreeTexInfo tex, string newTextureFileName)
+        {
+            // Get Texture2D
+            Texture2D tex2D = GetTexture2D(tex);
+
+
+            byte[] imgData = File.ReadAllBytes(newTextureFileName);
+
+            // Update Texture2D
+            using (ImageEngineImage img = new ImageEngineImage(imgData))
+                tex2D.OneImageToRuleThemAll(img);
+
+            // Add to textures list
+            if (tex.Textures.Count == 0)
+                tex.Textures.Add(tex2D);
+
+            tex2D.hasChanged = true;
+
+            return true;
+        }
+
+        static Texture2D GetTexture2D(TreeTexInfo tex)
+        {
+            if (tex.PCCS?.Count < 1)
+                throw new IndexOutOfRangeException($"Tex: {tex.TexName} has no PCC's.");
+
+            if (tex.GameVersion < 1 || tex.GameVersion > 3)
+                throw new IndexOutOfRangeException($"Tex: {tex.TexName}'s game version is out of range. Value: {tex.GameVersion}.");
+
+            // Read new texture file
+            Texture2D tex2D = null;
+            PCCObject pcc = null;
+
+            string pccPath = tex.PCCS[0].Name;
+            int expID = tex.PCCS[0].ExpID;
+
+            // Texture object has already been created - likely due to texture being updated previously in current session
+            if (tex.Textures?.Any() == true)
+                tex2D = tex.Textures[0];
+            else
+            {
+                // Create PCCObject
+                if (!File.Exists(pccPath))
+                    throw new FileNotFoundException($"PCC not found at: {pccPath}.");
+
+                pcc = new PCCObject(tex.PCCS[0].Name, tex.GameVersion);
+
+                if (expID >= pcc.Exports.Count)
+                    throw new IndexOutOfRangeException($"Given export ID ({expID}) is out of range. PCC Export Count: {pcc.Exports.Count}.");
+
+                ExportEntry export = pcc.Exports[expID];
+                if (!export.ValidTextureClass())
+                    throw new InvalidDataException($"Export {expID} in {pccPath} is not a texture. Class: {export.ClassName}, Object Name:{export.ObjectName}.");
+
+                // Create Texture2D
+                tex2D = new Texture2D(pcc, expID, tex.GameVersion, tex.Hash);
+            }
+
+            pcc.Dispose(); // Texture2D doesn't need this anymore
+
+            return tex2D;
+        }
+
+        internal static void ExtractTexture(TreeTexInfo tex, string filename)
+        {
+            // Get Texture2D
+            Texture2D tex2D = GetTexture2D(tex);
+
+            // Extract texture
+            tex2D.ExtractMaxImage(filename);
+
+            // Cleanup if required
+            if (!tex.Textures.Contains(tex2D))
+                tex2D.Dispose();
+        }
+
+        internal static void ME1_LowResFix(TreeTexInfo tex)
+        {
+            // Get Texture2D
+            Texture2D tex2D = GetTexture2D(tex);
+
+            // Apply fix
+            tex2D.LowResFix();
+
+            // Cleanup if required
+            if (!tex.Textures.Contains(tex2D))
+                tex2D.Dispose();
         }
     }
 }

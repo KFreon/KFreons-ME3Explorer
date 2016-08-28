@@ -13,6 +13,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using UsefulThings.WPF;
 using WPF_ME3Explorer.Textures;
 using WPF_ME3Explorer.UI.ViewModels;
 
@@ -40,6 +41,12 @@ namespace WPF_ME3Explorer.UI
             {
                 Storyboard closer = (Storyboard)TreeScanBackground.Resources["ClosePanelAnimation"];
                 closer.Begin();
+            });
+
+            vm.TreePanelOpener = new Action(() =>
+            {
+                Storyboard opener = (Storyboard)SettingsButton.Resources["TreeScanPanelOpener"];
+                opener.Begin();
             });
 
             DataContext = vm;
