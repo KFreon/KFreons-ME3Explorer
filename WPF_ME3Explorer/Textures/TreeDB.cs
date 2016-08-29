@@ -34,6 +34,17 @@ namespace WPF_ME3Explorer.Textures
 
         public string TreeVersion { get; set; }
 
+        public bool Exists
+        {
+            get
+            {
+                if (String.IsNullOrEmpty(TreePath))
+                    return false;
+
+                return File.Exists(TreePath);
+            }
+        }
+
         public string TreePath
         {
             get
@@ -97,6 +108,8 @@ namespace WPF_ME3Explorer.Textures
 
         public bool ReadFromFile(string fileName = null)
         {
+            OnPropertyChanged(nameof(Exists));
+
             string tempFilename = fileName;
             if (fileName == null)
                 tempFilename = TreePath;
@@ -208,12 +221,55 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
+        public void ExportToCSV(string fileName, bool ShowFilesExpIDs)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            // KFreon: Headers
+            sb.AppendLine("Texture Name, Format, Texmod Hash, Texture Package (LOD Group Stand-in)" + (ShowFilesExpIDs ? ", Files, Export IDs" : ""));
+
+            for (int i = 0; i < Textures.Count; i++)
+            {
+                var tex = Textures[i];
+                string line = $"{tex.TexName}, {tex.Format}, {ToolsetTextureEngine.FormatTexmodHashAsString(tex.Hash)}, {tex.FullPackage}";
+
+                // KFreon: Make sure the lists have stuff in them - ? stops a null list from breaking when calling count. i.e. list.count when null = exception, but list?.count = null/false.
+                if (ShowFilesExpIDs && tex.PCCS?.Count > 0)
+                {
+                    line += $", {tex.PCCS[0].Name}, {tex.PCCS[0].ExpID}";  // First line
+                    sb.AppendLine(line);
+
+                    if (tex.PCCS.Count > 1)
+                        for (int j = 1; j < tex.PCCS.Count; j++)
+                            sb.AppendLine($",,,,{tex.PCCS[j].Name}, {tex.PCCS[j].ExpID}");  // KFreon: ,,,'s are blank columns so these file/expid combos are in line with the others
+                }
+                else
+                    sb.AppendLine(line);
+            }
+
+            File.WriteAllText(fileName, sb.ToString());
+        }
+
         public void Clear(bool ClearPCCs = false)
         {
             Textures?.Clear();
 
             if (ClearPCCs)
                 ScannedPCCs?.Clear();
+        }
+
+        public void Delete()
+        {
+            try
+            {
+                File.Delete(TreePath);
+            }
+            catch (Exception e)
+            {
+                DebugOutput.PrintLn($"Unable to delete tree at: {TreePath}. Reason: {e.ToString()}.");
+            }
+
+            OnPropertyChanged(nameof(Exists));
         }
     }
 }

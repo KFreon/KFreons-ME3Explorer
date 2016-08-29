@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,7 +13,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using System.Windows.Threading;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.Textures;
@@ -164,6 +165,35 @@ namespace WPF_ME3Explorer.UI
                 }
 
             e.Handled = true;
+        }
+
+        private void ImportTreeButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.FileName = Path.GetFileName(vm.CurrentTree.TreePath);
+            if (sfd.ShowDialog() == true)
+                File.Copy(sfd.FileName, vm.CurrentTree.TreePath);
+        }
+
+        private void ExportTreeButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.FileName = Path.GetFileName(vm.CurrentTree.TreePath);
+            if (sfd.ShowDialog() == true)
+                File.Copy(vm.CurrentTree.TreePath, sfd.FileName);
+        }
+
+        private void ExportCSVButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.Filter = "Comma Separated File|*.CSV";
+            if (sfd.ShowDialog() == true)
+                vm.CurrentTree.ExportToCSV(sfd.FileName, true);
+        }
+
+        private void ReallyDeleteTreeButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.DeleteCurrentTree();
         }
     }
 }

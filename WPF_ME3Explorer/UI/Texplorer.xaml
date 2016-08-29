@@ -436,7 +436,7 @@
 
         <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="2" Grid.ColumnSpan="3"/>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black" d:IsHidden="True">
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black">
             <Grid.Resources>
                 <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
                     <DoubleAnimation.EasingFunction>
@@ -620,25 +620,74 @@
                                 <Setter Property="FontWeight" Value="Bold"/>
                             </Style>
                         </StackPanel.Resources>
-                        <Button>
+                        <Button x:Name="ImportTreeButton" Click="ImportTreeButton_Click">
                             <Grid>
                                 <Image Source="/WPF_ME3Explorer;component/Resources/Import Tree.png"/>
                                 <Label Content="Import Tree"/>
                             </Grid>
                         </Button>
-                        <Button>
+                        <Button x:Name="ExportTreeButton" Click="ExportTreeButton_Click" IsEnabled="{Binding CurrentTree.Valid}">
                             <Grid>
                                 <Image Source="/WPF_ME3Explorer;component/Resources/Export Tree.png"/>
                                 <Label Content="Export Tree"/>
                             </Grid>
                         </Button>
-                        <Button>
-                            <Grid>
-                                <Image Source="/WPF_ME3Explorer;component/Resources/Delete Tree.png"/>
-                                <Label Content="Remove Current Tree"/>
-                            </Grid>
-                        </Button>
-                        <Button>
+
+                        <Grid IsEnabled="{Binding CurrentTree.Exists}">
+                            <StackPanel x:Name="ReallyDeleteStacker">
+                                <TextBlock Text="Are you really sure you want to delete the current tree?" TextWrapping="Wrap" FontSize="20" TextAlignment="Center" FontWeight="Bold" Foreground="Red" Margin="0,0,0,30"/>
+                                <Button x:Name="ReallyDeleteTreeButton" Content="YES" FontSize="14" FontWeight="Bold" Click="ReallyDeleteTreeButton_Click" Background="Red" Foreground="White" HorizontalAlignment="Center" Padding="8,3">
+                                    <Button.Triggers>
+                                        <EventTrigger RoutedEvent="ButtonBase.Click">
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="DeleteTreeButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.3">
+                                                        <DoubleAnimation.EasingFunction>
+                                                            <CubicEase EasingMode="EaseOut"/>
+                                                        </DoubleAnimation.EasingFunction>
+                                                    </DoubleAnimation>
+
+                                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DeleteTreeButton" Storyboard.TargetProperty="Visibility">
+                                                        <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
+                                                    </ObjectAnimationUsingKeyFrames>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Button.Triggers>
+                                </Button>
+                            </StackPanel>
+                            <Button x:Name="DeleteTreeButton" Background="White">
+                                <Button.Triggers>
+                                    <EventTrigger RoutedEvent="ButtonBase.Click">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.3">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseOut"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                    <ObjectAnimationUsingKeyFrames.KeyFrames>
+                                                        <ObjectKeyFrameCollection>
+                                                            <DiscreteObjectKeyFrame KeyTime="0:0:0.3" Value="{x:Static Visibility.Collapsed}"/>
+                                                        </ObjectKeyFrameCollection>
+                                                    </ObjectAnimationUsingKeyFrames.KeyFrames>
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Button.Triggers>
+                                <Grid>
+                                    <Image Source="/WPF_ME3Explorer;component/Resources/Delete Tree.png"/>
+                                    <Label Content="Remove Current Tree"/>
+                                </Grid>
+                            </Button>
+                        </Grid>
+                        
+
+
+                        <Button x:Name="ExportCSVButton" Click="ExportCSVButton_Click" IsEnabled="{Binding CurrentTree.Valid}">
                             <Grid>
                                 <Image Source="/WPF_ME3Explorer;component/Resources/Export CSV.png"/>
                                 <Label Content="Export Tree to CSV"/>

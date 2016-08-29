@@ -188,6 +188,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             base.ChangeSelectedTree(game);
 
+            RefreshTreeRelatedProperties();
+        }
+
+        void RefreshTreeRelatedProperties()
+        {
             // Clear texture folders
             TextureFolders.Clear();
             AllFolders.Clear();
@@ -202,6 +207,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // TODO Re-enable Texplorer game property updating. Disabled for testing.
             /*Properties.Settings.Default.TexplorerGameVersion = game;
             Properties.Settings.Default.Save();*/
+        }
+
+        internal void DeleteCurrentTree()
+        {
+            CurrentTree.Delete();
+            CurrentTree.Clear(true);
+
+            RefreshTreeRelatedProperties();
         }
 
         public TexplorerViewModel() : base()
