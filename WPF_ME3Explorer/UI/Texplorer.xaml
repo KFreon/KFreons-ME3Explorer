@@ -436,7 +436,7 @@
 
         <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="2" Grid.ColumnSpan="3"/>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black" d:IsHidden="True">
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black">
             <Grid.Resources>
                 <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
                     <DoubleAnimation.EasingFunction>
@@ -716,7 +716,7 @@
                 <Button.Resources>
                     <Storyboard x:Key="TreeScanProgressPanelCloser">
                         <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TreeScanProgressPanel" Storyboard.TargetProperty="Visibility">
-                            <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Visible}"/>
+                            <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Collapsed}"/>
                         </ObjectAnimationUsingKeyFrames>
 
                         <DoubleAnimation Storyboard.TargetName="TreeScanProgressPanel" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:1" DecelerationRatio="1">

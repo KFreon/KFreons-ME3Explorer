@@ -118,8 +118,14 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
 
         private byte[] GetData()
         {
-            pccRef.listsStream.Seek((long)DataOffset, SeekOrigin.Begin);
-            return pccRef.listsStream.ReadBytes(DataSize);
+            MemoryStream ms = new MemoryStream(pccRef.listsStream.GetBuffer());
+            {
+                ms.Seek((long)DataOffset, SeekOrigin.Begin);
+                return ms.ReadBytes(DataSize);
+            }
+            ms.Dispose();
+            /*pccRef.listsStream.Seek((long)DataOffset, SeekOrigin.Begin);
+            return pccRef.listsStream.ReadBytes(DataSize);*/
         }
 
         public void SetData(byte[] newData)

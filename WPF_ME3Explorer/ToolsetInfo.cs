@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.VisualBasic.Devices;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -12,6 +13,15 @@ namespace WPF_ME3Explorer
     {
         static Process currentProcess = null;
         static PerformanceCounter CPUCounter = null;
+        static ComputerInfo info = new ComputerInfo();
+
+        public static ulong AvailableRamAtToolsetStartup
+        {
+            get
+            {
+                return info.AvailablePhysicalMemory;
+            }
+        }
 
         static ToolsetInfo()
         {
@@ -44,5 +54,6 @@ namespace WPF_ME3Explorer
                 return UsefulThings.General.GetStartingVersion();
             }
         }
+
     }
 }

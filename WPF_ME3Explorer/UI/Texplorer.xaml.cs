@@ -34,8 +34,11 @@ namespace WPF_ME3Explorer.UI
 
             vm.TreeScanProgressCloser = new Action(() =>
             {
-                Storyboard closer = (Storyboard)HiderButton.Resources[0];
-                closer.Begin();
+                HiderButton.Dispatcher.Invoke(() =>   // Not sure if this is necessary, but things aren't working otherwise.
+                {
+                    Storyboard closer = (Storyboard)HiderButton.Resources["TreeScanProgressPanelCloser"];
+                    closer.Begin();
+                });
             });
 
             vm.TreePanelCloser = new Action(() =>

@@ -198,6 +198,8 @@ namespace WPF_ME3Explorer.Textures
                 if (thumbStream != null)
                     Thumb = ThumbWriter.Add(thumbStream);
             }
+
+            tex2D.Dispose();
         }
 
         public void ReorderME2Files()
