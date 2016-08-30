@@ -139,6 +139,13 @@ namespace WPF_ME3Explorer.Textures
                                 throw new InvalidOperationException($"Incorrect Tree Loaded. Expected: ME{GameDirecs.GameVersion}, Got: {GameVersion}");
 
                             TreeVersion = bin.ReadString();
+
+                            // PCCS
+                            int pccCount = bin.ReadInt32();
+                            for (int i = 0; i < pccCount; i++)
+                                ScannedPCCs.Add(bin.ReadString());
+
+                            // Textures
                             int texCount = bin.ReadInt32();
                             for (int i = 0; i < texCount; i++)
                             {
@@ -158,7 +165,7 @@ namespace WPF_ME3Explorer.Textures
                                 int numPccs = bin.ReadInt32();
                                 for (int j = 0; j < numPccs; j++)
                                 {
-                                    string userAgnosticPath = bin.ReadString();
+                                    string userAgnosticPath = ScannedPCCs[bin.ReadInt32()];
                                     int ExpID = bin.ReadInt32();
                                     tex.PCCS.Add(new PCCEntry(Path.Combine(GameDirecs.BasePath, userAgnosticPath), ExpID));
                                 }
@@ -188,6 +195,7 @@ namespace WPF_ME3Explorer.Textures
 
             Directory.CreateDirectory(TreePath.GetDirParent()); // Create Trees directory if required
 
+
             using (FileStream fs = new FileStream(tempFilename, FileMode.Create))
             {
                 using (GZipStream compressed = new GZipStream(fs, CompressionMode.Compress))  // Compress for nice small trees
@@ -197,8 +205,14 @@ namespace WPF_ME3Explorer.Textures
                         bw.Write(631991);
                         bw.Write(GameVersion);
                         bw.Write(ToolsetInfo.Version);
-                        bw.Write(Textures.Count);
 
+                        // PCCs
+                        bw.Write(ScannedPCCs.Count);
+                        foreach (string pcc in ScannedPCCs)
+                            bw.Write(pcc.Remove(0, GameDirecs.BasePath.Length + 1));
+
+                        // Textures
+                        bw.Write(Textures.Count);
                         foreach (TreeTexInfo tex in Textures)
                         {
                             bw.Write(tex.TexName);
@@ -211,8 +225,7 @@ namespace WPF_ME3Explorer.Textures
                             bw.Write(tex.PCCS.Count);
                             foreach (PCCEntry pcc in tex.PCCS)
                             {
-                                string tempPath = pcc.Name.Remove(0, GameDirecs.BasePath.Length + 1);
-                                bw.Write(tempPath);
+                                bw.Write(ScannedPCCs.IndexOf(pcc.Name));
                                 bw.Write(pcc.ExpID);
                             }
                         }
