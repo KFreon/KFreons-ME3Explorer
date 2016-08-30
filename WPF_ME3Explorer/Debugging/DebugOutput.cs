@@ -104,7 +104,6 @@ namespace WPF_ME3Explorer.Debugging
                         waiting.Clear();
                         rtb.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
                         {
-                            debugFileWriter.FlushAsync();
                             rtb.AppendText(temp);
                             Scroller.ScrollToBottom();
                         }));
@@ -112,6 +111,7 @@ namespace WPF_ME3Explorer.Debugging
                         try
                         {
                             debugFileWriter.WriteLine(temp);
+                            debugFileWriter.Flush();
                         }
                         catch (Exception ex)
                         {
@@ -183,7 +183,7 @@ namespace WPF_ME3Explorer.Debugging
                         try
                         {
                             DebugFilePath = Path.Combine(MEDirectories.MEDirectories.StorageFolder, $"DebugOutput{appender}.txt");
-                            debugFileWriter = new StreamWriter(DebugFilePath);
+                            debugFileWriter = new StreamWriter(DebugFilePath, true);
                             break;
                         }
                         catch

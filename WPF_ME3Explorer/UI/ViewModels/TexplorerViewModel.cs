@@ -563,6 +563,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             TextureFolders.Add(TopTextureFolder);  // Only one item in this list. Chuckles.
 
+            // Add textures to base class list - mostly just for searching.
+            Textures.Clear();
+            Textures.AddRange(CurrentTree.Textures);
+
             DebugOutput.PrintLn("Tree Constructed!");
             Busy = false;
         }

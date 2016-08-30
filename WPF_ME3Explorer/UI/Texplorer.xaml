@@ -51,7 +51,7 @@
                     </Style.Triggers>
                 </Style>
             </Menu.Style>
-            <MenuItem Header="Save Changes">
+            <MenuItem x:Name="SaveChangesButton" Header="Save Changes">
                 <MenuItem.Style>
                     <Style TargetType="MenuItem" BasedOn="{StaticResource BaseMenuItemStyle}">
                         <Setter Property="IsEnabled" Value="False"/>
@@ -64,7 +64,7 @@
                     </Style>
                 </MenuItem.Style>
             </MenuItem>
-            <MenuItem IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}">
+            <MenuItem x:Name="RegenerateTopMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}">
                 <MenuItem.Header>
                     <StackPanel Orientation="Horizontal" Background="Transparent">
                         <TextBlock Text="Regenerate Thumbnails"/>
@@ -80,9 +80,9 @@
                         </TextBlock>
                     </StackPanel>
                 </MenuItem.Header>
-                <MenuItem Header="All"/>
-                <MenuItem Header="Current Folder"/>
-                <MenuItem Header="Selected Texture"/>
+                <MenuItem x:Name="RegenerateAllButton" Header="All"/>
+                <MenuItem x:Name="RegenerateFolderButton" Header="Current Folder"/>
+                <MenuItem x:Name="RegenerateTextureButton" Header="Selected Texture"/>
             </MenuItem>
         </Menu>
 
@@ -356,7 +356,7 @@
                     </StackPanel>
                 </Grid>
             </DockPanel>
-            <ListBox x:Name="SearchResultsBox" Margin="0,22,0.333,4.667" ItemsSource="{Binding TextureSearchResults}" Height="Auto" Background="White">
+            <ListBox x:Name="SearchResultsBox" Margin="0,22,0.333,4.667" ItemsSource="{Binding TextureSearchResults}" Background="White">
                 <ListBox.Style>
                     <Style TargetType="{x:Type ListBox}">
                         <Setter Property="Opacity" Value="0"/>
@@ -436,7 +436,7 @@
 
         <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="2" Grid.ColumnSpan="3"/>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black">
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black" d:IsHidden="True">
             <Grid.Resources>
                 <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
                     <DoubleAnimation.EasingFunction>

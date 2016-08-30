@@ -34,7 +34,7 @@ namespace WPF_ME3Explorer.UI
 
             vm.TreeScanProgressCloser = new Action(() =>
             {
-                Storyboard closer = (Storyboard)HiderButton.Resources.FindName("TreeScanProgressPanelCloser");
+                Storyboard closer = (Storyboard)HiderButton.Resources[0];
                 closer.Begin();
             });
 
@@ -99,6 +99,7 @@ namespace WPF_ME3Explorer.UI
             while (MainDisplayPanel.ItemContainerGenerator.Status != System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated)
                 await Task.Delay(100);
 
+            await Task.Delay(100);
             var container = MainDisplayPanel.ItemContainerGenerator.ContainerFromIndex(0);  // First visual that exists
             var current = VisualTreeHelper.GetParent(container);
             while (current != null)
