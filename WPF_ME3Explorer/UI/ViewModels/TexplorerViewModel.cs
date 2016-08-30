@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media.Animation;
@@ -476,27 +477,57 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Get PCC's
             IList<string> basegamePCCs = PCCsToScan;//.Where(pcc => !pcc.Contains("DLC\\DLC_")).ToList();
 
-            // Perform scan - count goes in, gets updated internally and locally, thus returns the updated result for use out here.
-            int count = await ScanPCCsInternal(basegamePCCs, 0, TFCs);
+            // Perform scan
+            await Task.Run(() => ScanPCCsInternal(basegamePCCs, TFCs));
 
             Progress = MaxProgress;
             Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures.";
         }
 
-        async Task<int> ScanPCCsInternal(IList<string> PCCs, int count, Dictionary<string, MemoryStream> TFCs)
+        void PCCProducer(IList<string> PCCs, BufferBlock<PCCObject> pccs)
         {
-            // Parallel scanning
-            ParallelOptions po = new ParallelOptions();
-            po.MaxDegreeOfParallelism = NumThreads;
-
-            await Task.Run(() => Parallel.For(0, PCCs.Count, po, (index, loopstate) =>
+            for (int i = 0; i < PCCs.Count; i++)
             {
-                // TODO: Cancellation
-
-                string file = PCCs[index];
+                string file = PCCs[i];
                 DebugOutput.PrintLn($"Scanning: {file}");
+                PCCObject pcc = new PCCObject(file, GameVersion);
 
-                string error = ScanPCCForTextures(file, TFCs);  // Ignore errors for now. Might display them later?
+                pccs.Post(pcc);
+            }
+        } 
+
+        async Task PCCConsumer(BufferBlock<PCCObject> pccs, Dictionary<string, MemoryStream> TFCs)
+        {
+            int count = 0;
+            while (await pccs.OutputAvailableAsync())
+            {
+                PCCObject pcc = pccs.Receive();
+                string error = null;
+
+                try
+                {
+                    for (int i = 0; i < pcc.Exports.Count; i++)
+                    {
+                        ExportEntry export = pcc.Exports[i];
+                        if (!export.ValidTextureClass())
+                            continue;
+
+                        Texture2D tex2D = new Texture2D(pcc, i, GameVersion);
+
+                        // Skip if no images
+                        if (tex2D.ImageList.Count == 0)
+                            continue;
+
+                        TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs);
+                        CurrentTree.AddTexture(info);
+                    }
+                }
+                catch (Exception e)
+                {
+                    DebugOutput.PrintLn($"Scanning failed on {pcc.pccFileName}. Reason: {e.ToString()}.");
+                    error = e.Message;
+                }
+
                 if (error != null)
                     Errors.Add(error);
 
@@ -508,9 +539,23 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     Progress += 10;
                     Status = $"Scanning: {count} / {MaxProgress}";
                 }
-            }));
+            }            
+        }
 
-            return count;
+        void ScanPCCsInternal(IList<string> PCCs, Dictionary<string, MemoryStream> TFCs)
+        {
+            // Parallel scanning
+
+            BufferBlock<PCCObject> pccs = new BufferBlock<PCCObject>();
+
+            // Begin consumers
+            var consumers = PCCConsumer(pccs, TFCs);
+
+            // Begin producer
+            PCCProducer(PCCs, pccs);
+
+            // Wait for consumers to finish
+            consumers.Wait();
         }
 
         string ScanPCCForTextures(string filename, Dictionary<string, MemoryStream> TFCs)
