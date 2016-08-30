@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
+using WPF_ME3Explorer.Debugging;
 using WPF_ME3Explorer.Textures;
 
 namespace WPF_ME3Explorer.UI.ValueConverters
@@ -16,13 +17,20 @@ namespace WPF_ME3Explorer.UI.ValueConverters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             Thumbnail thumb = value as Thumbnail;
-            if (thumb == null)
+            if (thumb != null)
             {
-                // Default image
-                return (BitmapImage)parameter;
+                try
+                {
+                    return thumb.GetImage();
+                }
+                catch (Exception e)
+                {
+                    DebugOutput.PrintLn($"Failed to get thumbnail preview. Reason: {e.ToString()}");
+                }
             }
-            else
-                return thumb.GetImage();
+
+            // Default image
+            return (BitmapImage)parameter;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

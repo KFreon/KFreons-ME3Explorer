@@ -256,6 +256,8 @@ namespace WPF_ME3Explorer.Textures
 
             if (ClearPCCs)
                 ScannedPCCs?.Clear();
+
+            Valid = false;
         }
 
         public void Delete()
@@ -270,6 +272,7 @@ namespace WPF_ME3Explorer.Textures
             }
 
             OnPropertyChanged(nameof(Exists));
+            Valid = false;
         }
     }
 }

@@ -104,6 +104,7 @@ namespace WPF_ME3Explorer.Debugging
                         waiting.Clear();
                         rtb.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
                         {
+                            debugFileWriter.FlushAsync();
                             rtb.AppendText(temp);
                             Scroller.ScrollToBottom();
                         }));
@@ -174,19 +175,22 @@ namespace WPF_ME3Explorer.Debugging
             {
                 UpdateTimer = new DispatcherTimer();
 
-                // KFreon: Deal with file in use
-                for (int i = 0; i < 10; i++)
+                if (debugFileWriter == null)
                 {
-                    try
+                    // KFreon: Deal with file in use
+                    for (int i = 0; i < 10; i++)
                     {
-                        DebugFilePath = Path.Combine(MEDirectories.MEDirectories.StorageFolder, "DebugOutput" + appender + ".txt");
-                        debugFileWriter = new StreamWriter(DebugFilePath);
-                        break;
-                    }
-                    catch
-                    {
-                        var t = i;
-                        appender = t.ToString();
+                        try
+                        {
+                            DebugFilePath = Path.Combine(MEDirectories.MEDirectories.StorageFolder, $"DebugOutput{appender}.txt");
+                            debugFileWriter = new StreamWriter(DebugFilePath);
+                            break;
+                        }
+                        catch
+                        {
+                            var t = i;
+                            appender = $"_{t.ToString()}";
+                        }
                     }
                 }
 

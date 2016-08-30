@@ -215,6 +215,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             CurrentTree.Clear(true);
 
             RefreshTreeRelatedProperties();
+
+            LoadFTSandTree(true);
         }
 
         public TexplorerViewModel() : base()
@@ -305,11 +307,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             await LoadFTSandTree();
 
-            Status = "Ready!";
+            Status = CurrentTree.Valid ? "Ready!" : Status; 
             Busy = false;
         }
 
-        async Task LoadFTSandTree()
+        async Task LoadFTSandTree(bool panelAlreadyOpen = false)
         {
             FTSReady = false;
 
@@ -319,7 +321,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             FTSDLCs.Clear();
 
             // Tree isn't valid. Open the panel immediately.
-            if (!CurrentTree.Valid)
+            if (!panelAlreadyOpen && !CurrentTree.Valid)
                 TreePanelOpener();
 
             await Task.Run(() =>
@@ -346,6 +348,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 foreach (DLCEntry dlc in FTSDLCs.Where(dlc => !dlc.IsChecked))
                     dlc.Files.ForEach(file => file.IsChecked = !CurrentTree.ScannedPCCs.Contains(file.FilePath));
             }
+            else
+                Status = "Tree invalid/non-existent. Begin Tree Scan by clicking 'Settings'";
 
             FTSExclusions.AddRange(FTSDLCs);
             FTSExclusions.AddRange(FTSGameFiles);
@@ -450,8 +454,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             
 
-
-            //////// Basegame
+            // TODO Add some logic here to check RAM - Need at least 8gb available for vanilla.
             // Read in TFC's
             Dictionary<string, MemoryStream> TFCs = new Dictionary<string, MemoryStream>();
             var tfcFiles = GameDirecs.Files.Where(file => file.EndsWith("tfc"));// && !file.Contains("DLC\\DLC_"));

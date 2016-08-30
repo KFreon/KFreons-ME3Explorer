@@ -23,6 +23,7 @@ namespace WPF_ME3Explorer
         {
             get
             {
+                currentProcess.Refresh();
                 return UsefulThings.General.GetFileSizeAsString(currentProcess.PrivateMemorySize64);
             }
         }
@@ -31,6 +32,7 @@ namespace WPF_ME3Explorer
         {
             get
             {
+                currentProcess.Refresh();
                 return Math.Round(CPUCounter.NextValue() / Environment.ProcessorCount, 1).ToString() + "%";
             }
         }
