@@ -437,27 +437,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Busy = false;
         }
 
-        async Task<Dictionary<string, MemoryStream>> ReadTFCsIntoRAM()
+        IEnumerable<KeyValuePair<string, MemoryStream>> LoadTFCsIntoMemory(Predicate<string> predicate)
         {
-            // TODO Add some logic here to check RAM - Need at least 8gb available for vanilla.
-            // Read in TFC's
             Dictionary<string, MemoryStream> TFCs = new Dictionary<string, MemoryStream>();
-            var tfcFiles = GameDirecs.Files.Where(file => file.EndsWith("tfc"));// && !file.Contains("DLC\\DLC_"));
-
-            await Task.Run(() =>
+            var tfcfiles = GameDirecs.Files.Where(file => predicate(file));
+            foreach (var tfc in tfcfiles)
             {
-                foreach (var tfc in tfcFiles)
+                using (FileStream fs = new FileStream(tfc, FileMode.Open))
                 {
-                    using (FileStream fs = new FileStream(tfc, FileMode.Open))
-                    {
-                        MemoryStream ms = RecyclableMemoryManager.GetStream((int)fs.Length);
-                        ms.ReadFrom(fs, fs.Length);
-                        TFCs.Add(tfc, ms);
-                    }
+                    MemoryStream ms = RecyclableMemoryManager.GetStream((int)fs.Length);
+                    ms.ReadFrom(fs, fs.Length);
+                    yield return new KeyValuePair<string, MemoryStream>(tfc, ms);
                 }
-            });
-
-            return TFCs;
+            }
         }
 
         /// <summary>
@@ -476,26 +468,81 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
 
             // Read TFCs into RAM if available/requested.
-            Dictionary<string, MemoryStream> TFCs = await ReadTFCsIntoRAM();
+            Dictionary<string, MemoryStream> TFCs = null;
+            double RAMinGB = ToolsetInfo.AvailableRam / 1024 / 1024 / 1024;
+            if (RAMinGB > 8)
+            {
+                // Enough RAM to do everything at once.
+                TFCs = new Dictionary<string, MemoryStream>();
 
+                foreach (var item in LoadTFCsIntoMemory(tfc => tfc.EndsWith("tfc")))
+                    TFCs.Add(item.Key, item.Value);
 
-            // Get PCC's
-            IList<string> basegamePCCs = PCCsToScan;//.Where(pcc => !pcc.Contains("DLC\\DLC_")).ToList();
+                // Perform scan
+                Task consumers = null;
+                await Task.Run(() => consumers = ScanAllPCCs(PCCsToScan, TFCs));
+                await consumers;
+            }
+            else if (RAMinGB > 4) // TODO arbitrary, need to test basegame only + 1 tfc memory requirement.
+            {
+                // Enough RAM to do Basegame + 1 DLC at a time.
+                TFCs = new Dictionary<string, MemoryStream>();
 
-            // Perform scan
-            Task consumers = null;
-            await Task.Run(() => consumers = ScanAllPCCs(basegamePCCs, TFCs));
-            await consumers;
+                // Get PCCs
+                IList<string> currentPCCs = PCCsToScan.Where(pcc => !pcc.Contains("DLC\\DLC_")).ToList();
+
+                // Basegame TFCs
+                foreach (var item in LoadTFCsIntoMemory(tfc => tfc.EndsWith("tfc") && !tfc.Contains("DLC\\DLC_")))
+                    TFCs.Add(item.Key, item.Value);
+
+                // DLC TFC's - one at a time - IEnumerable with yield return.
+                foreach (var dlc_tfc in LoadTFCsIntoMemory(tfc => tfc.EndsWith("tfc") && tfc.Contains("DLC\\DLC_")))
+                {
+                    // Determine which DLC TFC is loaded
+                    int index = dlc_tfc.Key.LastIndexOf("DLC_");
+                    int endIndex = dlc_tfc.Key.LastIndexOf("\\");
+                    string DLCName = dlc_tfc.Key.Substring(index, endIndex - index);
+
+                    // Add currently selected DLC PCCs to scan list.
+                    currentPCCs.AddRangeKinda(PCCsToScan.Where(pcc => pcc.Contains(DLCName)));
+
+                    // Perform scan
+                    Task consumers = null;
+
+                    // Add current DLC TFC
+                    Dictionary<string, MemoryStream> tempTFCs = TFCs;
+                    tempTFCs.Add(dlc_tfc.Key, dlc_tfc.Value);
+
+                    await Task.Run(() => consumers = ScanAllPCCs(currentPCCs, tempTFCs));
+                    await consumers;
+
+                    currentPCCs.Clear();
+                }
+            }
+            else
+            {
+                // Just scan as normal.
+                // Perform scan
+                Task consumers = null;
+                await Task.Run(() => consumers = ScanAllPCCs(PCCsToScan, TFCs));
+                await consumers;
+            }
 
             Progress = MaxProgress;
-            Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures.";
+            Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures. Elapsed scan time: {ElapsedTime}.";
         }
 
         Task ScanAllPCCs(IList<string> PCCs, Dictionary<string, MemoryStream> TFCs)
         {
             // Parallel scanning
+            int bound = 20;
+            double RAMinGB = ToolsetInfo.AvailableRam / 1024 / 1024 / 1024;
+            if (RAMinGB < 8)
+                bound = 10;
+            else if (RAMinGB < 4)  // TODO arbitrary
+                bound = 5;
 
-            BufferBlock<PCCObject> pccs = new BufferBlock<PCCObject>(new DataflowBlockOptions { BoundedCapacity = 30 });
+            BufferBlock<PCCObject> pccs = new BufferBlock<PCCObject>(new DataflowBlockOptions { BoundedCapacity = bound });
 
             // Begin consumers
             Task consumers = PCCConsumer(pccs, TFCs);

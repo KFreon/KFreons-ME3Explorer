@@ -15,7 +15,7 @@ namespace WPF_ME3Explorer
         static PerformanceCounter CPUCounter = null;
         static ComputerInfo info = new ComputerInfo();
 
-        public static ulong AvailableRamAtToolsetStartup
+        public static ulong AvailableRam
         {
             get
             {
