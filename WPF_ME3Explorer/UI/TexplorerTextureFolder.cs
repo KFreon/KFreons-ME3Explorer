@@ -14,6 +14,61 @@ namespace WPF_ME3Explorer.UI
     {
         public TexplorerTextureFolder ParentFolder = null;
 
+        internal static Func<TreeTexInfo[], Task> RegenerateThumbsDelegate { get; set; }
+
+
+        CommandHandler regenerateSubThumbsCommand = null;
+        public CommandHandler RegenerateSubThumbsCommand
+        {
+            get
+            {
+                if (regenerateSubThumbsCommand == null)
+                {
+                    if (RegenerateThumbsDelegate == null)
+                        return null;
+
+                    regenerateThumbsCommand = new CommandHandler(new Action(async () => await RegenerateThumbsDelegate(TexturesInclSubs.ToArray())));
+                }
+
+                return regenerateSubThumbsCommand;
+            }
+        }
+
+        CommandHandler regenerateThumbsCommand = null;
+        public CommandHandler RegenerateThumbsCommand
+        {
+            get
+            {
+                if (regenerateThumbsCommand == null)
+                {
+                    if (RegenerateThumbsDelegate == null)
+                        return null;
+
+                    regenerateThumbsCommand = new CommandHandler(new Action(async () => await RegenerateThumbsDelegate(Textures.ToArray())));
+                }
+
+                return regenerateThumbsCommand;
+            }
+        }
+
+        List<TreeTexInfo> texturesInclSubs = null;
+        public List<TreeTexInfo> TexturesInclSubs
+        {
+            get
+            {
+                if (texturesInclSubs == null)
+                {
+                    texturesInclSubs = new List<TreeTexInfo>(Textures);
+
+                    if (Folders?.Count > 0)
+                        foreach (var folder in Folders)
+                            texturesInclSubs.AddRange(folder.TexturesInclSubs);
+                }
+
+                return texturesInclSubs;
+            }
+        }
+
         int texcount = 0;
         public int TotalTextureCount
         {
@@ -103,6 +158,7 @@ namespace WPF_ME3Explorer.UI
                 throw new NotImplementedException();
             }
         }
+
 
         public TexplorerTextureFolder(string folderName, string filter, TexplorerTextureFolder parent)
         {

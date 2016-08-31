@@ -64,26 +64,7 @@
                     </Style>
                 </MenuItem.Style>
             </MenuItem>
-            <MenuItem x:Name="RegenerateTopMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}">
-                <MenuItem.Header>
-                    <StackPanel Orientation="Horizontal" Background="Transparent">
-                        <TextBlock Text="Regenerate Thumbnails"/>
-                        <TextBlock Text="&#x27a4;" RenderTransformOrigin="0.5,0.5" FontSize="8">
-                            <TextBlock.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform ScaleY="1.5"/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="90.4"/>
-                                    <TranslateTransform/>
-                                </TransformGroup>
-                            </TextBlock.RenderTransform>
-                        </TextBlock>
-                    </StackPanel>
-                </MenuItem.Header>
-                <MenuItem x:Name="RegenerateAllButton" Header="All"/>
-                <MenuItem x:Name="RegenerateFolderButton" Header="Current Folder"/>
-                <MenuItem x:Name="RegenerateTextureButton" Header="Selected Texture"/>
-            </MenuItem>
+            <MenuItem x:Name="RegenerateTopMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Regenerate All Thumbnails" Click="RegenerateTopMenu_Click"/>
         </Menu>
 
         <StackPanel x:Name="GameAndTreeIndicators" Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right" Margin="0,0,-0.333,0.333">
@@ -130,6 +111,12 @@
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding Folders}">
                     <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <StackPanel.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Regenerate Thumbnails (current Folder only)" Command="{Binding RegenerateThumbsCommand}"/>
+                                <MenuItem Header="Regenerate Sub Folder Thumbnails (incl this)" Command="{Binding RegenerateSubThumbsCommand}"/>
+                            </ContextMenu>
+                        </StackPanel.ContextMenu>
                         <Image>
                             <Image.Style>
                                 <Style TargetType="Image">
@@ -205,6 +192,7 @@
                                     </MenuItem.Icon>
                                 </MenuItem>
                                 <MenuItem Header="Extract" Command="{Binding ExtractCommand}"/>
+                                <MenuItem Header="Regenerate Thumbnail" Command="{Binding RegenerateThumbCommand}" CommandParameter="{Binding}"/>
                                 <MenuItem Header="Try Low Res Fix" Style="{StaticResource ME1_ItemsStyle}" Command="{Binding LowResFixCommand}" CommandParameter="{Binding}"/>
                             </ContextMenu>
                         </DockPanel.ContextMenu>
@@ -436,7 +424,7 @@
 
         <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="2" Grid.ColumnSpan="3"/>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black">
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black" d:IsHidden="True">
             <Grid.Resources>
                 <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
                     <DoubleAnimation.EasingFunction>
@@ -757,7 +745,7 @@
                     </TextBlock>
                 </Button.Content>
             </Button>
-            <ListBox x:Name="ErrorsDisplay" Margin="5,80,5,80.333" ItemsSource="{Binding Errors}" Grid.Row="1"/>
+            <ListBox x:Name="ErrorsDisplay" Margin="5,80,5,80.333" ItemsSource="{Binding Errors}" Grid.Row="1" Visibility="Collapsed"/>
             <Border x:Name="Status" HorizontalAlignment="Center" Margin="{Binding ElementName=ProgressBar, Path=Margin}">
                 <TextBlock Text="{Binding Status}" VerticalAlignment="Center"/>
             </Border>

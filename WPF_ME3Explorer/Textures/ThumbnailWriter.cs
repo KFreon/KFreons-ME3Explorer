@@ -34,6 +34,23 @@ namespace WPF_ME3Explorer.Textures
             return thumbnail;
         }
 
+        public Thumbnail Add(MemoryStream thumb, long offset)
+        {
+            Thumbnail newThumb = null;
+            lock (locker)
+            {
+                var currentPosition = writer.Position;
+                writer.Seek(offset, SeekOrigin.Begin);
+
+                newThumb = Add(thumb);
+
+                // Seek back to original Position
+                writer.Seek(currentPosition, SeekOrigin.Begin);
+            }
+
+            return newThumb;
+        }
+
         public void BeginAdding()
         {
             lock (locker)
@@ -52,6 +69,19 @@ namespace WPF_ME3Explorer.Textures
         public void Dispose()
         {
             FinishAdding();
+        }
+
+        internal void ReplaceOrAdd(TreeTexInfo tex)
+        {
+            // Generate new thumbnail
+            using (MemoryStream stream = tex.CreateThumbnail())
+            {
+                // Decide if new thumb can fit where old thumb was
+                if (stream.Length <= tex.Thumb.Length)
+                    tex.Thumb = Add(stream, tex.Thumb.Offset);
+                else
+                    tex.Thumb = Add(stream);  // Append otherwise
+            }
         }
     }
 }

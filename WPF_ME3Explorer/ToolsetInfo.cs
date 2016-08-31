@@ -34,6 +34,10 @@ namespace WPF_ME3Explorer
 
         public static void SetupDiskCounters(string Disk)
         {
+            // Don't need to setup if don't need to.
+            if (DiskActivityCounter != null)
+                return;
+
             // Get Disk Instance of interest
             var cat = new System.Diagnostics.PerformanceCounterCategory("LogicalDisk");
             var names = cat.GetInstanceNames();

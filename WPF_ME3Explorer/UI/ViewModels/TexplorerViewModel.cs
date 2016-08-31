@@ -193,34 +193,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             RefreshTreeRelatedProperties();
         }
 
-        void RefreshTreeRelatedProperties()
-        {
-            // Clear texture folders
-            TextureFolders.Clear();
-            AllFolders.Clear();
-            ChangedTextures.Clear();
-            Errors.Clear();
-            PreviewImage = null;
-            SelectedFolder = null;
-            SelectedTexture = null;
-            ShowingPreview = false;
-            Textures.Clear();  // Just in case
-
-            // TODO Re-enable Texplorer game property updating. Disabled for testing.
-            /*Properties.Settings.Default.TexplorerGameVersion = game;
-            Properties.Settings.Default.Save();*/
-        }
-
-        internal void DeleteCurrentTree()
-        {
-            CurrentTree.Delete();
-            CurrentTree.Clear(true);
-
-            RefreshTreeRelatedProperties();
-
-            LoadFTSandTree(true);
-        }
-
         public TexplorerViewModel() : base()
         {
             DebugOutput.StartDebugger("Texplorer");
@@ -276,12 +248,55 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 ME1_LowResFix((TreeTexInfo)tex);
             }));
+
+            TreeTexInfo.RegenerateThumbCommand = new CommandHandler(new Action<object>(async tex =>
+            {
+                await RegenerateThumbs((TreeTexInfo)tex);
+            }));
+
+            TexplorerTextureFolder.RegenerateThumbsDelegate = RegenerateThumbs;
+
             #endregion Setup UI Commands
 
 
             // Setup thumbnail writer - not used unless tree scanning.
             ThumbnailWriter = new ThumbnailWriter(GameDirecs);
             BeginTreeLoading();
+        }
+
+        internal async Task RegenerateThumbs(params TreeTexInfo[] textures)
+        {
+            List<TreeTexInfo> texes = new List<TreeTexInfo>();
+
+            // No args = regen everything
+            if (textures?.Length < 1)
+                texes.AddRange(Textures);
+
+            DebugOutput.PrintLn($"Regenerating {texes.Count} thumbnails...");
+            Status = $"Regenerating {texes.Count} thumbnails...";
+
+            ThumbnailWriter.BeginAdding();
+            int errors = 0;
+            //foreach (var tex in texes)
+            await Task.Run(() =>
+            {
+                Parallel.ForEach(texes, tex =>
+                {
+                    try
+                    {
+                        ThumbnailWriter.ReplaceOrAdd(tex);
+                    }
+                    catch (Exception e)
+                    {
+                        errors++;
+                        DebugOutput.PrintLn($"Unable to regenerate thumbnail for {tex.TexName}. Reason: {e.ToString()}.");
+                    }
+                });
+            });
+
+            Status = $"Regenerated {texes.Count - errors} thumbnails" + (errors == 0 ? "." : $" with {errors} errors.");
+
+            ThumbnailWriter.FinishAdding();
         }
 
         async void BeginTreeLoading()
@@ -310,8 +325,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             await LoadFTSandTree();
 
             ToolsetInfo.SetupDiskCounters(Path.GetPathRoot(GameDirecs.BasePath).TrimEnd('\\'));
-            Console.WriteLine(ToolsetInfo.DiskActiveTime);
-            Console.WriteLine(ToolsetInfo.DiskTransferRate);
 
             Status = CurrentTree.Valid ? "Ready!" : Status; 
             Busy = false;
@@ -768,6 +781,34 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             Status = error != null ? $"Applied Low Res Fix to {tex.TexName}." : $"Failed to apply Low Res Fix to {tex.TexName}. Reason: {error}.";
             Busy = false;
+        }
+
+        void RefreshTreeRelatedProperties()
+        {
+            // Clear texture folders
+            TextureFolders.Clear();
+            AllFolders.Clear();
+            ChangedTextures.Clear();
+            Errors.Clear();
+            PreviewImage = null;
+            SelectedFolder = null;
+            SelectedTexture = null;
+            ShowingPreview = false;
+            Textures.Clear();  // Just in case
+
+            // TODO Re-enable Texplorer game property updating. Disabled for testing.
+            /*Properties.Settings.Default.TexplorerGameVersion = game;
+            Properties.Settings.Default.Save();*/
+        }
+
+        internal void DeleteCurrentTree()
+        {
+            CurrentTree.Delete();
+            CurrentTree.Clear(true);
+
+            RefreshTreeRelatedProperties();
+
+            LoadFTSandTree(true);
         }
     }
 }

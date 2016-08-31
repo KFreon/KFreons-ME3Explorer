@@ -15,10 +15,14 @@ namespace WPF_ME3Explorer.Textures
 {
     public class TreeTexInfo : AbstractTexInfo, IEquatable<TreeTexInfo>, IComparable
     {
+        static int ThumbnailSize = 128;
+
+        public static CommandHandler ExtractCommand { get; set; }
+        public static CommandHandler ChangeCommand { get; set; }
+        public static CommandHandler LowResFixCommand { get; set; }
+        public static CommandHandler RegenerateThumbCommand { get; set; }
         #region Properties
-        public static CommandHandler ExtractCommand = null;
-        public static CommandHandler ChangeCommand = null;
-        public static CommandHandler LowResFixCommand = null;
+
 
         public Action GenerateThumbnail = null;
 
@@ -179,12 +183,31 @@ namespace WPF_ME3Explorer.Textures
                 FullPackage = export.PackageFullName.ToUpperInvariant();
         }
 
+        public MemoryStream CreateThumbnail()
+        {
+            using (PCCObject pcc = new PCCObject(PCCS[0].Name, GameVersion))
+            {
+                using (Texture2D tex2D = new Texture2D(pcc, PCCS[0].ExpID, GameVersion))
+                {
+                    byte[] imgData = null;
+                    var size = tex2D.ImageList.Where(img => img.ImageSize.Width == ThumbnailSize && img.ImageSize.Height == ThumbnailSize);
+                    if (size.Count() == 0)
+                        imgData = tex2D.ExtractMaxImage();
+                    else
+                        imgData = tex2D.ExtractImage(size.First());
+
+                    using (MemoryStream ms = new MemoryStream(imgData))
+                        return ImageEngine.GenerateThumbnailToStream(ms, ThumbnailSize, ThumbnailSize);
+                }
+            }
+        }
+
         void CreateThumbnail(byte[] imgData, Texture2D tex2D, ThumbnailWriter ThumbWriter, ImageInfo info, Dictionary<string, MemoryStream> TFCs)
         {
             byte[] thumbImageData = imgData;
 
             // Try to get a smaller mipmap to use so don't need to resize.
-            var thumbInfo = tex2D.ImageList.Where(img => img.ImageSize.Width <= 128 && img.ImageSize.Height <= 128).FirstOrDefault();
+            var thumbInfo = tex2D.ImageList.Where(img => img.ImageSize.Width <= ThumbnailSize && img.ImageSize.Height <= ThumbnailSize).FirstOrDefault();
             if (thumbInfo.ImageSize != null) // i.e.image size doesn't exist.
                 thumbImageData = tex2D.ExtractImage(thumbInfo.ImageSize, TFCs);
 
@@ -193,7 +216,7 @@ namespace WPF_ME3Explorer.Textures
                 uint width = info.ImageSize.Width;
                 uint height = info.ImageSize.Height;
 
-                MemoryStream thumbStream = ImageEngine.GenerateThumbnailToStream(ms, width > height ? 128 : 0, width > height ? 0 : 128);
+                MemoryStream thumbStream = ImageEngine.GenerateThumbnailToStream(ms, width > height ? ThumbnailSize : 0, width > height ? 0 : ThumbnailSize);
                 thumbStream = ToolsetTextureEngine.OverlayAndPickDetailed(thumbStream);
                 if (thumbStream != null)
                     Thumb = ThumbWriter.Add(thumbStream);

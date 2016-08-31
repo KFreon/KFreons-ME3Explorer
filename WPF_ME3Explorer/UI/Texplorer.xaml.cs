@@ -199,5 +199,10 @@ namespace WPF_ME3Explorer.UI
         {
             vm.DeleteCurrentTree();
         }
+
+        private void RegenerateTopMenu_Click(object sender, RoutedEventArgs e)
+        {
+            vm.RegenerateThumbs();
+        }
     }
 }
