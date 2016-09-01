@@ -1,4 +1,6 @@
-﻿using CSharpImageLibrary;
+﻿#define ThreadedScan
+
+using CSharpImageLibrary;
 using Microsoft.Win32;
 using System;
 using System.Collections.Concurrent;
@@ -21,8 +23,10 @@ using WPF_ME3Explorer.Debugging;
 using WPF_ME3Explorer.PCCObjectsAndBits;
 using WPF_ME3Explorer.Textures;
 
+
 namespace WPF_ME3Explorer.UI.ViewModels
 {
+
     public class TexplorerViewModel : MEViewModelBase<TreeTexInfo>
     {
         #region Commands
@@ -479,22 +483,26 @@ namespace WPF_ME3Explorer.UI.ViewModels
             if (pccs != null)
                 PCCsToScan = pccs;
 
-
-            // Read TFCs into RAM if available/requested.
+            //ME3 only
             Dictionary<string, MemoryStream> TFCs = null;
-            double RAMinGB = ToolsetInfo.AvailableRam / 1024 / 1024 / 1024;
-            if (Environment.Is64BitProcess && RAMinGB > 10)
+            if (GameVersion == 3)
             {
-                // Enough RAM to load TFCs
-                TFCs = new Dictionary<string, MemoryStream>();
-
-                var tfcfiles = GameDirecs.Files.Where(tfc => tfc.EndsWith("tfc"));
-                foreach (var tfc in tfcfiles)
+                // Read TFCs into RAM if available/requested.
+                double RAMinGB = ToolsetInfo.AvailableRam / 1024d / 1024d / 1024d;
+                if (Environment.Is64BitProcess && RAMinGB > 10)
                 {
-                    var item = await LoadTFC(tfc);
-                    TFCs.Add(item.Key, item.Value);
+                    // Enough RAM to load TFCs
+                    TFCs = new Dictionary<string, MemoryStream>();
+
+                    var tfcfiles = GameDirecs.Files.Where(tfc => tfc.EndsWith("tfc"));
+                    foreach (var tfc in tfcfiles)
+                    {
+                        var item = await LoadTFC(tfc);
+                        TFCs.Add(item.Key, item.Value);
+                    }
                 }
             }
+            
 
             // Perform scan
             Task<int> consumers = null;
@@ -502,14 +510,17 @@ namespace WPF_ME3Explorer.UI.ViewModels
             await consumers;
 
             // Dispose all TFCs
-            foreach (var tfc in TFCs)
-                tfc.Value.Dispose();
+            if (TFCs != null)
+            {
+                foreach (var tfc in TFCs)
+                    tfc.Value.Dispose();
 
-            TFCs.Clear();
-            TFCs = null;
-
-            Console.WriteLine($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64/1024/1024/1024}");
-            DebugOutput.PrintLn($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024 / 1024 / 1024}");
+                TFCs.Clear();
+                TFCs = null;
+            }
+                
+            Console.WriteLine($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}");
+            DebugOutput.PrintLn($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}");
 
             Progress = MaxProgress;
             Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures. Elapsed scan time: {ElapsedTime}.";
@@ -519,7 +530,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             // Parallel scanning
             int bound = 20;
-            double RAMinGB = ToolsetInfo.AvailableRam / 1024 / 1024 / 1024;
+            double RAMinGB = ToolsetInfo.AvailableRam / 1024d / 1024d / 1024d;
             if (RAMinGB < 10)
                 bound = 10;
 
@@ -547,10 +558,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
 
             pccs.Complete();
-        } 
+        }
 
         async Task<int> PCCConsumer(BufferBlock<PCCObject> pccs, Dictionary<string, MemoryStream> TFCs, int count)
         {
+
             while (await pccs.OutputAvailableAsync())
             {
                 PCCObject pcc = pccs.Receive();
@@ -561,24 +573,45 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     ParallelOptions po = new ParallelOptions();
                     po.MaxDegreeOfParallelism = NumThreads;
 
+#if (ThreadedScan)
                     Parallel.For(0, pcc.Exports.Count, po, i =>
-                    //for (int i = 0; i < pcc.Exports.Count; i++)
+#else
+                    for (int i = 0; i < pcc.Exports.Count; i++)
+#endif
                     {
                         ExportEntry export = pcc.Exports[i];
                         if (!export.ValidTextureClass())
+#if (ThreadedScan)
                             return;
-
+#else
+                            continue;
+#endif
                         Texture2D tex2D = new Texture2D(pcc, i, GameVersion);
 
                         // Skip if no images
                         if (tex2D.ImageList.Count == 0)
+#if (ThreadedScan)
                             return;
+#else
+                            continue;
+#endif
 
-                        TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs);  // Tex2D disposed of during thumbnail creation.
-                        CurrentTree.AddTexture(info);
+                        try
+                        {
+                            TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs);  // Tex2D disposed of during thumbnail creation.
+                            CurrentTree.AddTexture(info);
+                        }
+                        catch { } // TODO: IGNORING FOR NOW
+                        
 
                         export.Dispose();
+
+#if (ThreadedScan)
                     });
+#else
+                    }
+#endif
+                    
                 }
                 catch (Exception e)
                 {
@@ -796,9 +829,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             ShowingPreview = false;
             Textures.Clear();  // Just in case
 
-            // TODO Re-enable Texplorer game property updating. Disabled for testing.
-            /*Properties.Settings.Default.TexplorerGameVersion = game;
-            Properties.Settings.Default.Save();*/
+            Properties.Settings.Default.TexplorerGameVersion = GameVersion;
+            Properties.Settings.Default.Save();
         }
 
         internal void DeleteCurrentTree()

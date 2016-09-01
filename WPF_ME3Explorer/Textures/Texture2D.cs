@@ -147,10 +147,10 @@ namespace WPF_ME3Explorer.Textures
                     switch (property.Name)
                     {
                         case "Format":
-                            texFormat = Textures.Misc.ParseFormat(pccObj.Names[property.Value.IntValue].Substring(3));
+                            texFormat = Textures.Misc.ParseFormat(GameVersion == 3 ? pccObj.Names[property.Value.IntValue].Substring(3) : property.Value.StringValue);
                             break;
                         case "TextureFileCacheName": arcName = property.Value.NameValue.Name; break;
-                        case "LODGroup": LODGroup = property.Value.NameValue.Name; break;
+                        case "LODGroup": LODGroup = GameVersion == 3 ? property.Value.NameValue.Name : property.Value.StringValue; break;
                         case "CompressionSettings": Compression = property.Value.StringValue; break;
                         case "None": dataOffset = (uint)(property.offsetval + property.Size); break;
                     }
@@ -172,8 +172,12 @@ namespace WPF_ME3Explorer.Textures
 
             pccExpIdx = texIdx;
             MemoryStream dataStream = new MemoryStream(imageData);  // FG: we will move forward with the memorystream (we are reading an export entry for a texture object data inside the pcc)
+
+            // Don't know why...
+            if (GameVersion == 1)
+                dataStream.Seek(4, SeekOrigin.Current);  
+
             numMipMaps = dataStream.ReadUInt32();                 // FG: 1st int32 (4 bytes / 32bits) is number of mipmaps
-                                                                    // KFREON: Might need to read a u32 before this one for ME1 at least
             uint count = numMipMaps;
 
             ImageList = new List<ImageInfo>();
@@ -217,11 +221,10 @@ namespace WPF_ME3Explorer.Textures
 
         public byte[] ExtractImage(ImageSize size, Dictionary<string, MemoryStream> TFCs = null)
         {
-            byte[] retval;
+            byte[] retval = null;
             if (ImageList.Exists(img => img.ImageSize == size))
                 retval = ExtractImage(ImageList.Find(img => img.ImageSize == size), TFCs);
-            else
-                throw new FileNotFoundException($"Image with resolution { size.ToString() } not found");
+
             return retval;
         }
 
@@ -286,6 +289,8 @@ namespace WPF_ME3Explorer.Textures
                         {
                             Texture2D temptex = new Texture2D(temp, i, 1);
                             imgBuffer = temptex.ExtractImage(imgInfo.ImageSize);
+                            if (imgBuffer != null)
+                                break;
                         }
                     }
                     break;
@@ -950,31 +955,29 @@ namespace WPF_ME3Explorer.Textures
         /// </summary>
         private string FindFile()  // TODO: Merge with GetTexArchive?
         {
-            // KFreon:  All files should have been added elsewhere rather than searched for here
-            if (allPccs == null)
-                allPccs = MEDirectories.MEDirectories.ME1Files;
+            List<string> GameFiles = MEDirectories.MEDirectories.ME1Files;
 
             string package = ME1_PackageFullName.Split('.')[0];
-            for (int i = 0; i < allPccs.Count; i++)
+            for (int i = 0; i < GameFiles.Count; i++)
             {
-                string[] parts = allPccs[i].Split('\\');
+                string[] parts = GameFiles[i].Split('\\');
                 string tempFile = parts.Last().Split('.')[0];
                 if (String.Compare(package, tempFile, true) == 0)
-                    return allPccs[i];
+                    return GameFiles[i];
             }
 
-            for (int i = 0; i < allPccs.Count; i++)
+            for (int i = 0; i < GameFiles.Count; i++)
             {
-                PCCObject temp = new PCCObject(allPccs[i], GameVersion);
+                PCCObject temp = new PCCObject(GameFiles[i], GameVersion);
                 for (int j = 0; j < temp.Exports.Count; j++)
                 {
                     ExportEntry exp = temp.Exports[j];
-                    if (String.Compare(texName, exp.ObjectName, true) == 0 && exp.ClassName == "ME1Texture2D")
+                    if (String.Compare(texName, exp.ObjectName, true) == 0 && exp.ClassName == "Texture2D")// && (GameVersion == 1 ? ME1_PackageFullName == exp.PackageFullName : true))
                     {
                         Texture2D temptex = new Texture2D(temp, j, 1);
                         if (temptex.ImageList[0].storageType == storage.pccCpr || temptex.ImageList[0].storageType == storage.pccSto)
                         {
-                            return allPccs[i];
+                            return GameFiles[i];
                         }
                     }
                 }
@@ -1030,6 +1033,7 @@ namespace WPF_ME3Explorer.Textures
             return null;
         }
 
+        [Obsolete("Why are you even using this...")]
         public void DumpTexture(string filename)
         {
             using (StreamWriter sw = new StreamWriter(filename))

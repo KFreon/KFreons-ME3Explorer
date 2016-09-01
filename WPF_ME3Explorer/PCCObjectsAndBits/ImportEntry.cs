@@ -12,24 +12,11 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
         public static int byteSize = 28;
         public byte[] data = new byte[byteSize];
         internal PCCObject pccRef;
-        public int link { get; set; }
-        public string Name
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            set
-            {
-                throw new NotImplementedException();
-            }
-        }
-
         public int PackageFileID { get { return BitConverter.ToInt32(data, 0); } private set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, data, 0, sizeof(int)); } }
         public int ClassNameID { get { return BitConverter.ToInt32(data, 8); } private set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, data, 8, sizeof(int)); } }
         public int PackageNameID { get { return BitConverter.ToInt32(data, 16) - 1; } private set { Buffer.BlockCopy(BitConverter.GetBytes(value + 1), 0, data, 16, sizeof(int)); } }
         public int ObjectNameID { get { return BitConverter.ToInt32(data, 20); } set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, data, 20, sizeof(int)); } }
-        public int LinkID { get { return BitConverter.ToInt32(data, 16); } set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, data, 16, sizeof(int)); } }
+        public int LinkID { get { return BitConverter.ToInt32(data, 16); } }    
         public long ObjectFlags { get { return BitConverter.ToInt32(data, 24); } set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, data, 24, sizeof(int)); } }
 
         public string ClassName
@@ -40,8 +27,8 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
                 throw new NotImplementedException();
             }
         }
-        public string PackageFile { get { return pccRef.Names[PackageFileID] + ".pcc"; } }
-        public string ObjectName
+        public string PackageFile { get { return pccRef.Names[PackageFileID] + ".pcc"; } }  // ME1: entry.Package
+        public string ObjectName   // ME1: Name
         {
             get { return pccRef.Names[ObjectNameID]; }
             set

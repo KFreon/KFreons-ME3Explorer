@@ -16,10 +16,16 @@ namespace WPF_ME3Explorer
         [DllImport("lzo2helper.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.Cdecl)]
         private static extern Int32 LZOCompress([In] byte[] srcBuf, uint srcLen, [Out] byte[] dstBuf, ref uint dstLen);
 
+        [DllImport("lzo2_64.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.Cdecl)]
+        private static extern Int32 lzo1x_decompress([In] byte[] srcBuf, uint srcLen, [Out] byte[] dstBuf, ref uint dstLen);
+
         public unsafe static void Decompress(byte[] src, byte[] dst)
         {
             uint dstLen = 0;
-            int status = LZODecompress(src, (uint)src.Length, dst, ref dstLen);
+            //int status = LZODecompress(src, (uint)src.Length, dst, ref dstLen);
+            //MiniLZO.Decompress(src, dst);
+            //lzo1x_decompress(src, (uint)src.Length, dst, ref dstLen);
+            MiniLZO.testdecomp(src, dst);
         }
 
         public unsafe static byte[] Compress(byte[] src)
@@ -279,6 +285,7 @@ namespace WPF_ME3Explorer
                 dst = final;
             }
         }
+
         public unsafe static void Decompress(byte[] src, byte[] dst)
         {
             uint t = 0;
@@ -546,6 +553,205 @@ namespace WPF_ME3Explorer
                     else if (ip < ip_end)
                         throw new OverflowException("Input Not Consumed");
                 }
+            }
+        }
+
+        public unsafe static int testdecomp(byte[] src, byte[] dst)
+        {
+            uint t = 0;
+            fixed (byte* input = src, output = dst)
+            {
+                byte* pos = null;
+                byte* ip_end = input + src.Length;
+                byte* op_end = output + dst.Length;
+                byte* ip = input;
+                byte* op = output;
+
+                if (*ip > 17)
+                {
+                    t = (uint)(*ip++ - 17);
+                    if (t < 4)
+                        goto match_next;
+
+                    Debug.Assert(t > 0);
+                    if ((op_end - op) < t)
+                        throw new OverflowException("Output Overrun");
+                    if ((ip_end - ip) < t + 1)
+                        throw new OverflowException("Input Overrun");
+                    do
+                    {
+                        *op++ = *ip++;
+                    } while (--t > 0);
+                    goto first_literal_run;
+
+                }
+                for (;;)
+                {
+
+                    t = *ip++;
+                    if (t >= 16)
+                        goto match;
+
+                    if (t == 0)
+                    {
+                        if ((ip_end - ip) < 1)
+                            throw new OverflowException("Input Overrun");
+                        while (*ip == 0)
+                        {
+                            t += 255;
+                            ++ip;
+                            if ((ip_end - ip) < 1)
+                                throw new OverflowException("Input Overrun");
+                        }
+                        t += (uint)(15 + *ip++);
+                    }
+                    Debug.Assert(t > 0);
+                    if ((op_end - op) < t + 3)
+                        throw new OverflowException("Output Overrun");
+                    if ((ip_end - ip) < t + 4)
+                        throw new OverflowException("Input Overrun");
+
+                    *op++ = *ip++; *op++ = *ip++; *op++ = *ip++;
+                    do *op++ = *ip++; while (--t > 0);
+
+                    first_literal_run:
+
+
+                    t = *ip++;
+                    if (t >= 16)
+                        goto match;
+
+                    pos = op - (1 + M2_MAX_OFFSET);
+                    pos -= t >> 2;
+                    pos -= *ip++ << 2;
+
+                    if (pos < output || pos >= op)
+                        throw new OverflowException("Lookbehind Overrun");
+                    if ((op_end - op) < 3)
+                        throw new OverflowException("Output Overrun");
+                    *op++ = *pos++;
+                    *op++ = *pos++;
+                    *op++ = *pos++;
+                    goto match_done;
+
+
+
+                    for (;;)
+                    {
+                        match:
+
+                        if (t >= 64)
+                        {
+                            pos = op - 1;
+                            pos -= (t >> 2) & 7;
+                            pos -= *ip++ << 3;
+                            t = (t >> 5) - 1;
+
+                            if (pos < output || pos >= op)
+                                throw new OverflowException("Lookbehind Overrun");
+                            if ((op_end - op) < t + 2)
+                                throw new OverflowException("Output Overrun");
+                            goto copy_match;
+                        }
+                        else if (t >= 32)
+                        {
+                            t &= 31;
+                            if (t == 0)
+                            {
+                                if ((ip_end - ip) < 1)
+                                    throw new OverflowException("Input Overrun");
+                                while (*ip == 0)
+                                {
+                                    t += 255;
+                                    ip++;
+                                    if ((ip_end - ip) < 1)
+                                        throw new OverflowException("Input Overrun");
+                                }
+                                t += (uint)(31 + *ip++);
+                            }
+                            pos = op - 1;
+                            pos -= (ip[0] >> 2) + (ip[1] << 6);// (*(ushort*)ip) >> 2;
+                            ip += 2;
+                        }
+                        else if (t >= 16)
+                        {
+                            pos = op;
+                            pos -= (t & 8) << 11;
+
+                            t &= 7;
+                            if (t == 0)
+                            {
+                                if ((ip_end - ip) < 1)
+                                    throw new OverflowException("Input Overrun");
+                                while (*ip == 0)
+                                {
+                                    t += 255;
+                                    ip++;
+                                    if ((ip_end - ip) < 1)
+                                        throw new OverflowException("Input Overrun");
+                                }
+                                t += (uint)(7 + *ip++);
+                            }
+                            pos -= (ip[0] >> 2) + (ip[1] << 6); //(*(ushort*)ip) >> 2;
+                            ip += 2;
+                            if (pos == op)
+                                goto eof_found;
+                            pos -= 0x4000;
+                        }
+                        else
+                        {
+                            pos = op - 1;
+                            pos -= t >> 2;
+                            pos -= *ip++ << 2;
+                            if (pos < output || pos >= op)
+                                throw new OverflowException("Lookbehind Overrun");
+                            if ((op_end - op) < 2)
+                                throw new OverflowException("Output Overrun");
+                            *op++ = *pos++;
+                            *op++ = *pos++;
+
+                            goto match_done;
+                        }
+
+                        if (pos < output || pos >= op)
+                            throw new OverflowException("Lookbehind Overrun");
+                        Debug.Assert(t > 0);
+                        if ((op_end - op) < t + 2)
+                            throw new OverflowException("Output Overrun");
+
+                        match_done:
+                        t = (uint)(ip[-2] & 3);
+
+                        if (t == 0)
+                            break;
+
+                    match_next:
+
+                        Debug.Assert(t > 0);
+                        Debug.Assert(t < 4);
+                        if ((op_end - op) < t)
+                            throw new OverflowException("Output Overrun");
+                        if ((ip_end - ip) < t + 1)
+                            throw new OverflowException("Input Overrun");
+
+                        *op++ = *ip++;
+                        if (t > 1)
+                        {
+                            *op++ = *ip++;
+                            if (t > 2)
+                                *op++ = *ip++;
+                        }
+                        t = *ip++;
+                    }
+                }
+
+                eof_found:
+                if (ip == ip_end)
+                    return 0; // All good
+                else if (ip < ip_end)
+                    return 1; // Underrun
+                else
+                    return 2; // Overrun
             }
         }
 

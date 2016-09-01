@@ -16,7 +16,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
         public string pccFileName { get; set; }
 
         static int headerSize = 0x8E;
-        public byte[] header = new byte[headerSize];
+        public byte[] header = null;
         byte[] extraNamesList = null;
         public int GameVersion { get; set; }
 
@@ -41,7 +41,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             }
         }
 
-        int idxOffsets { get { if ((flags & 8) != 0) return 24 + nameSize; else return 20 + nameSize; } }
+        int idxOffsets { get { if (GameVersion == 3 && (flags & 8) != 0) return 24 + nameSize; else return 20 + nameSize; } }
         int NameCount { get { return BitConverter.ToInt32(header, idxOffsets); } set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, header, idxOffsets, sizeof(int)); } }
         int NameOffset { get { return BitConverter.ToInt32(header, idxOffsets + 4); } set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, header, idxOffsets + 4, sizeof(int)); } }
         int ExportCount { get { return BitConverter.ToInt32(header, idxOffsets + 8); } set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, header, idxOffsets + 8, sizeof(int)); } }
@@ -116,7 +116,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
                 try
                 {
                     using (FileStream fs = new FileStream(pccFileName, FileMode.Open, FileAccess.Read))
-                        tempStream.ReadFrom(fs, fs.Length);
+                        fs.CopyTo(tempStream);
                     break;
                 }
                 catch (Exception e)
@@ -139,68 +139,34 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             Imports = new List<ImportEntry>();
             Exports = new List<ExportEntry>();
 
-            header = tempStream.ReadBytes(headerSize);
+            if (GameVersion == 1)
+            {
+                // Find ME1 header...Why so difficult ME1?
+                tempStream.Seek(12, SeekOrigin.Begin);
+                int tempNameSize = tempStream.ReadInt32();
+                tempStream.Seek(64 + tempNameSize, SeekOrigin.Begin);
+                int tempGenerator = tempStream.ReadInt32();
+                tempStream.Seek(36 + tempGenerator * 12, SeekOrigin.Current);
+                int tempPos = (int)tempStream.Position + 4;
+                tempStream.Seek(0, SeekOrigin.Begin);
+                header = tempStream.ReadBytes(tempPos);
+            }
+            else
+                header = tempStream.ReadBytes(headerSize);
+
             if (magic != ZBlock.magic &&
                     magic.Swap() != ZBlock.magic)
                 throw new FormatException(filePath + " is not a pcc file");
 
-            // COULD BE A PROBLEM WITH ME1
-            if (lowVers != 684 && highVers != 194)
+            if (GameVersion == 3 && lowVers != 684 && highVers != 194)
                 throw new FormatException("unsupported version");
 
             if (compressed)
             {
-                List<Block> blockList = null;
-
-                // seeks the blocks info position
-                tempStream.Seek(idxOffsets + 60, SeekOrigin.Begin);
-                int generator = tempStream.ReadInt32();
-                tempStream.Seek((generator * 12) + 20, SeekOrigin.Current);
-
-                int blockCount = tempStream.ReadInt32();
-                blockList = new List<Block>();
-
-                // creating the Block list
-                for (int i = 0; i < blockCount; i++)
-                {
-                    Block temp = new Block();
-                    temp.uncOffset = tempStream.ReadInt32();
-                    temp.uncSize = tempStream.ReadInt32();
-                    temp.cprOffset = tempStream.ReadInt32();
-                    temp.cprSize = tempStream.ReadInt32();
-                    blockList.Add(temp);
-                }
-
-                // correcting the header, in case there's need to be saved
-                Buffer.BlockCopy(BitConverter.GetBytes((int)0), 0, header, header.Length - 12, sizeof(int));
-                tempStream.Read(header, header.Length - 8, 8);
-                headerEnd = (int)tempStream.Position;
-
-                // copying the extraNamesList
-                int extraNamesLenght = blockList[0].cprOffset - headerEnd;
-                if (extraNamesLenght > 0)
-                {
-                    extraNamesList = new byte[extraNamesLenght];
-                    tempStream.Read(extraNamesList, 0, extraNamesLenght);
-                }
-
-                int dataStart = 0;
-                using (MemoryStream he = new MemoryStream(header))
-                {
-                    he.Seek(0, SeekOrigin.Begin);
-                    he.ReadInt32();
-                    he.ReadInt32();
-                    dataStart = he.ReadInt32();
-                }
-
-                //Decompress ALL blocks
-                listsStream = new MemoryStream();
-                for (int i = 0; i < blockCount; i++)
-                {
-                    tempStream.Seek(blockList[i].cprOffset, SeekOrigin.Begin);
-                    listsStream.Seek(blockList[i].uncOffset, SeekOrigin.Begin);
-                    listsStream.WriteBytes(ZBlock.Decompress(tempStream, blockList[i].cprSize));
-                }
+                if (GameVersion == 3)
+                    ReadCompressedME3(tempStream);
+                else
+                    ReadCompressedME1(tempStream);
 
                 compressed = false;
             }
@@ -216,9 +182,12 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             for (int i = 0; i < NameCount; i++)
             {
                 int strLength = listsStream.ReadInt32();
-                byte[] data = new byte[strLength * -2];
-                listsStream.Read(data, 0, data.Length);
-                string name = Encoding.Unicode.GetString(data, 0, data.Length).TrimEnd('\0');
+                string name = null;
+
+                if (GameVersion == 3)
+                    name = ReadME3Name(strLength);
+                else
+                    name = ReadME1Name(strLength);
 
                 Names.Add(name);               
             }
@@ -236,16 +205,138 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             for (int i = 0; i < ExportCount; i++)
             {
                 uint expInfoOffset = (uint)listsStream.Position;
+
+                // Find export data size
+                int count = 0;
+                int expInfoSize = 0;
+                if (GameVersion == 3)
+                {
+                    listsStream.Seek(44, SeekOrigin.Current);
+                    count = listsStream.ReadInt32();
+                    expInfoSize = 68 + (count * 4);
+                }
+                else
+                {
+                    listsStream.Seek(40, SeekOrigin.Current);
+                    count = listsStream.ReadInt32();
+                    listsStream.Seek(4 + count * 12, SeekOrigin.Current);
+                    count = listsStream.ReadInt32();
+                    listsStream.Seek(4 + count * 4, SeekOrigin.Current);
+                    listsStream.Seek(16, SeekOrigin.Current);
+                    expInfoSize = (int)(listsStream.Position - expInfoOffset);
+                }
                 
-                listsStream.Seek(44, SeekOrigin.Current);
-                int count = listsStream.ReadInt32();
-                listsStream.Seek(-48, SeekOrigin.Current);
-
-                int expInfoSize = 68 + (count * 4);
+                // Read export data
                 buffer = new byte[expInfoSize];
-
+                listsStream.Seek(expInfoOffset, SeekOrigin.Begin);
                 listsStream.Read(buffer, 0, buffer.Length);
                 Exports.Add(new ExportEntry(this, buffer, expInfoOffset));
+            }
+        }
+
+        string ReadME1Name(int len)
+        {
+            string s = "";
+            if (len > 0)
+            {
+                byte[] data = new byte[len - 1];
+                listsStream.Read(data, 0, data.Length);
+                s = Encoding.ASCII.GetString(data, 0, data.Length).TrimEnd('\0');
+                listsStream.Seek(9, SeekOrigin.Current);
+            }
+            else
+            {
+                len *= -1;
+                for (int j = 0; j < len - 1; j++)
+                {
+                    s += (char)listsStream.ReadByte();
+                    listsStream.ReadByte();
+                }
+                listsStream.Seek(10, SeekOrigin.Current);
+            }
+
+            return s;
+        }
+
+        string ReadME3Name(int strLength)
+        {
+            byte[] data = new byte[strLength * -2];
+            listsStream.Read(data, 0, data.Length);
+            return Encoding.Unicode.GetString(data, 0, data.Length).TrimEnd('\0');
+        }
+
+        void ReadCompressedME1(MemoryStream tempStream)
+        {
+            SaltLZOHelper lzo = new SaltLZOHelper();
+
+            DebugOutput.PrintLn("File is compressed");
+            listsStream = lzo.DecompressPCC(tempStream, this);
+
+            //Correct the header
+            compressed = false;
+            listsStream.Seek(0, SeekOrigin.Begin);
+            listsStream.WriteBytes(header);
+
+            // Set numblocks to zero
+            listsStream.WriteInt32(0);
+            //Write the magic number
+            listsStream.WriteBytes(new byte[] { 0xF2, 0x56, 0x1B, 0x4E });
+            // Write 4 bytes of 0
+            listsStream.WriteInt32(0);
+        }
+
+        void ReadCompressedME3(MemoryStream tempStream)
+        {
+            List<Block> blockList = null;
+
+            // seeks the blocks info position
+            tempStream.Seek(idxOffsets + 60, SeekOrigin.Begin);
+            int generator = tempStream.ReadInt32();
+            tempStream.Seek((generator * 12) + 20, SeekOrigin.Current);
+
+            int blockCount = tempStream.ReadInt32();
+            blockList = new List<Block>();
+
+            // creating the Block list
+            for (int i = 0; i < blockCount; i++)
+            {
+                Block temp = new Block();
+                temp.uncOffset = tempStream.ReadInt32();
+                temp.uncSize = tempStream.ReadInt32();
+                temp.cprOffset = tempStream.ReadInt32();
+                temp.cprSize = tempStream.ReadInt32();
+                blockList.Add(temp);
+            }
+
+            // correcting the header, in case there's need to be saved
+            Buffer.BlockCopy(BitConverter.GetBytes((int)0), 0, header, header.Length - 12, sizeof(int));
+            tempStream.Read(header, header.Length - 8, 8);
+            headerEnd = (int)tempStream.Position;
+
+            // copying the extraNamesList
+            int extraNamesLenght = blockList[0].cprOffset - headerEnd;
+            if (extraNamesLenght > 0)
+            {
+                extraNamesList = new byte[extraNamesLenght];
+                tempStream.Read(extraNamesList, 0, extraNamesLenght);
+            }
+
+            int dataStart = 0;
+            using (MemoryStream he = new MemoryStream(header))
+            {
+                he.Seek(0, SeekOrigin.Begin);
+                he.ReadInt32();
+                he.ReadInt32();
+                dataStart = he.ReadInt32();
+            }
+
+            //Decompress ALL blocks
+            listsStream = new MemoryStream();
+            for (int i = 0; i < blockCount; i++)
+            {
+                tempStream.Seek(blockList[i].cprOffset, SeekOrigin.Begin);
+                listsStream.Seek(blockList[i].uncOffset, SeekOrigin.Begin);
+                listsStream.WriteBytes(ZBlock.Decompress(tempStream, blockList[i].cprSize));
             }
         }
 

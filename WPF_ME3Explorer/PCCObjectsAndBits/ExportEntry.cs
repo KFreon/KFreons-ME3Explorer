@@ -33,8 +33,8 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
         }
         public long ObjectFlags { get { return BitConverter.ToInt64(info, 24); } set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, info, 64, sizeof(long)); } }
 
-        public string ObjectName { get { return pccRef.Names[ObjectNameID]; } set { throw new NotImplementedException(); } }
-        public string ClassName { get { int val = ClassNameID; if (val < 0) return pccRef.Names[pccRef.Imports[val * -1 - 1].ObjectNameID]; else if (val > 0) return pccRef.Names[pccRef.Exports[val].ObjectNameID]; else return "Class"; } set { throw new NotImplementedException(); } }
+        public string ObjectName { get { return pccRef.Names[ObjectNameID]; } }
+        public string ClassName { get { int val = ClassNameID; if (val < 0) return pccRef.Names[pccRef.Imports[val * -1 - 1].ObjectNameID]; else if (val > 0) return pccRef.Names[pccRef.Exports[val].ObjectNameID]; else return "Class"; } }
         public string ClassParent { get { int val = ClassParentID; if (val < 0) return pccRef.Names[pccRef.Imports[val * -1 - 1].ObjectNameID]; else if (val > 0) return pccRef.Names[pccRef.Exports[val].ObjectNameID]; else return "Class"; } }
         public string PackageName
         {
@@ -52,7 +52,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             get
             {
                 string result = PackageName;
-                int idxNewPackName = PackageNameID;
+                int idxNewPackName = PackageNameID;  // ME1 uses LinkID instead of PackageNameID?
 
                 while (idxNewPackName >= 0)
                 {

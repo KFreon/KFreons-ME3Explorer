@@ -745,7 +745,7 @@
                     </TextBlock>
                 </Button.Content>
             </Button>
-            <ListBox x:Name="ErrorsDisplay" Margin="5,80,5,80.333" ItemsSource="{Binding Errors}" Grid.Row="1" Visibility="Collapsed"/>
+            <ListBox x:Name="ErrorsDisplay" Margin="5,80,5,80.333" ItemsSource="{Binding Errors}" Grid.Row="1"/>
             <Border x:Name="Status" HorizontalAlignment="Center" Margin="{Binding ElementName=ProgressBar, Path=Margin}">
                 <TextBlock Text="{Binding Status}" VerticalAlignment="Center"/>
             </Border>

@@ -10,6 +10,7 @@ using UsefulThings;
 using WPF_ME3Explorer.PCCObjectsAndBits;
 using static WPF_ME3Explorer.Textures.Texture2D;
 using UsefulThings.WPF;
+using System.Diagnostics;
 
 namespace WPF_ME3Explorer.Textures
 {
@@ -145,7 +146,16 @@ namespace WPF_ME3Explorer.Textures
             CRC32 crcgen = new CRC32();
             StorageType = info.storageType;
 
-            byte[] imgData = tex2D.ExtractImage(info.ImageSize, TFCs);
+            byte[] imgData = null;
+            try
+            {
+                imgData = tex2D.ExtractImage(info.ImageSize, TFCs);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"LZO failure on {TexName}, {FullPackage} in {tex2D.allPccs[0]}. Reason: {e.ToString()}");
+                throw;
+            }
 
             if (info.storageType == storage.pccSto)
             {
@@ -216,10 +226,17 @@ namespace WPF_ME3Explorer.Textures
                 uint width = info.ImageSize.Width;
                 uint height = info.ImageSize.Height;
 
-                MemoryStream thumbStream = ImageEngine.GenerateThumbnailToStream(ms, width > height ? ThumbnailSize : 0, width > height ? 0 : ThumbnailSize);
-                thumbStream = ToolsetTextureEngine.OverlayAndPickDetailed(thumbStream);
-                if (thumbStream != null)
-                    Thumb = ThumbWriter.Add(thumbStream);
+                try
+                {
+                    MemoryStream thumbStream = ImageEngine.GenerateThumbnailToStream(ms, width > height ? ThumbnailSize : 0, width > height ? 0 : ThumbnailSize);
+                    thumbStream = ToolsetTextureEngine.OverlayAndPickDetailed(thumbStream);
+                    if (thumbStream != null)
+                        Thumb = ThumbWriter.Add(thumbStream);
+                }
+                catch(Exception e)
+                {
+                    Debug.WriteLine($"Failed to create thumbnail for {tex2D.texName} in {tex2D.allPccs[0]}. Reason: {e.ToString()}.");
+                }
             }
 
             tex2D.Dispose();
