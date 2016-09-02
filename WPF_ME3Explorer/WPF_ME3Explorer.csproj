@@ -96,6 +96,11 @@
     </Compile>
     <Compile Include="DLCEntry.cs" />
     <Compile Include="GameFileEntry.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="Textures\PCCEntry.cs" />
     <Compile Include="UI\GameInformation.xaml.cs">
       <DependentUpon>GameInformation.xaml</DependentUpon>
@@ -103,7 +108,6 @@
     <Compile Include="UI\TexplorerTextureFolder.cs" />
     <Compile Include="UI\ValueConverters\HashStringConverter.cs" />
     <Compile Include="MEDirectories\MEDirectories.cs" />
-    <Compile Include="MiniLZO.cs" />
     <Compile Include="PCCObjectsAndBits\CustomProperty.cs" />
     <Compile Include="PCCObjectsAndBits\ExportEntry.cs" />
     <Compile Include="PCCObjectsAndBits\ImportEntry.cs" />
@@ -181,11 +185,6 @@
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
@@ -259,6 +258,14 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\Import Tree.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="LZO\lzo2.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="LZO\lzo2_64.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

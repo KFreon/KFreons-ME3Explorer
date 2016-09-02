@@ -505,9 +505,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             
 
             // Perform scan
-            Task<int> consumers = null;
-            await Task.Run(async () => consumers = await ScanAllPCCs(PCCsToScan, TFCs, 0));   // Start entire thing on another thread which awaits when collection is full, but task itself should complete when producers complete, then have to wait for consumers.
-            await consumers;
+            var tasks = ScanAllPCCs(PCCsToScan, TFCs);   // Start entire thing on another thread which awaits when collection is full, but task itself should complete when producers complete, then have to wait for consumers.
+            await tasks;
 
             // Dispose all TFCs
             if (TFCs != null)
@@ -526,7 +525,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures. Elapsed scan time: {ElapsedTime}.";
         }
 
-        async Task<Task<int>> ScanAllPCCs(IList<string> PCCs, Dictionary<string, MemoryStream> TFCs, int count)
+        Task<int> ScanAllPCCs(IList<string> PCCs, Dictionary<string, MemoryStream> TFCs)
         {
             // Parallel scanning
             int bound = 20;
@@ -536,11 +535,13 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             BufferBlock<PCCObject> pccs = new BufferBlock<PCCObject>(new DataflowBlockOptions { BoundedCapacity = bound });   // Collection can't grow past this. Good for low RAM situations.
 
+
             // Begin consumers
-            Task<int> consumers = PCCConsumer(pccs, TFCs, count);
+            Task<int> consumers = null;
+            consumers = PCCConsumer(pccs, TFCs, 0);
 
             // Begin producer
-            await PCCProducer(PCCs, pccs);
+            Task.Run(async () => await PCCProducer(PCCs, pccs));
 
             // Wait for consumers to finish
             return consumers;
@@ -562,11 +563,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         async Task<int> PCCConsumer(BufferBlock<PCCObject> pccs, Dictionary<string, MemoryStream> TFCs, int count)
         {
-
             while (await pccs.OutputAvailableAsync())
             {
                 PCCObject pcc = pccs.Receive();
-                string error = null;
 
                 try
                 {
@@ -574,7 +573,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     po.MaxDegreeOfParallelism = NumThreads;
 
 #if (ThreadedScan)
-                    Parallel.For(0, pcc.Exports.Count, po, i =>
+                    await Task.Run(() => Parallel.For(0, pcc.Exports.Count, po, i =>
 #else
                     for (int i = 0; i < pcc.Exports.Count; i++)
 #endif
@@ -586,7 +585,21 @@ namespace WPF_ME3Explorer.UI.ViewModels
 #else
                             continue;
 #endif
-                        Texture2D tex2D = new Texture2D(pcc, i, GameVersion);
+                        Texture2D tex2D = null;
+                        try
+                        {
+                            tex2D = new Texture2D(pcc, i, GameVersion);
+                        }
+                        catch(Exception e)
+                        {
+                            Errors.Add(e.ToString());
+                            export.Dispose();
+#if (ThreadedScan)
+                            return;
+#else
+                            continue;
+#endif
+                        }
 
                         // Skip if no images
                         if (tex2D.ImageList.Count == 0)
@@ -601,13 +614,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
                             TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs);  // Tex2D disposed of during thumbnail creation.
                             CurrentTree.AddTexture(info);
                         }
-                        catch { } // TODO: IGNORING FOR NOW
-                        
+                        catch(Exception e)
+                        {
+                            Errors.Add(e.ToString());
+                        }
+
 
                         export.Dispose();
 
 #if (ThreadedScan)
-                    });
+                    }));
 #else
                     }
 #endif
@@ -616,16 +632,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 catch (Exception e)
                 {
                     DebugOutput.PrintLn($"Scanning failed on {pcc.pccFileName}. Reason: {e.ToString()}.");
-                    error = e.Message;
                 }
                 finally
                 {
                     pcc.Dispose();
                 }
-
-
-                if (error != null)
-                    Errors.Add(error);
 
                 Interlocked.Increment(ref count);  // Threadsafely increment count
 

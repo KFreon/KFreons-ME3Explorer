@@ -957,15 +957,17 @@ namespace WPF_ME3Explorer.Textures
         {
             List<string> GameFiles = MEDirectories.MEDirectories.ME1Files;
 
-            string package = ME1_PackageFullName.Split('.')[0];
+            int dotInd = ME1_PackageFullName.IndexOf('.');
+            string package = dotInd == -1 ? ME1_PackageFullName : ME1_PackageFullName.Substring(0, dotInd);
+
             for (int i = 0; i < GameFiles.Count; i++)
             {
-                string[] parts = GameFiles[i].Split('\\');
-                string tempFile = parts.Last().Split('.')[0];
+                string tempFile = Path.GetFileNameWithoutExtension(GameFiles[i]);
                 if (String.Compare(package, tempFile, true) == 0)
                     return GameFiles[i];
             }
 
+            // Not in the main list for some reason. Search the slooooooooow way.
             for (int i = 0; i < GameFiles.Count; i++)
             {
                 PCCObject temp = new PCCObject(GameFiles[i], GameVersion);

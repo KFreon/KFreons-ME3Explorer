@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using UsefulThings;
@@ -11,6 +12,55 @@ namespace WPF_ME3Explorer
 {
     public class SaltLZOHelper
     {
+        static class x86_Natives
+        {
+            [DllImport("LZO\\lzo2.dll")]
+            public static extern int lzo1x_decompress(byte[] src, uint srcLen, byte[] dst, ref uint dstLen);
+
+            [DllImport("LZO\\lzo2.dll")]
+            public static extern int lzo1x_1_compress(byte[] src, uint srcLen, byte[] dst, ref uint dstLen);
+        }
+
+        static class x64_Natives
+        {
+            [DllImport("LZO\\lzo2_64.dll")]
+            public static extern int lzo1x_decompress(byte[] src, uint srcLen, byte[] dst, ref uint dstLen);
+
+
+            [DllImport("LZO\\lzo2_64.dll")]
+            public static extern int lzo1x_1_compress(byte[] src, uint srcLen, byte[] dst, ref uint dstLen);
+        }
+
+
+        public static byte[] LZOCompress(byte[] src)
+        {
+            uint dstLen = 0;
+            byte[] tmpbuf = new byte[src.Length + (src.Length / 16) + 64 + 3];
+            int status = int.MinValue;
+            if (Environment.Is64BitProcess)
+                status =  x64_Natives.lzo1x_1_compress(src, (uint)src.Length, tmpbuf, ref dstLen);
+            else
+                status = x86_Natives.lzo1x_1_compress(src, (uint)src.Length, tmpbuf, ref dstLen);
+
+            if (status != 0)
+                return new byte[0];
+            byte[] dst = new byte[dstLen];
+            Array.Copy(tmpbuf, dst, dstLen);
+            return dst;
+
+            
+        }
+
+        public static int LZODecompress(byte[] src, byte[] dst)
+        {
+            uint dstLen = 0;
+            if (Environment.Is64BitProcess)
+                return x64_Natives.lzo1x_decompress(src, (uint)src.Length, dst, ref dstLen);
+            else
+                return x86_Natives.lzo1x_decompress(src, (uint)src.Length, dst, ref dstLen);
+        }
+
+
         public struct CompressedChunkBlock
         {
             public int cprSize;
@@ -83,7 +133,7 @@ namespace WPF_ME3Explorer
             CompressedChunkBlock[] newChunks = new CompressedChunkBlock[noChunks];
             for (int i = 0; i < noChunks; i++)
             {
-                newChunks[i].rawData = LZO1X.Compress(chunks[i].rawData);
+                newChunks[i].rawData = LZOCompress(chunks[i].rawData);
                 if (newChunks[i].rawData.Length == 0)
                     throw new Exception("LZO compression failed!");
                 newChunks[i].cprSize = newChunks[i].rawData.Length;
@@ -177,7 +227,7 @@ namespace WPF_ME3Explorer
                 byte[] tempResult = new byte[chunk.uncSize];
                 try
                 {
-                    LZO1X.Decompress(chunk.rawData, tempResult);
+                    LZODecompress(chunk.rawData, tempResult);
                 }
                 catch
                 {
@@ -257,7 +307,7 @@ namespace WPF_ME3Explorer
 
                     try
                     {
-                        LZO1X.Decompress(datain, dataout);
+                        LZODecompress(datain, dataout);
                     }
                     catch
                     {
@@ -313,7 +363,7 @@ namespace WPF_ME3Explorer
                 }
 
                 Buffer.BlockCopy(chunk.Uncompressed, pos, temp, 0, temp.Length);
-                result = LZO1X.Compress(temp);
+                result = LZOCompress(temp);
                 if (result.Length == 0)
                     throw new Exception("LZO compression error!");
                 block.compressedsize = result.Length;
