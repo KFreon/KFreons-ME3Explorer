@@ -506,7 +506,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             // Perform scan
             var tasks = ScanAllPCCs(PCCsToScan, TFCs);   // Start entire thing on another thread which awaits when collection is full, but task itself should complete when producers complete, then have to wait for consumers.
-            await tasks;
+            await Task.WhenAll(tasks);
 
             // Dispose all TFCs
             if (TFCs != null)
@@ -525,7 +525,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures. Elapsed scan time: {ElapsedTime}.";
         }
 
-        Task<int> ScanAllPCCs(IList<string> PCCs, Dictionary<string, MemoryStream> TFCs)
+        Task[] ScanAllPCCs(IList<string> PCCs, Dictionary<string, MemoryStream> TFCs)
         {
             // Parallel scanning
             int bound = 20;
@@ -536,15 +536,20 @@ namespace WPF_ME3Explorer.UI.ViewModels
             BufferBlock<PCCObject> pccs = new BufferBlock<PCCObject>(new DataflowBlockOptions { BoundedCapacity = bound });   // Collection can't grow past this. Good for low RAM situations.
 
 
-            // Begin consumers
-            Task<int> consumers = null;
-            consumers = PCCConsumer(pccs, TFCs, 0);
+            // Begin consumer
+            int numConsumers = NumThreads / 2;
+            if (numConsumers < 1)
+                numConsumers = 1;
+
+            var consumerOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = numConsumers + 1, MaxDegreeOfParallelism = numConsumers };
+            var consumer = new ActionBlock<PCCObject>(async pcc => await PCCConsumer(pcc, TFCs), consumerOptions);
+            pccs.LinkTo(consumer, new DataflowLinkOptions { PropagateCompletion = true });
 
             // Begin producer
-            Task.Run(async () => await PCCProducer(PCCs, pccs));
+            var producer = PCCProducer(PCCs, pccs);
 
             // Wait for consumers to finish
-            return consumers;
+            return new Task[] { consumer.Completion, producer};
         }
 
         async Task PCCProducer(IList<string> PCCs, BufferBlock<PCCObject> pccs)
@@ -553,7 +558,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 string file = PCCs[i];
                 DebugOutput.PrintLn($"Scanning: {file}");
-                PCCObject pcc = new PCCObject(file, GameVersion);
+                PCCObject pcc = await PCCObject.CreateAsync(file, GameVersion);
 
                 await pccs.SendAsync(pcc);
             }
@@ -561,93 +566,92 @@ namespace WPF_ME3Explorer.UI.ViewModels
             pccs.Complete();
         }
 
-        async Task<int> PCCConsumer(BufferBlock<PCCObject> pccs, Dictionary<string, MemoryStream> TFCs, int count)
+        async Task PCCConsumer(PCCObject pcc, Dictionary<string, MemoryStream> TFCs)
         {
-            while (await pccs.OutputAvailableAsync())
+            try
             {
-                PCCObject pcc = pccs.Receive();
+                ParallelOptions po = new ParallelOptions();
+                po.MaxDegreeOfParallelism = NumThreads / 2;
+                if (po.MaxDegreeOfParallelism < 2)
+                    po.MaxDegreeOfParallelism = 2;
 
-                try
+#if (ThreadedScan)
+                await Task.Run(() => Parallel.For(0, pcc.Exports.Count, po, i =>
+#else
+                for (int i = 0; i < pcc.Exports.Count; i++)
+#endif
                 {
-                    ParallelOptions po = new ParallelOptions();
-                    po.MaxDegreeOfParallelism = NumThreads;
-
+                    ExportEntry export = pcc.Exports[i];
+                    if (!export.ValidTextureClass())
 #if (ThreadedScan)
-                    await Task.Run(() => Parallel.For(0, pcc.Exports.Count, po, i =>
+                        return;
 #else
-                    for (int i = 0; i < pcc.Exports.Count; i++)
+                        continue;
 #endif
+                    Texture2D tex2D = null;
+                    try
                     {
-                        ExportEntry export = pcc.Exports[i];
-                        if (!export.ValidTextureClass())
-#if (ThreadedScan)
-                            return;
-#else
-                            continue;
-#endif
-                        Texture2D tex2D = null;
-                        try
-                        {
-                            tex2D = new Texture2D(pcc, i, GameVersion);
-                        }
-                        catch(Exception e)
-                        {
-                            Errors.Add(e.ToString());
-                            export.Dispose();
-#if (ThreadedScan)
-                            return;
-#else
-                            continue;
-#endif
-                        }
-
-                        // Skip if no images
-                        if (tex2D.ImageList.Count == 0)
-#if (ThreadedScan)
-                            return;
-#else
-                            continue;
-#endif
-
-                        try
-                        {
-                            TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs);  // Tex2D disposed of during thumbnail creation.
-                            CurrentTree.AddTexture(info);
-                        }
-                        catch(Exception e)
-                        {
-                            Errors.Add(e.ToString());
-                        }
-
-
-                        export.Dispose();
-
-#if (ThreadedScan)
-                    }));
-#else
+                        tex2D = new Texture2D(pcc, i, GameVersion);
                     }
+                    catch(Exception e)
+                    {
+                        Errors.Add(e.ToString());
+                        export.Dispose();
+#if (ThreadedScan)
+                        return;
+#else
+                        continue;
+#endif
+                    }
+
+                    // Skip if no images
+                    if (tex2D.ImageList.Count == 0)
+#if (ThreadedScan)
+                        return;
+#else
+                        continue;
+#endif
+
+                    try
+                    {
+                        TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs);  // Tex2D disposed of during thumbnail creation.
+                        CurrentTree.AddTexture(info);
+                    }
+                    catch(Exception e)
+                    {
+                        Errors.Add(e.ToString());
+                    }
+
+
+                    export.Dispose();
+
+#if (ThreadedScan)
+                }));
+#else
+                }
 #endif
                     
-                }
-                catch (Exception e)
-                {
-                    DebugOutput.PrintLn($"Scanning failed on {pcc.pccFileName}. Reason: {e.ToString()}.");
-                }
-                finally
-                {
-                    pcc.Dispose();
-                }
+            }
+            catch (Exception e)
+            {
+                DebugOutput.PrintLn($"Scanning failed on {pcc.pccFileName}. Reason: {e.ToString()}.");
+            }
+            finally
+            {
+                pcc.Dispose();
+            }
 
-                Interlocked.Increment(ref count);  // Threadsafely increment count
+            /*Interlocked.Increment(ref count);  // Threadsafely increment count
 
-                // Only change progress and status every 10 or so. Improves UI performance, otherwise it'll be updating the display 40 times a second on top of all the scanning.
-                if (count % 10 == 0)
-                {
-                    Progress += 10;
-                    Status = $"Scanning: {count} / {MaxProgress}";
-                }
-            }            
-            return count;
+            // Only change progress and status every 10 or so. Improves UI performance, otherwise it'll be updating the display 40 times a second on top of all the scanning.
+            if (count % 10 == 0)
+            {
+                Progress += 10;
+                Status = $"Scanning: {count} / {MaxProgress}";
+            }*/
+
+            Progress++;
+            Status = $"Scanning: {Progress} / {MaxProgress}";         
         }
 
         string ScanPCCForTextures(string filename, Dictionary<string, MemoryStream> TFCs)

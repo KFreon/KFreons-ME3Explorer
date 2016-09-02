@@ -70,6 +70,7 @@ namespace WPF_ME3Explorer.Textures
         public int pccExpIdx { get; set; }
 
         public static List<string> ME3TFCs = new List<string>();
+        public static Dictionary<string, string> ME1_Filenames_Paths = new Dictionary<string, string>();
 
 
         /// <summary>
@@ -80,6 +81,20 @@ namespace WPF_ME3Explorer.Textures
             allPccs = new List<String>();
             expIDs = new List<int>();
             hasChanged = false;
+        }
+
+        static Texture2D()
+        {
+            List<string> GameFiles = MEDirectories.MEDirectories.ME1Files;
+
+            if (ME1_Filenames_Paths.Keys.Count == 0)
+            {
+                for (int i = 0; i < GameFiles.Count; i++)
+                {
+                    string tempFile = Path.GetFileNameWithoutExtension(GameFiles[i]).ToUpperInvariant();
+                    ME1_Filenames_Paths.Add(tempFile, GameFiles[i]);
+                }
+            }
         }
 
 
@@ -953,19 +968,16 @@ namespace WPF_ME3Explorer.Textures
         /// <summary>
         /// This function will first guess and then do a thorough search to find the original location of the texture
         /// </summary>
-        private string FindFile()  // TODO: Merge with GetTexArchive?
+        private string FindFile() 
         {
             List<string> GameFiles = MEDirectories.MEDirectories.ME1Files;
-
+            
+            // Use mapping to determine file.
             int dotInd = ME1_PackageFullName.IndexOf('.');
-            string package = dotInd == -1 ? ME1_PackageFullName : ME1_PackageFullName.Substring(0, dotInd);
-
-            for (int i = 0; i < GameFiles.Count; i++)
-            {
-                string tempFile = Path.GetFileNameWithoutExtension(GameFiles[i]);
-                if (String.Compare(package, tempFile, true) == 0)
-                    return GameFiles[i];
-            }
+            string package = dotInd == -1 ? ME1_PackageFullName.ToUpperInvariant() : ME1_PackageFullName.Substring(0, dotInd).ToUpperInvariant();
+            if (ME1_Filenames_Paths.ContainsKey(package))
+                return ME1_Filenames_Paths[package];
+            
 
             // Not in the main list for some reason. Search the slooooooooow way.
             for (int i = 0; i < GameFiles.Count; i++)

@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using UsefulThings;
@@ -75,7 +76,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
             set
             {
-                SetProperty(ref progress, value);
+                Interlocked.Exchange(ref progress, value);
+                OnPropertyChanged(nameof(Progress));
+             //   SetProperty(ref progress, value);
             }
         }
 

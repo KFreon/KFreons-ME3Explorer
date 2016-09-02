@@ -104,35 +104,67 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
         /// <param name="gameVersion">Version of Mass Effect PCC is from.</param>
         public PCCObject(string filePath, int gameVersion) : this(gameVersion)
         {
+            LoadAsync(filePath).Wait();
+        }
+
+        /// <summary>
+        /// Creates PCC Object from existing stream. 
+        /// Filename is not used for reading, just labelling.
+        /// </summary>
+        /// <param name="filePath">Path to file represented in <paramref name="stream"/>.</param>
+        /// <param name="stream">Stream containing entire pcc file to read from.</param>
+        /// <param name="gameVersion">Version of Mass Effect PCC is from.</param>
+        public PCCObject(string filePath, MemoryStream stream, int gameVersion) : this(gameVersion)
+        {
+            pccFileName = filePath;
+            PCCObjectHelper(stream, filePath).Wait();
+        }
+
+        /// <summary>
+        /// Creates empty PCCObject.
+        /// </summary>
+        /// <param name="gameVersion">Version of Mass Effect PCC is from.</param>
+        public PCCObject(int gameVersion)
+        {
+            GameVersion = gameVersion;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="gameVersion"></param>
+        /// <returns></returns>
+        public static async Task<PCCObject> CreateAsync(string filePath, int gameVersion)
+        {
+            PCCObject pcc = new PCCObject(gameVersion);
+            await pcc.LoadAsync(filePath);
+            return pcc;
+        }
+
+        async Task LoadAsync(string filePath)
+        {
             pccFileName = Path.GetFullPath(filePath);
 
             MemoryStream tempStream = new MemoryStream();
             if (!File.Exists(pccFileName))
                 throw new FileNotFoundException("File not found: " + pccFileName);
 
-            int trycout = 0;
-            while (trycout < 5)
+            try
             {
-                try
-                {
-                    using (FileStream fs = new FileStream(pccFileName, FileMode.Open, FileAccess.Read))
-                        fs.CopyTo(tempStream);
-                    break;
-                }
-                catch (Exception e)
-                {
-                    // KFreon: File inaccessible or someting
-                    Console.WriteLine(e.Message);
-                    DebugOutput.PrintLn("File inaccessible: " + filePath + ".  Attempt: " + trycout);
-                    trycout++;
-                    System.Threading.Thread.Sleep(100);
-                }
+                using (FileStream fs = new FileStream(pccFileName, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
+                    await fs.CopyToAsync(tempStream);
+            }
+            catch (Exception e)
+            {
+                // KFreon: File inaccessible or someting
+                DebugOutput.PrintLn($"Failed to read PCC: {filePath}. Reason: {e.ToString()}.");
             }
 
-            PCCObjectHelper(tempStream, filePath);
+            await PCCObjectHelper(tempStream, filePath);
         }
 
-        void PCCObjectHelper(MemoryStream tempStream, string filePath)
+        async Task PCCObjectHelper(MemoryStream tempStream, string filePath)
         {
             tempStream.Seek(0, SeekOrigin.Begin);
             Names = new List<string>();
@@ -164,9 +196,9 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             if (compressed)
             {
                 if (GameVersion == 3)
-                    ReadCompressedME3(tempStream);
+                    await ReadCompressedME3(tempStream);
                 else
-                    ReadCompressedME1(tempStream);
+                    await ReadCompressedME1(tempStream);
 
                 compressed = false;
             }
@@ -265,12 +297,12 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             return Encoding.Unicode.GetString(data, 0, data.Length).TrimEnd('\0');
         }
 
-        void ReadCompressedME1(MemoryStream tempStream)
+        async Task ReadCompressedME1(MemoryStream tempStream)
         {
             SaltLZOHelper lzo = new SaltLZOHelper();
 
             DebugOutput.PrintLn("File is compressed");
-            listsStream = lzo.DecompressPCC(tempStream, this);
+            listsStream = await Task.Run(() => lzo.DecompressPCC(tempStream, this));
 
             //Correct the header
             compressed = false;
@@ -285,7 +317,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             listsStream.WriteInt32(0);
         }
 
-        void ReadCompressedME3(MemoryStream tempStream)
+        async Task ReadCompressedME3(MemoryStream tempStream)
         {
             List<Block> blockList = null;
 
@@ -332,34 +364,16 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
 
             //Decompress ALL blocks
             listsStream = new MemoryStream();
-            for (int i = 0; i < blockCount; i++)
+
+            await Task.Run(() =>
             {
-                tempStream.Seek(blockList[i].cprOffset, SeekOrigin.Begin);
-                listsStream.Seek(blockList[i].uncOffset, SeekOrigin.Begin);
-                listsStream.WriteBytes(ZBlock.Decompress(tempStream, blockList[i].cprSize));
-            }
-        }
-
-        /// <summary>
-        /// Creates PCC Object from existing stream. 
-        /// Filename is not used for reading, just labelling.
-        /// </summary>
-        /// <param name="filePath">Path to file represented in <paramref name="stream"/>.</param>
-        /// <param name="stream">Stream containing entire pcc file to read from.</param>
-        /// <param name="gameVersion">Version of Mass Effect PCC is from.</param>
-        public PCCObject(string filePath, MemoryStream stream, int gameVersion) : this(gameVersion)
-        {
-            pccFileName = filePath;
-            PCCObjectHelper(stream, filePath);
-        }
-
-        /// <summary>
-        /// Creates empty PCCObject.
-        /// </summary>
-        /// <param name="gameVersion">Version of Mass Effect PCC is from.</param>
-        public PCCObject(int gameVersion)
-        {
-            GameVersion = gameVersion;
+                for (int i = 0; i < blockCount; i++)
+                {
+                    tempStream.Seek(blockList[i].cprOffset, SeekOrigin.Begin);
+                    listsStream.Seek(blockList[i].uncOffset, SeekOrigin.Begin);
+                    listsStream.WriteBytes(ZBlock.Decompress(tempStream, blockList[i].cprSize));
+                }
+            });
         }
 
 

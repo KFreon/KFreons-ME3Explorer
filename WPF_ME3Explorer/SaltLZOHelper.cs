@@ -257,12 +257,9 @@ namespace WPF_ME3Explorer
                 c.compressedSize = raw.ReadInt32();
                 c.Compressed = new byte[c.compressedSize];
                 c.Uncompressed = new byte[c.uncompressedSize];
-                //DebugOutput.PrintLn("Chunk " + i + ", compressed size = " + c.compressedSize + ", uncompressed size = " + c.uncompressedSize);
-                //DebugOutput.PrintLn("Compressed offset = " + c.compressedOffset + ", uncompressed offset = " + c.uncompressedOffset);
                 Chunks.Add(c);
             }
 
-            //DebugOutput.PrintLn("\tRead Chunks...");
             int count = 0;
             for (int i = 0; i < Chunks.Count; i++)
             {
@@ -277,7 +274,6 @@ namespace WPF_ME3Explorer
                 h.blocksize = BitConverter.ToInt32(c.Compressed, 4);
                 h.compressedsize = BitConverter.ToInt32(c.Compressed, 8);
                 h.uncompressedsize = BitConverter.ToInt32(c.Compressed, 12);
-                //DebugOutput.PrintLn("Chunkheader read: Magic = " + h.magic + ", Blocksize = " + h.blocksize + ", Compressed Size = " + h.compressedsize + ", Uncompressed size = " + h.uncompressedsize);
                 pos = 16;
                 int blockCount = (h.uncompressedsize % h.blocksize == 0)
                     ?
@@ -285,18 +281,15 @@ namespace WPF_ME3Explorer
                     :
                     h.uncompressedsize / h.blocksize + 1;
                 List<Block> BlockList = new List<Block>();
-                //DebugOutput.PrintLn("\t\t" + count + " Read Blockheaders...");
                 for (int j = 0; j < blockCount; j++)
                 {
                     Block b = new Block();
                     b.compressedsize = BitConverter.ToInt32(c.Compressed, pos);
                     b.uncompressedsize = BitConverter.ToInt32(c.Compressed, pos + 4);
-                    //DebugOutput.PrintLn("Block " + j + ", compressed size = " + b.compressedsize + ", uncompressed size = " + b.uncompressedsize);
                     pos += 8;
                     BlockList.Add(b);
                 }
                 int outpos = 0;
-                //DebugOutput.PrintLn("\t\t" + count + " Read and decompress Blocks...");
                 foreach (Block b in BlockList)
                 {
                     byte[] datain = new byte[b.compressedsize];
