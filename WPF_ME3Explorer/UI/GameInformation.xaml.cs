@@ -41,7 +41,7 @@ namespace WPF_ME3Explorer.UI
 
         private void BIOGamePathBrowser_Click(object sender, RoutedEventArgs e)
         {
-            string newPath = PathingBrowser(false);
+            string newPath = PathingBrowser(true);
             vm.PathBIOGame = newPath;
         }
 

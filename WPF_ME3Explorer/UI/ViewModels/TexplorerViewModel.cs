@@ -40,9 +40,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         {
                             int version = int.Parse((string)param);
                             GameInformation info = new GameInformation(version);
+                            info.Closed += (unused1, unused2) => GameDirecs.RefreshListeners();  // Refresh all game directory related info once window is closed. 
                             info.Show();
-
-                            GameDirecs.RefreshListeners();
                         }));
 
                 return showGameInfo;

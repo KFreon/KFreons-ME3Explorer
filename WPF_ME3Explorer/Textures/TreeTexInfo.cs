@@ -16,7 +16,7 @@ namespace WPF_ME3Explorer.Textures
 {
     public class TreeTexInfo : AbstractTexInfo, IEquatable<TreeTexInfo>, IComparable
     {
-        static int ThumbnailSize = 128;
+        const int ThumbnailSize = 128;
 
         public static CommandHandler ExtractCommand { get; set; }
         public static CommandHandler ChangeCommand { get; set; }
@@ -39,21 +39,6 @@ namespace WPF_ME3Explorer.Textures
             set
             {
                 SetProperty(ref fullPackage, value);
-            }
-        }
-
-        public string Package
-        {
-            get
-            {
-                if (String.IsNullOrEmpty(FullPackage))
-                    return "";
-                string temppack = FullPackage.Remove(FullPackage.Length - 1);
-                var bits = temppack.Split('.');
-                if (bits.Length > 1)
-                    return bits[bits.Length - 1];
-                else
-                    return bits[0];
             }
         }
 
@@ -153,7 +138,7 @@ namespace WPF_ME3Explorer.Textures
             }
             catch (Exception e)
             {
-                Debug.WriteLine($"LZO failure on {TexName}, {FullPackage} in {tex2D.allPccs[0]}. Reason: {e.ToString()}");
+                Debug.WriteLine($"Extraction failure on {TexName}, {FullPackage} in {tex2D.allPccs[0]}. Reason: {e.ToString()}");
                 throw;
             }
 
