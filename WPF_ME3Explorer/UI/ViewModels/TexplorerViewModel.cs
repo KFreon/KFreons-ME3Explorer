@@ -296,7 +296,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         DebugOutput.PrintLn($"Unable to regenerate thumbnail for {tex.TexName}. Reason: {e.ToString()}.");
                     }
                 });
-            });
+            }).ConfigureAwait(false);
 
             Status = $"Regenerated {texes.Count - errors} thumbnails" + (errors == 0 ? "." : $" with {errors} errors.");
 
@@ -440,18 +440,20 @@ namespace WPF_ME3Explorer.UI.ViewModels
             if (GameVersion == 2)
             {
                 DebugOutput.PrintLn("Reordering ME2 textures...");
-                await Task.Run(() => Parallel.ForEach(CurrentTree.Textures, tex => tex.ReorderME2Files()));  // This should be fairly quick so let the runtime deal with threading.
+                await Task.Run(() => Parallel.ForEach(CurrentTree.Textures, tex => tex.ReorderME2Files())).ConfigureAwait(false);  // This should be fairly quick so let the runtime deal with threading.
             }
 
             StartTime = 0; // Stop Elapsed Time from counting
             ThumbnailWriter.FinishAdding();
 
             DebugOutput.PrintLn("Saving tree to disk...");
-            await Task.Run(() => CurrentTree.SaveToFile());
+            await Task.Run(() => CurrentTree.SaveToFile()).ConfigureAwait(false);
 
             DebugOutput.PrintLn($"Treescan completed. Elapsed time: {ElapsedTime}. Num Textures: {CurrentTree.Textures.Count}.");
 
-            await Task.Run(() => ConstructTree());
+            await Task.Run(() => ConstructTree()).ConfigureAwait(false);
+
+            CurrentTree.Valid = true; // It was just scanned after all.
 
             // Put away TreeScanProgress Window
             TreeScanProgressCloser();
@@ -463,8 +465,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             using (FileStream fs = new FileStream(tfc, FileMode.Open, FileAccess.Read, FileShare.None, 4096, true))
             {
-                MemoryStream ms = RecyclableMemoryManager.GetStream((int)fs.Length);
-                await fs.CopyToAsync(ms);
+                //MemoryStream ms = RecyclableMemoryManager.GetStream((int)fs.Length);
+                MemoryStream ms = new MemoryStream((int)fs.Length);
+                await fs.CopyToAsync(ms).ConfigureAwait(false);
                 return new KeyValuePair<string, MemoryStream>(tfc, ms);
             }
         }
@@ -477,7 +480,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             Progress = 0;
             MaxProgress = pccs?.Count ?? CurrentTree.ScannedPCCs.Count;
-            Status = $"Scanned: 0 / {MaxProgress}";
 
             IList<string> PCCsToScan = CurrentTree.ScannedPCCs;  // Can't use ?? here as ScannedPCCs and pccs are different classes.
             if (pccs != null)
@@ -487,6 +489,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Dictionary<string, MemoryStream> TFCs = null;
             if (GameVersion == 3)
             {
+                Status = "Reading TFC's into memory...";
+
                 // Read TFCs into RAM if available/requested.
                 double RAMinGB = ToolsetInfo.AvailableRam / 1024d / 1024d / 1024d;
                 if (Environment.Is64BitProcess && RAMinGB > 10)
@@ -502,11 +506,17 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     }
                 }
             }
-            
+
+
+            // DEBUGGING
+            /*PCCObject pcc = new PCCObject(@"R:\Games\Mass Effect\BIOGame\CookedPC\Maps\ICE\DSG\BIOA_ICE20_01leave_DSG.SFM", 1);
+            await PCCConsumer(pcc, null);*/
+
+            Status = "Beginning Scan...";
 
             // Perform scan
             var tasks = ScanAllPCCs(PCCsToScan, TFCs);   // Start entire thing on another thread which awaits when collection is full, but task itself should complete when producers complete, then have to wait for consumers.
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
 
             // Dispose all TFCs
             if (TFCs != null)
@@ -528,10 +538,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
         Task[] ScanAllPCCs(IList<string> PCCs, Dictionary<string, MemoryStream> TFCs)
         {
             // Parallel scanning
-            int bound = 20;
+            int bound = 10;
             double RAMinGB = ToolsetInfo.AvailableRam / 1024d / 1024d / 1024d;
             if (RAMinGB < 10)
-                bound = 10;
+                bound = 5;
 
             BufferBlock<PCCObject> pccs = new BufferBlock<PCCObject>(new DataflowBlockOptions { BoundedCapacity = bound });   // Collection can't grow past this. Good for low RAM situations.
 
@@ -541,7 +551,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
             if (numConsumers < 1)
                 numConsumers = 1;
 
-            var consumerOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = numConsumers + 1, MaxDegreeOfParallelism = numConsumers };
+#if (!ThreadedScan)
+            numConsumers = 1;
+#endif
+
+            var consumerOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = numConsumers, MaxDegreeOfParallelism = numConsumers };
             var consumer = new ActionBlock<PCCObject>(async pcc => await PCCConsumer(pcc, TFCs), consumerOptions);
             pccs.LinkTo(consumer, new DataflowLinkOptions { PropagateCompletion = true });
 
@@ -571,9 +585,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             try
             {
                 ParallelOptions po = new ParallelOptions();
-                po.MaxDegreeOfParallelism = NumThreads / 2;
-                if (po.MaxDegreeOfParallelism < 2)
-                    po.MaxDegreeOfParallelism = 2;
+                po.MaxDegreeOfParallelism = NumThreads;
+
 
 #if (ThreadedScan)
                 await Task.Run(() => Parallel.For(0, pcc.Exports.Count, po, i =>
@@ -583,11 +596,15 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 {
                     ExportEntry export = pcc.Exports[i];
                     if (!export.ValidTextureClass())
+                    {
+                        export.Dispose();
 #if (ThreadedScan)
                         return;
 #else
                         continue;
 #endif
+                    }
+
                     Texture2D tex2D = null;
                     try
                     {
@@ -606,27 +623,33 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                     // Skip if no images
                     if (tex2D.ImageList.Count == 0)
+                    {
+                        export.Dispose();
+                        tex2D.Dispose();
 #if (ThreadedScan)
                         return;
 #else
                         continue;
 #endif
+                    }
 
                     try
                     {
-                        TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs);  // Tex2D disposed of during thumbnail creation.
+                        TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs, Errors);
                         CurrentTree.AddTexture(info);
                     }
                     catch(Exception e)
                     {
                         Errors.Add(e.ToString());
                     }
+                    finally
+                    {
+                        export.Dispose();  // Can't explicitly dispose of tex2D as it's done in thumbnail creation.
+                    }
 
-
-                    export.Dispose();
 
 #if (ThreadedScan)
-                }));
+                })).ConfigureAwait(false);
 #else
                 }
 #endif
@@ -652,38 +675,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             Progress++;
             Status = $"Scanning: {Progress} / {MaxProgress}";         
-        }
-
-        string ScanPCCForTextures(string filename, Dictionary<string, MemoryStream> TFCs)
-        {
-            try
-            {
-                using (PCCObject pcc = new PCCObject(filename, GameVersion))
-                {
-                    for (int i = 0; i < pcc.Exports.Count; i++)
-                    {
-                        ExportEntry export = pcc.Exports[i];
-                        if (!export.ValidTextureClass())
-                            continue;
-
-                        Texture2D tex2D = new Texture2D(pcc, i, GameVersion);
-
-                        // Skip if no images
-                        if (tex2D.ImageList.Count == 0)
-                            continue;
-
-                        TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs);
-                        CurrentTree.AddTexture(info);
-                    }
-                }
-            }
-            catch(Exception e)
-            {
-                DebugOutput.PrintLn($"Failed to scan PCC: {filename}. Reason: {e.ToString()}");
-                return e.Message;
-            }
-
-            return null;
         }
 
         void ConstructTree()

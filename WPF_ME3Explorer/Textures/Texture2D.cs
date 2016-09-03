@@ -9,6 +9,7 @@ using AmaroK86.MassEffect3.ZlibBlock;
 using CSharpImageLibrary;
 using UsefulThings;
 using WPF_ME3Explorer.PCCObjectsAndBits;
+using System.Diagnostics;
 
 namespace WPF_ME3Explorer.Textures
 {
@@ -302,10 +303,10 @@ namespace WPF_ME3Explorer.Textures
                     {
                         if (String.Compare(texName, temp.Exports[i].ObjectName, true) == 0 && temp.Exports[i].ValidTextureClass())
                         {
-                            Texture2D temptex = new Texture2D(temp, i, 1);
-                            imgBuffer = temptex.ExtractImage(imgInfo.ImageSize);
-                            if (imgBuffer != null)
-                                break;
+                            Texture2D temptex = new Texture2D(temp, i, GameVersion); 
+                            byte[] tempBuffer = temptex.ExtractImage(imgInfo.ImageSize);
+                            if (tempBuffer != null)
+                                imgBuffer = tempBuffer;   // Should really just be able to exit here, but for some reason, you can't. Early exports seem to be broken in some way, so you have to extract all the damn things.
                         }
                     }
                     break;
@@ -320,6 +321,11 @@ namespace WPF_ME3Explorer.Textures
                     throw new FormatException("Unsupported texture storage type");
             }
 
+            return AddDDSHeader(imgBuffer, imgInfo);
+        }
+
+        byte[] AddDDSHeader(byte[] imgBuffer, ImageInfo imgInfo)
+        {
             using (MemoryStream ms = new MemoryStream())
             {
                 using (BinaryWriter bw = new BinaryWriter(ms, Encoding.Default, true))

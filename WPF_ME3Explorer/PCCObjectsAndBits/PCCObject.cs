@@ -153,7 +153,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             try
             {
                 using (FileStream fs = new FileStream(pccFileName, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
-                    await fs.CopyToAsync(tempStream);
+                    await fs.CopyToAsync(tempStream).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -302,7 +302,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             SaltLZOHelper lzo = new SaltLZOHelper();
 
             DebugOutput.PrintLn("File is compressed");
-            listsStream = await Task.Run(() => lzo.DecompressPCC(tempStream, this));
+            listsStream = await Task.Run(() => lzo.DecompressPCC(tempStream, this)).ConfigureAwait(false);
 
             //Correct the header
             compressed = false;
@@ -373,7 +373,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
                     listsStream.Seek(blockList[i].uncOffset, SeekOrigin.Begin);
                     listsStream.WriteBytes(ZBlock.Decompress(tempStream, blockList[i].cprSize));
                 }
-            });
+            }).ConfigureAwait(false);
         }
 
 

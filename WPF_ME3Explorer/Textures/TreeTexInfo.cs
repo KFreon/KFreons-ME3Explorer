@@ -133,7 +133,7 @@ namespace WPF_ME3Explorer.Textures
 
         }
 
-        public TreeTexInfo(Texture2D tex2D, ThumbnailWriter ThumbWriter, ExportEntry export, Dictionary<string, MemoryStream> TFCs) : this()
+        public TreeTexInfo(Texture2D tex2D, ThumbnailWriter ThumbWriter, ExportEntry export, Dictionary<string, MemoryStream> TFCs, IList<string> Errors) : this()
         {
             TexName = tex2D.texName;
             Format = tex2D.texFormat;
@@ -181,7 +181,7 @@ namespace WPF_ME3Explorer.Textures
             Hash = hash;
 
             // Don't generate thumbnail till necessary i.e. not a duplicate texture - This is done after the check in the TreeDB
-            GenerateThumbnail = new Action(() => CreateThumbnail(imgData, tex2D, ThumbWriter, info, TFCs));
+            GenerateThumbnail = new Action(() => CreateThumbnail(imgData, tex2D, ThumbWriter, info, TFCs, Errors));
 
             for (int i = 0; i < tex2D.allPccs.Count; i++)
                 PCCS.Add(new PCCEntry(tex2D.allPccs[i], tex2D.expIDs[i]));
@@ -193,6 +193,11 @@ namespace WPF_ME3Explorer.Textures
                 FullPackage = export.PackageFullName.ToUpperInvariant();
         }
 
+
+        /// <summary>
+        /// Creates Thumbnail given no assistance i.e. creates PCCObject and Texture2D.
+        /// </summary>
+        /// <returns>MemoryStream containing thumbnail.</returns>
         public MemoryStream CreateThumbnail()
         {
             using (PCCObject pcc = new PCCObject(PCCS[0].Name, GameVersion))
@@ -212,7 +217,7 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        void CreateThumbnail(byte[] imgData, Texture2D tex2D, ThumbnailWriter ThumbWriter, ImageInfo info, Dictionary<string, MemoryStream> TFCs)
+        void CreateThumbnail(byte[] imgData, Texture2D tex2D, ThumbnailWriter ThumbWriter, ImageInfo info, Dictionary<string, MemoryStream> TFCs, IList<string> Errors)
         {
             byte[] thumbImageData = imgData;
 
@@ -236,10 +241,13 @@ namespace WPF_ME3Explorer.Textures
                 catch(Exception e)
                 {
                     Debug.WriteLine($"Failed to create thumbnail for {tex2D.texName} in {tex2D.allPccs[0]}. Reason: {e.ToString()}.");
+                    Errors.Add(e.ToString());
+                }
+                finally
+                {
+                    tex2D.Dispose();
                 }
             }
-
-            tex2D.Dispose();
         }
 
         public void ReorderME2Files()
