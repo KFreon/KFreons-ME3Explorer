@@ -70,7 +70,8 @@ namespace WPF_ME3Explorer.Textures
         public List<int> expIDs { get; set; }
         public int pccExpIdx { get; set; }
 
-        public static List<string> ME3TFCs = new List<string>();
+        public static IEnumerable<string> ME3TFCs = null;
+        public static IEnumerable<string> ME2TFCs = null;
         public static Dictionary<string, string> ME1_Filenames_Paths = new Dictionary<string, string>();
 
 
@@ -96,6 +97,13 @@ namespace WPF_ME3Explorer.Textures
                     ME1_Filenames_Paths.Add(tempFile, GameFiles[i]);
                 }
             }
+
+            // Doesn't matter that it does ME2 and 3, it's all deferred evaluation, so it only assigns a "job" to each one and doesn't do anything with it unless asked to.
+            if (ME3TFCs == null)
+                ME3TFCs = MEDirectories.MEDirectories.ME3Files.Where(file => file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase));
+
+            if (ME2TFCs == null)
+                ME2TFCs = MEDirectories.MEDirectories.ME2Files.Where(file => file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase));
         }
 
 
@@ -190,7 +198,7 @@ namespace WPF_ME3Explorer.Textures
             MemoryStream dataStream = new MemoryStream(imageData);  // FG: we will move forward with the memorystream (we are reading an export entry for a texture object data inside the pcc)
 
             // Don't know why...
-            if (GameVersion == 1)
+            if (GameVersion != 3)
                 dataStream.Seek(4, SeekOrigin.Current);  
 
             numMipMaps = dataStream.ReadUInt32();                 // FG: 1st int32 (4 bytes / 32bits) is number of mipmaps
@@ -210,13 +218,14 @@ namespace WPF_ME3Explorer.Textures
                     imgInfo.Offset = (int)dataStream.Position; // saving pcc offset as relative to exportdata offset, not absolute
                     dataStream.Seek(imgInfo.UncompressedSize, SeekOrigin.Current);       // FG: if local storage, texture data follows, so advance datastream to after uncompressed_size (pcc storage type only)
                 }
-                else if (imgInfo.storageType == storage.pccCpr)
+                else if (imgInfo.storageType == storage.pccCpr)  // ME1 only
                 {
                     imgInfo.Offset = (int)dataStream.Position;
                     dataStream.Seek(imgInfo.CompressedSize, SeekOrigin.Current);
                 }
                 else if (imgInfo.storageType == storage.arcCpr || imgInfo.storageType == storage.arcUnc)
                     ArcDataSize += imgInfo.UncompressedSize;
+
                 imgInfo.ImageSize = new ImageSize(dataStream.ReadUInt32(), dataStream.ReadUInt32());  // FG: 6th & 7th [or nth and (nth + 1) if local] int32 are width x height
 
                 // KFreon: Test - instead of filtering out the null entries later, just don't add them here.
@@ -256,72 +265,84 @@ namespace WPF_ME3Explorer.Textures
                     break;
                 case storage.ME3arcCpr:
                 case storage.arcUnc:
-                    string archivePath = FullArcPath;
-                    if (String.IsNullOrEmpty(archivePath))
-                        archivePath = GetTexArchive();
-
-                    if (archivePath == null)
-                        throw new FileNotFoundException("Texture archive not found!");
-                    if (!File.Exists(archivePath))
-                        throw new FileNotFoundException("Texture archive not found in " + archivePath);
-
-                    // Treescanning uses full list of TFCs read in, switch based on whether scanning or just getting texture.
-                    Stream archiveStream = null;
-                    if (TFCs != null)
-                        archiveStream = TFCs[archivePath];
-                    else
-                        archiveStream = File.OpenRead(archivePath);
-
-                    lock (archiveStream)
-                    {
-                        archiveStream.Seek(imgInfo.Offset, SeekOrigin.Begin);
-                        if (imgInfo.storageType == storage.ME3arcCpr)
-                            imgBuffer = ZBlock.Decompress(archiveStream, imgInfo.CompressedSize);
-                        else
-                        {
-                            imgBuffer = new byte[imgInfo.UncompressedSize];
-                            archiveStream.Read(imgBuffer, 0, imgBuffer.Length);
-                        }
-                    }
-
-                    // Can dispose of stream if not treescanning
-                    if (TFCs == null)
-                        archiveStream.Dispose();
+                    imgBuffer = ExtractME2_3ArcTex(TFCs, imgInfo);
                     break;
-                case storage.arcCpr:  // ME1, ME2?
-                    archivePath = FullArcPath;
-                    if (String.IsNullOrEmpty(archivePath))
-                        archivePath = FindFile();
-
-                    if (archivePath == null)
-                        throw new FileNotFoundException("Texture archive not found!");
-                    if (!File.Exists(archivePath))
-                        throw new FileNotFoundException("Texture archive not found in " + archivePath);
-
-                    PCCObject temp = new PCCObject(archivePath, GameVersion);
-                    for (int i = 0; i < temp.Exports.Count; i++)
+                case storage.arcCpr:  // ME1 only
+                    if (GameVersion == 2)
+                        imgBuffer = ExtractME2_3ArcTex(TFCs, imgInfo);
+                    else
                     {
-                        if (String.Compare(texName, temp.Exports[i].ObjectName, true) == 0 && temp.Exports[i].ValidTextureClass())
+                        string archivePath = FullArcPath;
+                        if (String.IsNullOrEmpty(archivePath))
+                            archivePath = FindFile();
+
+                        if (archivePath == null)
+                            throw new FileNotFoundException("Texture archive not found!");
+                        if (!File.Exists(archivePath))
+                            throw new FileNotFoundException("Texture archive not found in " + archivePath);
+
+                        PCCObject temp = new PCCObject(archivePath, GameVersion);
+                        for (int i = 0; i < temp.Exports.Count; i++)
                         {
-                            Texture2D temptex = new Texture2D(temp, i, GameVersion); 
-                            byte[] tempBuffer = temptex.ExtractImage(imgInfo.ImageSize);
-                            if (tempBuffer != null)
-                                imgBuffer = tempBuffer;   // Should really just be able to exit here, but for some reason, you can't. Early exports seem to be broken in some way, so you have to extract all the damn things.
+                            if (String.Compare(texName, temp.Exports[i].ObjectName, true) == 0 && temp.Exports[i].ValidTextureClass())
+                            {
+                                Texture2D temptex = new Texture2D(temp, i, GameVersion);
+                                byte[] tempBuffer = temptex.ExtractImage(imgInfo.ImageSize);
+                                if (tempBuffer != null)
+                                    imgBuffer = tempBuffer;   // Should really just be able to exit here, but for some reason, you can't. Early exports seem to be broken in some way, so you have to extract all the damn things.
+                            }
                         }
                     }
                     break;
                 case storage.pccCpr:
                     using (MemoryStream ms = new MemoryStream(imageData))
-                    {
-                        SaltLZOHelper lzohelp = new SaltLZOHelper();
-                        imgBuffer = lzohelp.DecompressTex(ms, imgInfo.Offset, imgInfo.UncompressedSize, imgInfo.CompressedSize);
-                    }
+                        imgBuffer = SaltLZOHelper.DecompressTex(ms, imgInfo.Offset, imgInfo.UncompressedSize, imgInfo.CompressedSize);
                     break;
                 default:
                     throw new FormatException("Unsupported texture storage type");
             }
 
             return AddDDSHeader(imgBuffer, imgInfo);
+        }
+
+        byte[] ExtractME2_3ArcTex(Dictionary<string, MemoryStream> TFCs, ImageInfo imgInfo)
+        {
+            byte[] imgBuffer = null;
+            string archivePath = FullArcPath;
+            if (String.IsNullOrEmpty(archivePath))
+                archivePath = GetTexArchive();
+
+            if (archivePath == null)
+                throw new FileNotFoundException("Texture archive not found!");
+            if (!File.Exists(archivePath))
+                throw new FileNotFoundException("Texture archive not found in " + archivePath);
+
+            // Treescanning uses full list of TFCs read in, switch based on whether scanning or just getting texture.
+            Stream archiveStream = null;
+            if (TFCs != null)
+                archiveStream = TFCs[archivePath];
+            else
+                archiveStream = File.OpenRead(archivePath);
+
+            lock (archiveStream)
+            {
+                archiveStream.Seek(imgInfo.Offset, SeekOrigin.Begin);
+                if (imgInfo.storageType == storage.ME3arcCpr)
+                    imgBuffer = ZBlock.Decompress(archiveStream, imgInfo.CompressedSize);
+                else if (imgInfo.storageType == storage.arcCpr) // ME2
+                    imgBuffer = SaltLZOHelper.DecompressTex(archiveStream, imgInfo.Offset, imgInfo.UncompressedSize, imgInfo.CompressedSize);
+                else
+                {
+                    imgBuffer = new byte[imgInfo.UncompressedSize];
+                    archiveStream.Read(imgBuffer, 0, imgBuffer.Length);
+                }
+            }
+
+            // Can dispose of stream if not a memory-loaded ME2 or 3 TFC
+            if (TFCs == null)
+                archiveStream.Dispose();
+
+            return imgBuffer;
         }
 
         byte[] AddDDSHeader(byte[] imgBuffer, ImageInfo imgInfo)
@@ -572,8 +593,7 @@ namespace WPF_ME3Explorer.Textures
                     using (MemoryStream dataStream = new MemoryStream())
                     {
                         dataStream.WriteBytes(imageData);
-                        SaltLZOHelper lzohelper = new SaltLZOHelper();
-                        imgBuffer = lzohelper.CompressTex(imgFile.Save(imgFile.Format.SurfaceFormat, MipHandling.KeepExisting));
+                        imgBuffer = SaltLZOHelper.CompressTex(imgFile.Save(imgFile.Format.SurfaceFormat, MipHandling.KeepExisting));
                         if (imgBuffer.Length <= imgInfo.CompressedSize && imgInfo.Offset > 0)
                             dataStream.Seek(imgInfo.Offset, SeekOrigin.Begin);
                         else
@@ -949,7 +969,7 @@ namespace WPF_ME3Explorer.Textures
 
         private String GetTexArchive()
         {
-            // Currently ME1 and 2 never get here. They use FindFile.
+            // Currently ME1 never gets here. Uses FindFile
             if (!String.IsNullOrEmpty(arcName))
             {
                 int dotInd = arcName.IndexOf('.');
@@ -957,13 +977,11 @@ namespace WPF_ME3Explorer.Textures
                     arcName = arcName.Substring(0, dotInd);
             }
 
+            var TFCs = GameVersion == 3 ? ME3TFCs : ME2TFCs;
 
-            if (ME3TFCs.Count == 0)
-                ME3TFCs = MEDirectories.MEDirectories.ME3Files.Where(file => file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList();
-
-            string arc =  ME3TFCs.Where(file => String.Compare(Path.GetFileNameWithoutExtension(file), arcName, true) == 0).FirstOrDefault();
+            string arc = TFCs.Where(file => String.Compare(Path.GetFileNameWithoutExtension(file), arcName, true) == 0).FirstOrDefault();
             if (arc == null)
-                throw new FileNotFoundException($"Texture archive called {arcName} not found in BIOGame.");
+                throw new FileNotFoundException($"Texture archive called {arcName} not found.");
             else
             {
                 FullArcPath = Path.GetFullPath(arc);

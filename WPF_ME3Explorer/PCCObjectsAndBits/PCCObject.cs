@@ -48,11 +48,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
         int ExportOffset { get { return BitConverter.ToInt32(header, idxOffsets + 12); } set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, header, idxOffsets + 12, sizeof(int)); } }
         int ImportCount { get { return BitConverter.ToInt32(header, idxOffsets + 16); } set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, header, idxOffsets + 16, sizeof(int)); } }
         int ImportOffset { get { return BitConverter.ToInt32(header, idxOffsets + 20); } set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, header, idxOffsets + 20, sizeof(int)); } }
-
-        int expInfoEndOffset { get { return BitConverter.ToInt32(header, idxOffsets + 24); } set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, header, idxOffsets + 24, sizeof(int)); } }
-
-        // LIKELY A PROBLEM HERE for ME1
-        int expDataBegOffset { get { return BitConverter.ToInt32(header, idxOffsets + 28); } set { Buffer.BlockCopy(BitConverter.GetBytes(value), 0, header, idxOffsets + 28, sizeof(int)); Buffer.BlockCopy(BitConverter.GetBytes(value), 0, header, 8, sizeof(int)); } }
+       
         int headerEnd;
         public bool Loaded = false;
 
@@ -110,6 +106,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
         /// <summary>
         /// Creates PCC Object from existing stream. 
         /// Filename is not used for reading, just labelling.
+        /// DO NOT DISPOSE of stream before end of object life.
         /// </summary>
         /// <param name="filePath">Path to file represented in <paramref name="stream"/>.</param>
         /// <param name="stream">Stream containing entire pcc file to read from.</param>
@@ -117,7 +114,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
         public PCCObject(string filePath, MemoryStream stream, int gameVersion) : this(gameVersion)
         {
             pccFileName = filePath;
-            PCCObjectHelper(stream, filePath).Wait();
+            PCCObjectHelper(stream, filePath);
         }
 
         /// <summary>
@@ -161,27 +158,28 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
                 DebugOutput.PrintLn($"Failed to read PCC: {filePath}. Reason: {e.ToString()}.");
             }
 
-            await PCCObjectHelper(tempStream, filePath);
+            await Task.Run(() => PCCObjectHelper(tempStream, filePath));
         }
 
-        async Task PCCObjectHelper(MemoryStream tempStream, string filePath)
+        void PCCObjectHelper(MemoryStream tempStream, string filePath)
         {
             tempStream.Seek(0, SeekOrigin.Begin);
             Names = new List<string>();
             Imports = new List<ImportEntry>();
             Exports = new List<ExportEntry>();
 
-            if (GameVersion == 1)
+            if (GameVersion != 3)
             {
-                // Find ME1 header...Why so difficult ME1?
+                // Find ME1 and 2 header...Why so difficult ME1 and 2?
                 tempStream.Seek(12, SeekOrigin.Begin);
                 int tempNameSize = tempStream.ReadInt32();
                 tempStream.Seek(64 + tempNameSize, SeekOrigin.Begin);
                 int tempGenerator = tempStream.ReadInt32();
                 tempStream.Seek(36 + tempGenerator * 12, SeekOrigin.Current);
-                int tempPos = (int)tempStream.Position + 4;
+                int tempPos = (int)tempStream.Position + (GameVersion == 2 ? 0 : 4);
                 tempStream.Seek(0, SeekOrigin.Begin);
                 header = tempStream.ReadBytes(tempPos);
+                tempStream.Seek(0, SeekOrigin.Begin);
             }
             else
                 header = tempStream.ReadBytes(headerSize);
@@ -196,18 +194,14 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             if (compressed)
             {
                 if (GameVersion == 3)
-                    await ReadCompressedME3(tempStream);
+                    ReadCompressedME3(tempStream);
                 else
-                    await ReadCompressedME1(tempStream);
+                    ReadCompressedME1And2(tempStream);
 
                 compressed = false;
             }
             else
-            {
-                listsStream = new MemoryStream();
-                tempStream.WriteTo(listsStream);
-            }
-            tempStream.Dispose();
+                listsStream = tempStream;
 
             //Fill name list
             listsStream.Seek(NameOffset, SeekOrigin.Begin);
@@ -216,10 +210,18 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
                 int strLength = listsStream.ReadInt32();
                 string name = null;
 
-                if (GameVersion == 3)
-                    name = ReadME3Name(strLength);
-                else
-                    name = ReadME1Name(strLength);
+                switch (GameVersion)
+                {
+                    case 1:
+                        name = ReadME1Name(strLength);
+                        break;
+                    case 2:
+                        name = ReadME2Name(strLength);
+                        break;
+                    case 3:
+                        name = ReadME3Name(strLength);
+                        break;
+                }
 
                 Names.Add(name);               
             }
@@ -290,6 +292,15 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             return s;
         }
 
+        string ReadME2Name(int len)
+        {
+            byte[] data = new byte[len - 1];
+            listsStream.Read(data, 0, data.Length);
+            string s = Encoding.ASCII.GetString(data, 0, data.Length).TrimEnd('\0');
+            listsStream.Seek(5, SeekOrigin.Current);
+            return s;
+        }
+
         string ReadME3Name(int strLength)
         {
             byte[] data = new byte[strLength * -2];
@@ -297,12 +308,10 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             return Encoding.Unicode.GetString(data, 0, data.Length).TrimEnd('\0');
         }
 
-        async Task ReadCompressedME1(MemoryStream tempStream)
+        void ReadCompressedME1And2(MemoryStream tempStream)
         {
-            SaltLZOHelper lzo = new SaltLZOHelper();
-
             DebugOutput.PrintLn("File is compressed");
-            listsStream = await Task.Run(() => lzo.DecompressPCC(tempStream, this)).ConfigureAwait(false);
+            listsStream = SaltLZOHelper.DecompressPCC(tempStream, this);
 
             //Correct the header
             compressed = false;
@@ -311,13 +320,22 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
 
             // Set numblocks to zero
             listsStream.WriteInt32(0);
+            
             //Write the magic number
-            listsStream.WriteBytes(new byte[] { 0xF2, 0x56, 0x1B, 0x4E });
+            if (GameVersion == 1)
+                listsStream.WriteBytes(new byte[] { 0xF2, 0x56, 0x1B, 0x4E });
+            else
+                listsStream.WriteInt32(1026281201);
+            
             // Write 4 bytes of 0
             listsStream.WriteInt32(0);
+
+            // Write 4 more for ME2
+            if (GameVersion == 2)
+                listsStream.WriteInt32(0);
         }
 
-        async Task ReadCompressedME3(MemoryStream tempStream)
+        void ReadCompressedME3(MemoryStream tempStream)
         {
             List<Block> blockList = null;
 
@@ -364,16 +382,12 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
 
             //Decompress ALL blocks
             listsStream = new MemoryStream();
-
-            await Task.Run(() =>
+            for (int i = 0; i < blockCount; i++)
             {
-                for (int i = 0; i < blockCount; i++)
-                {
-                    tempStream.Seek(blockList[i].cprOffset, SeekOrigin.Begin);
-                    listsStream.Seek(blockList[i].uncOffset, SeekOrigin.Begin);
-                    listsStream.WriteBytes(ZBlock.Decompress(tempStream, blockList[i].cprSize));
-                }
-            }).ConfigureAwait(false);
+                tempStream.Seek(blockList[i].cprOffset, SeekOrigin.Begin);
+                listsStream.Seek(blockList[i].uncOffset, SeekOrigin.Begin);
+                listsStream.WriteBytes(ZBlock.Decompress(tempStream, blockList[i].cprSize));
+            }
         }
 
 

@@ -112,7 +112,7 @@
                 <HierarchicalDataTemplate ItemsSource="{Binding Folders}">
                     <StackPanel Orientation="Horizontal" Background="Transparent">
                         <StackPanel.ContextMenu>
-                            <ContextMenu>
+                            <ContextMenu IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}">
                                 <MenuItem Header="Regenerate Thumbnails (current Folder only)" Command="{Binding RegenerateThumbsCommand}"/>
                                 <MenuItem Header="Regenerate Sub Folder Thumbnails (incl this)" Command="{Binding RegenerateSubThumbsCommand}"/>
                             </ContextMenu>
@@ -175,7 +175,7 @@
                 <DataTemplate>
                     <DockPanel x:Name="MainListView" MouseDown="MainListView_MouseDown">
                         <DockPanel.ContextMenu>
-                            <ContextMenu>
+                            <ContextMenu IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}">
                                 <ContextMenu.Resources>
                                     <Style x:Key="ME1_ItemsStyle" TargetType="MenuItem">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -214,14 +214,14 @@
                             <DataTrigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <ColorAnimation Storyboard.TargetProperty="(Grid.Background).(SolidColorBrush.Color)" From="Transparent" To="#CC808080" Duration="0:0:0.5" DecelerationRatio="1">
+                                        <ColorAnimation Storyboard.TargetProperty="(Grid.Background).(SolidColorBrush.Color)" From="Transparent" To="#CC000000" Duration="0:0:0.5" DecelerationRatio="1">
                                             <ColorAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseOut"/>
                                             </ColorAnimation.EasingFunction>
                                         </ColorAnimation>
 
                                         <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
-                                            <DiscreteObjectKeyFrame KeyTime="0:0:0.5" Value="{x:Static Visibility.Visible}"/>
+                                            <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
                                         </ObjectAnimationUsingKeyFrames>
                                     </Storyboard>
                                 </BeginStoryboard>
@@ -442,14 +442,37 @@
                     <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Collapsed}"/>
                 </ObjectAnimationUsingKeyFrames>
 
-                <Storyboard x:Key="ClosePanelAnimation">
+                <Storyboard x:Key="TreeScanClosePanelAnimation">
                     <StaticResource ResourceKey="TreeScanPanelClose"/>
                     <StaticResource ResourceKey="TreeScanBackGroundFader"/>
                     <StaticResource ResourceKey="TreeScanBackGroundVisibility"/>
                 </Storyboard>
+
+                <Storyboard x:Key="ProgressPanelOpener">
+                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="Visibility">
+                        <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Visible}"/>
+                    </ObjectAnimationUsingKeyFrames>
+
+                    <DoubleAnimation Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:1" DecelerationRatio="1">
+                        <DoubleAnimation.EasingFunction>
+                            <CubicEase EasingMode="EaseOut"/>
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                </Storyboard>
             </Grid.Resources>
 
             <Grid x:Name="TreeScanPanel"  Background="White" HorizontalAlignment="Right" Margin="0,0,0,0.333" Width="1500">
+                <Grid.Resources>
+                    <Style TargetType="Button">
+                        <Setter Property="IsEnabled" Value="True"/>
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Busy}" Value="true">
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Resources>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition/>
                     <ColumnDefinition Width="354"/>
@@ -459,10 +482,10 @@
                     <RowDefinition Height="713*"/>
                 </Grid.RowDefinitions>
 
-                <Button Content="-->" VerticalAlignment="Center" HorizontalAlignment="Left" Background="White" FontSize="20" Height="31" Margin="0,10,0,9.667" Width="34">
+                <Button Content="-->" VerticalAlignment="Center" HorizontalAlignment="Left" Background="White" FontSize="20" Height="31" Margin="0,10,0,9.667" Width="34" Style="{x:Null}">
                     <Button.Triggers>
                         <EventTrigger RoutedEvent="Button.Click">
-                            <BeginStoryboard Storyboard="{StaticResource ClosePanelAnimation}"/>
+                            <BeginStoryboard Storyboard="{StaticResource TreeScanClosePanelAnimation}"/>
                         </EventTrigger>
                     </Button.Triggers>
                 </Button>
@@ -498,20 +521,8 @@
 
                         <Button.Triggers>
                             <EventTrigger RoutedEvent="Button.Click">
-                                <BeginStoryboard Storyboard="{StaticResource ClosePanelAnimation}"/>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TreeScanProgressPanel" Storyboard.TargetProperty="Visibility">
-                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Visible}"/>
-                                        </ObjectAnimationUsingKeyFrames>
-
-                                        <DoubleAnimation Storyboard.TargetName="TreeScanProgressPanel" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:1" DecelerationRatio="1">
-                                            <DoubleAnimation.EasingFunction>
-                                                <CubicEase EasingMode="EaseOut"/>
-                                            </DoubleAnimation.EasingFunction>
-                                        </DoubleAnimation>
-                                    </Storyboard>
-                                </BeginStoryboard>
+                                <BeginStoryboard Storyboard="{StaticResource TreeScanClosePanelAnimation}"/>
+                                <BeginStoryboard Storyboard="{StaticResource ProgressPanelOpener}"/>
                             </EventTrigger>
                         </Button.Triggers>
                     </Button>
@@ -560,7 +571,7 @@
                         <DockPanel Grid.Column="2">
                             <Label Content="Excluded from Tree Scan"/>
                             <TextBox Text="{Binding FTSExclusionsSearch, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Template="{StaticResource SearchBoxTemplate}" Tag="Search..."/>
-                            <ListBox x:Name="ExclusionsListBox" ItemsSource="{Binding ExclusionsItemsView}" Background="Pink"/>
+                            <ListBox x:Name="ExclusionsListBox" ItemsSource="{Binding ExclusionsItemsView}" Background="Pink" Margin="5,0" Style="{x:Null}"/>
                         </DockPanel>
                     </Grid>
                 </DockPanel>
@@ -688,7 +699,7 @@
             </Grid>
         </Grid>
 
-        <Grid x:Name="TreeScanProgressPanel" Background="#CC000000" Grid.RowSpan="3" Grid.ColumnSpan="3" Visibility="Collapsed" d:IsHidden="True">
+        <Grid x:Name="ProgressPanel" Background="#CC000000" Grid.RowSpan="3" Grid.ColumnSpan="3" Visibility="Collapsed" d:IsHidden="True">
             <Grid.Resources>
                 <Style TargetType="TextBlock">
                     <Setter Property="Foreground" Value="White"/>
@@ -702,12 +713,12 @@
             <TextBlock x:Name="TreeScanTitle" Text="Tree Scan in progress..." VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="80"/>
             <Button x:Name="HiderButton" Content="Close" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="30" Background="Transparent" BorderBrush="White" Foreground="White" Padding="10,2">
                 <Button.Resources>
-                    <Storyboard x:Key="TreeScanProgressPanelCloser">
-                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TreeScanProgressPanel" Storyboard.TargetProperty="Visibility">
+                    <Storyboard x:Key="ProgressPanelCloser">
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="Visibility">
                             <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Collapsed}"/>
                         </ObjectAnimationUsingKeyFrames>
 
-                        <DoubleAnimation Storyboard.TargetName="TreeScanProgressPanel" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:1" DecelerationRatio="1">
+                        <DoubleAnimation Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:1" DecelerationRatio="1">
                             <DoubleAnimation.EasingFunction>
                                 <CubicEase EasingMode="EaseOut"/>
                             </DoubleAnimation.EasingFunction>
@@ -716,7 +727,7 @@
                 </Button.Resources>
                 <Button.Triggers>
                     <EventTrigger RoutedEvent="Button.Click">
-                        <BeginStoryboard Storyboard="{StaticResource TreeScanProgressPanelCloser}"/>
+                        <BeginStoryboard Storyboard="{StaticResource ProgressPanelCloser}"/>
                     </EventTrigger>
                 </Button.Triggers>
             </Button>

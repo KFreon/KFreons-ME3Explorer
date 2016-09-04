@@ -74,8 +74,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         #region UI Actions
         public Action TreePanelCloser = null;
-        public Action TreeScanProgressCloser = null;
+        public Action ProgressOpener = null;
         public Action TreePanelOpener = null;
+        public Action ProgressCloser = null;
         #endregion UI Actions
 
         #region Properties
@@ -173,6 +174,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
         }
 
         bool ftsReady = false;
+        
+
         public bool FTSReady
         {
             get
@@ -254,7 +257,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             TreeTexInfo.RegenerateThumbCommand = new CommandHandler(new Action<object>(async tex =>
             {
-                await RegenerateThumbs((TreeTexInfo)tex);
+                await Task.Run(() =>RegenerateThumbs((TreeTexInfo)tex)).ConfigureAwait(false);
             }));
 
             TexplorerTextureFolder.RegenerateThumbsDelegate = RegenerateThumbs;
@@ -267,39 +270,53 @@ namespace WPF_ME3Explorer.UI.ViewModels
             BeginTreeLoading();
         }
 
-        internal async Task RegenerateThumbs(params TreeTexInfo[] textures)
+        internal void RegenerateThumbs(params TreeTexInfo[] textures)
         {
+            Busy = true;
             List<TreeTexInfo> texes = new List<TreeTexInfo>();
 
             // No args = regen everything
             if (textures?.Length < 1)
                 texes.AddRange(Textures);
 
+            // Open Progress Panel if worth it.
+            if (texes.Count > 10)
+                ProgressOpener();
+
             DebugOutput.PrintLn($"Regenerating {texes.Count} thumbnails...");
-            Status = $"Regenerating {texes.Count} thumbnails...";
+
+            ParallelOptions po = new ParallelOptions();
+            po.MaxDegreeOfParallelism = NumThreads;
+            MaxProgress = texes.Count;
+            Progress = 0;
 
             ThumbnailWriter.BeginAdding();
             int errors = 0;
-            //foreach (var tex in texes)
-            await Task.Run(() =>
+            Parallel.ForEach(texes, po, tex =>
             {
-                Parallel.ForEach(texes, tex =>
+                try
                 {
-                    try
-                    {
-                        ThumbnailWriter.ReplaceOrAdd(tex);
-                    }
-                    catch (Exception e)
-                    {
-                        errors++;
-                        DebugOutput.PrintLn($"Unable to regenerate thumbnail for {tex.TexName}. Reason: {e.ToString()}.");
-                    }
-                });
-            }).ConfigureAwait(false);
+                    Status = $"Regenerating Thumbnails: {Progress} of {MaxProgress}";
+                    tex.Thumb = ThumbnailWriter.ReplaceOrAdd(tex);
+                    Progress++;
+                }
+                catch (Exception e)
+                {
+                    errors++;
+                    DebugOutput.PrintLn($"Unable to regenerate thumbnail for {tex.TexName}. Reason: {e.ToString()}.");
+                }
+            });
 
             Status = $"Regenerated {texes.Count - errors} thumbnails" + (errors == 0 ? "." : $" with {errors} errors.");
+            Progress = MaxProgress;
 
             ThumbnailWriter.FinishAdding();
+
+            // Close Progress Panel if previously opened.
+            if (texes.Count > 10)
+                ProgressCloser();
+
+            Busy = false;
         }
 
         async void BeginTreeLoading()
@@ -435,11 +452,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             await BeginScanningPCCs();
 
-            // Reorder ME2 Game files
+            // Reorder ME2 Game files - DISABLED FOR NOW - Think it should be in the loader for Texture2D. Think I was hoping I could intialise things with this.
             if (GameVersion == 2)
             {
                 DebugOutput.PrintLn("Reordering ME2 textures...");
-                await Task.Run(() => Parallel.ForEach(CurrentTree.Textures, tex => tex.ReorderME2Files())).ConfigureAwait(false);  // This should be fairly quick so let the runtime deal with threading.
+                //await Task.Run(() => Parallel.ForEach(CurrentTree.Textures, tex => tex.ReorderME2Files())).ConfigureAwait(false);  // This should be fairly quick so let the runtime deal with threading.
             }
 
             StartTime = 0; // Stop Elapsed Time from counting
@@ -455,7 +472,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             CurrentTree.Valid = true; // It was just scanned after all.
 
             // Put away TreeScanProgress Window
-            TreeScanProgressCloser();
+            ProgressCloser();
+
+            GC.Collect();  // On a high RAM x64 system, things sit around at like 6gb. Might as well clear it.
 
             Busy = false;
         }
@@ -486,7 +505,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             //ME3 only
             Dictionary<string, MemoryStream> TFCs = null;
-            if (GameVersion == 3)
+            if (GameVersion != 1)
             {
                 Status = "Reading TFC's into memory...";
 
@@ -596,7 +615,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     ExportEntry export = pcc.Exports[i];
                     if (!export.ValidTextureClass())
                     {
-                        export.Dispose();
 #if (ThreadedScan)
                         return;
 #else
@@ -612,7 +630,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     catch(Exception e)
                     {
                         Errors.Add(e.ToString());
-                        export.Dispose();
 #if (ThreadedScan)
                         return;
 #else
@@ -623,7 +640,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     // Skip if no images
                     if (tex2D.ImageList.Count == 0)
                     {
-                        export.Dispose();
                         tex2D.Dispose();
 #if (ThreadedScan)
                         return;
@@ -641,12 +657,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     {
                         Errors.Add(e.ToString());
                     }
-                    finally
-                    {
-                        export.Dispose();  // Can't explicitly dispose of tex2D as it's done in thumbnail creation.
-                    }
-
-
 #if (ThreadedScan)
                 })).ConfigureAwait(false);
 #else

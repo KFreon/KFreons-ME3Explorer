@@ -296,10 +296,7 @@ namespace WPF_ME3Explorer.Textures
 
         public bool Equals(TreeTexInfo tex)
         {
-            if (TexName == tex.TexName && Hash != 0 && Hash == tex.Hash)
-                return true; // ME1 thing with packages?
-
-            return false;
+            return TexName == tex.TexName && Hash != 0 && Hash == tex.Hash;
         }
 
         public override bool Equals(object obj)

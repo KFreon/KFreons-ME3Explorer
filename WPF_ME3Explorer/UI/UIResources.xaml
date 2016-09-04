@@ -153,7 +153,7 @@
     </ControlTemplate>
 
     <ControlTemplate x:Key="TreeIndicators">
-        <StackPanel x:Name="TreeContainer" Orientation="Horizontal" Margin="5,0">
+        <StackPanel x:Name="TreeContainer" Orientation="Horizontal" Margin="5,0" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}">
             <Label Content="Tree Status:" VerticalAlignment="Center"/>
             <Button Content="1" Style="{StaticResource TreeIndicatorStyle}" DataContext="{Binding Trees[0]}" Command="{Binding ElementName=TreeContainer, Path=DataContext.ChangeTreeCommand}" CommandParameter="{Binding}"/>
             <Button Content="2" Style="{StaticResource TreeIndicatorStyle}" DataContext="{Binding Trees[1]}" Command="{Binding ElementName=TreeContainer, Path=DataContext.ChangeTreeCommand}" CommandParameter="{Binding}"/>

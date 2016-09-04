@@ -17,7 +17,7 @@ namespace WPF_ME3Explorer.UI.ValueConverters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             Thumbnail thumb = value as Thumbnail;
-            if (thumb != null)
+            if (thumb != null && !ThumbnailWriter.IsWriting)
             {
                 try
                 {

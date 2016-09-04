@@ -14,6 +14,7 @@ namespace WPF_ME3Explorer.Textures
         public MEDirectories.MEDirectories GameDirecs = null;
         FileStream writer = null;
         static readonly object locker = new object();
+        public static bool IsWriting { get; set; } = false;
 
         public ThumbnailWriter(MEDirectories.MEDirectories gameDirec)
         {
@@ -57,6 +58,7 @@ namespace WPF_ME3Explorer.Textures
             {
                 Directory.CreateDirectory(CachePath.GetDirParent());
                 writer = new FileStream(CachePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+                IsWriting = true;
             }
         }
 
@@ -64,6 +66,8 @@ namespace WPF_ME3Explorer.Textures
         {
             lock (locker)
                 writer.Dispose();
+
+            IsWriting = false;
         }
 
         public void Dispose()
@@ -71,16 +75,16 @@ namespace WPF_ME3Explorer.Textures
             FinishAdding();
         }
 
-        internal void ReplaceOrAdd(TreeTexInfo tex)
+        internal Thumbnail ReplaceOrAdd(TreeTexInfo tex)
         {
             // Generate new thumbnail
             using (MemoryStream stream = tex.CreateThumbnail())
             {
                 // Decide if new thumb can fit where old thumb was
                 if (stream.Length <= tex.Thumb.Length)
-                    tex.Thumb = Add(stream, tex.Thumb.Offset);
+                    return Add(stream, tex.Thumb.Offset);
                 else
-                    tex.Thumb = Add(stream);  // Append otherwise
+                    return Add(stream);  // Append otherwise
             }
         }
     }

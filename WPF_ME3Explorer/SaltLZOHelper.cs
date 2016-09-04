@@ -10,7 +10,7 @@ using WPF_ME3Explorer.PCCObjectsAndBits;
 
 namespace WPF_ME3Explorer
 {
-    public class SaltLZOHelper
+    public static class SaltLZOHelper
     {
         static class x86_Natives
         {
@@ -97,16 +97,13 @@ namespace WPF_ME3Explorer
         const int maxChunkSize = 1048576;
         const int maxBlockSize = 131072;
 
-        public SaltLZOHelper()
-        {
-        }
 
         /// <summary>
         /// Takes regular image data and returns it in a compressed form ready for archiving
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        public byte[] CompressTex(byte[] data)
+        public static byte[] CompressTex(byte[] data)
         {
             int chunkSize = 131072; //Set at this stage. Easy to change later
             int noChunks = (data.Length + chunkSize - 1) / chunkSize;
@@ -171,7 +168,7 @@ namespace WPF_ME3Explorer
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        public byte[] DecompressTex(Stream archiveStream, int offset, int uncSize, int cprSize)
+        public static byte[] DecompressTex(Stream archiveStream, int offset, int uncSize, int cprSize)
         {
             int pos = 0;
             archiveStream.Seek(offset, SeekOrigin.Begin);
@@ -209,7 +206,6 @@ namespace WPF_ME3Explorer
             }
             byte[] rawData = new byte[readCprSize];
             rawData = archiveStream.ReadBytes(readCprSize);
-            archiveStream.Close();
             using (MemoryStream data = new MemoryStream(rawData))
             {
                 for (int i = 0; i < noChunks; i++)
@@ -240,7 +236,7 @@ namespace WPF_ME3Explorer
             return imgBuffer;
         }
 
-        public MemoryStream DecompressPCC(Stream raw, PCCObject pcc)
+        public static MemoryStream DecompressPCC(Stream raw, PCCObject pcc)
         {
             raw.Seek(pcc.header.Length, SeekOrigin.Begin);
             int pos = 4;
@@ -326,7 +322,7 @@ namespace WPF_ME3Explorer
             return result;
         }
 
-        public byte[] CompressChunk(Chunk chunk)
+        public static byte[] CompressChunk(Chunk chunk)
         {
             int numBlocks = (chunk.Uncompressed.Length + maxBlockSize - 1) / maxBlockSize;
             if (numBlocks > 8)

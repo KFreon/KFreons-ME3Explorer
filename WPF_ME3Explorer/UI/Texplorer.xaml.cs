@@ -32,11 +32,20 @@ namespace WPF_ME3Explorer.UI
             InitializeComponent();
             vm = new TexplorerViewModel();
 
-            vm.TreeScanProgressCloser = new Action(() =>
+            vm.ProgressCloser = new Action(() =>
             {
                 HiderButton.Dispatcher.Invoke(() =>   // Not sure if this is necessary, but things aren't working otherwise.
                 {
-                    Storyboard closer = (Storyboard)HiderButton.Resources["TreeScanProgressPanelCloser"];
+                    Storyboard closer = (Storyboard)HiderButton.Resources["ProgressPanelCloser"];
+                    closer.Begin();
+                });
+            });
+
+            vm.ProgressOpener = new Action(() =>
+            {
+                TreeScanBackground.Dispatcher.Invoke(() =>   // Not sure if this is necessary, but things aren't working otherwise.
+                {
+                    Storyboard closer = (Storyboard)TreeScanBackground.Resources["ProgressPanelOpener"];
                     closer.Begin();
                 });
             });
@@ -202,7 +211,7 @@ namespace WPF_ME3Explorer.UI
 
         private void RegenerateTopMenu_Click(object sender, RoutedEventArgs e)
         {
-            vm.RegenerateThumbs();
+            Task.Run(() => vm.RegenerateThumbs());
         }
     }
 }

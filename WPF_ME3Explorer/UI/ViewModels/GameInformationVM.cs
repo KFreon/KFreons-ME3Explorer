@@ -5,12 +5,20 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UsefulThings.WPF;
+using WPF_ME3Explorer.Textures;
 
 namespace WPF_ME3Explorer.UI.ViewModels
 {
     public class GameInformationVM : ViewModelBase
     {
         string biogame = null;
+        public bool SaveEnabled
+        {
+            get
+            {
+                return ThumbnailWriter.IsWriting;
+            }
+        }
 
         public GameInformationVM(int version)
         {

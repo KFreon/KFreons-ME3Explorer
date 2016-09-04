@@ -14,7 +14,7 @@ namespace WPF_ME3Explorer.UI
     {
         public TexplorerTextureFolder ParentFolder = null;
 
-        internal static Func<TreeTexInfo[], Task> RegenerateThumbsDelegate { get; set; }
+        internal static Action<TreeTexInfo[]> RegenerateThumbsDelegate { get; set; }
 
 
         CommandHandler regenerateSubThumbsCommand = null;
@@ -27,7 +27,10 @@ namespace WPF_ME3Explorer.UI
                     if (RegenerateThumbsDelegate == null)
                         return null;
 
-                    regenerateThumbsCommand = new CommandHandler(new Action(async () => await RegenerateThumbsDelegate(TexturesInclSubs.ToArray())));
+                    regenerateThumbsCommand = new CommandHandler(new Action(async () => 
+                    await Task.Run(
+                        () => RegenerateThumbsDelegate(TexturesInclSubs.ToArray())
+                    )));
                 }
 
                 return regenerateSubThumbsCommand;
@@ -44,7 +47,10 @@ namespace WPF_ME3Explorer.UI
                     if (RegenerateThumbsDelegate == null)
                         return null;
 
-                    regenerateThumbsCommand = new CommandHandler(new Action(async () => await RegenerateThumbsDelegate(Textures.ToArray())));
+                    regenerateThumbsCommand = new CommandHandler(new Action(async () => 
+                    await Task.Run(
+                        () => RegenerateThumbsDelegate(Textures.ToArray())
+                    )));
                 }
 
                 return regenerateThumbsCommand;
