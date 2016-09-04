@@ -424,7 +424,7 @@
 
         <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="2" Grid.ColumnSpan="3"/>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black" d:IsHidden="True">
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black">
             <Grid.Resources>
                 <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
                     <DoubleAnimation.EasingFunction>
@@ -571,7 +571,7 @@
                         <DockPanel Grid.Column="2">
                             <Label Content="Excluded from Tree Scan"/>
                             <TextBox Text="{Binding FTSExclusionsSearch, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Template="{StaticResource SearchBoxTemplate}" Tag="Search..."/>
-                            <ListBox x:Name="ExclusionsListBox" ItemsSource="{Binding ExclusionsItemsView}" Background="Pink" Margin="5,0" Style="{x:Null}"/>
+                            <ListBox x:Name="ExclusionsListBox" ItemsSource="{Binding ExclusionsItemsView}" Background="Pink" Margin="5,0"/>
                         </DockPanel>
                     </Grid>
                 </DockPanel>

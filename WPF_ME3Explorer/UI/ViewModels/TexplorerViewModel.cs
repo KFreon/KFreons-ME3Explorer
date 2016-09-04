@@ -1,4 +1,5 @@
 ﻿#define ThreadedScan
+#undef ThreadedScan
 
 using CSharpImageLibrary;
 using Microsoft.Win32;
@@ -533,8 +534,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Status = "Beginning Scan...";
 
             // Perform scan
-            var tasks = ScanAllPCCs(PCCsToScan, TFCs);   // Start entire thing on another thread which awaits when collection is full, but task itself should complete when producers complete, then have to wait for consumers.
-            await Task.WhenAll(tasks).ConfigureAwait(false);
+            await ScanAllPCCs(PCCsToScan, TFCs).ConfigureAwait(false);   // Start entire thing on another thread which awaits when collection is full, then wait for pipeline completion.
 
             // Dispose all TFCs
             if (TFCs != null)
@@ -553,7 +553,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures. Elapsed scan time: {ElapsedTime}.";
         }
 
-        Task[] ScanAllPCCs(IList<string> PCCs, Dictionary<string, MemoryStream> TFCs)
+        Task ScanAllPCCs(IList<string> PCCs, Dictionary<string, MemoryStream> TFCs)
         {
             // Parallel scanning
             int bound = 10;
@@ -561,27 +561,29 @@ namespace WPF_ME3Explorer.UI.ViewModels
             if (RAMinGB < 10)
                 bound = 5;
 
-            BufferBlock<PCCObject> pccs = new BufferBlock<PCCObject>(new DataflowBlockOptions { BoundedCapacity = bound });   // Collection can't grow past this. Good for low RAM situations.
+            // Create buffer to store PCCObjects from disk
+            BufferBlock<PCCObject> pccScanBuffer = new BufferBlock<PCCObject>(new DataflowBlockOptions { BoundedCapacity = bound });   // Collection can't grow past this. Good for low RAM situations.
 
+            // Decide degrees of parallelism for each block of the pipeline
+            int numScanners = NumThreads;
 
-            // Begin consumer
-            int numConsumers = NumThreads / 2;
-            if (numConsumers < 1)
-                numConsumers = 1;
+            int maxParallelForSorter = NumThreads;
+            var texSorterOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = maxParallelForSorter, MaxDegreeOfParallelism = maxParallelForSorter };
+            var pccScannerOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = numScanners, MaxDegreeOfParallelism = numScanners };
 
-#if (!ThreadedScan)
-            numConsumers = 1;
-#endif
+            // Setup pipeline blocks
+            var pccScanner = new TransformManyBlock<PCCObject, TreeTexInfo>(pcc => ScanSinglePCC(pcc, TFCs), pccScannerOptions);
+            var texSorter = new ActionBlock<TreeTexInfo>(tex => CurrentTree.AddTexture(tex), texSorterOptions);  // In another block so as to allow Generating Thumbnails to decouple from identifying textures
 
-            var consumerOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = numConsumers, MaxDegreeOfParallelism = numConsumers };
-            var consumer = new ActionBlock<PCCObject>(async pcc => await PCCConsumer(pcc, TFCs), consumerOptions);
-            pccs.LinkTo(consumer, new DataflowLinkOptions { PropagateCompletion = true });
+            // Link together
+            pccScanBuffer.LinkTo(pccScanner, new DataflowLinkOptions { PropagateCompletion = true });
+            pccScanner.LinkTo(texSorter, new DataflowLinkOptions { PropagateCompletion = true });
 
             // Begin producer
-            var producer = PCCProducer(PCCs, pccs);
+            var pccProducer = PCCProducer(PCCs, pccScanBuffer);
 
-            // Wait for consumers to finish
-            return new Task[] { consumer.Completion, producer};
+            // Return task to await for pipeline completion - only need to wait for last block as PropagateCompletion is set.
+            return texSorter.Completion;
         }
 
         async Task PCCProducer(IList<string> PCCs, BufferBlock<PCCObject> pccs)
@@ -598,71 +600,45 @@ namespace WPF_ME3Explorer.UI.ViewModels
             pccs.Complete();
         }
 
-        async Task PCCConsumer(PCCObject pcc, Dictionary<string, MemoryStream> TFCs)
+        List<TreeTexInfo> ScanSinglePCC(PCCObject pcc, Dictionary<string, MemoryStream> TFCs)
         {
+            List<TreeTexInfo> texes = new List<TreeTexInfo>();
             try
             {
-                ParallelOptions po = new ParallelOptions();
-                po.MaxDegreeOfParallelism = NumThreads;
-
-
-#if (ThreadedScan)
-                await Task.Run(() => Parallel.For(0, pcc.Exports.Count, po, i =>
-#else
                 for (int i = 0; i < pcc.Exports.Count; i++)
-#endif
                 {
                     ExportEntry export = pcc.Exports[i];
                     if (!export.ValidTextureClass())
-                    {
-#if (ThreadedScan)
-                        return;
-#else
                         continue;
-#endif
-                    }
 
                     Texture2D tex2D = null;
                     try
                     {
                         tex2D = new Texture2D(pcc, i, GameVersion);
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         Errors.Add(e.ToString());
-#if (ThreadedScan)
-                        return;
-#else
                         continue;
-#endif
                     }
 
                     // Skip if no images
                     if (tex2D.ImageList.Count == 0)
                     {
                         tex2D.Dispose();
-#if (ThreadedScan)
-                        return;
-#else
                         continue;
-#endif
                     }
 
                     try
                     {
                         TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs, Errors);
-                        CurrentTree.AddTexture(info);
+                        texes.Add(info);
                     }
                     catch(Exception e)
                     {
                         Errors.Add(e.ToString());
                     }
-#if (ThreadedScan)
-                })).ConfigureAwait(false);
-#else
                 }
-#endif
-                    
             }
             catch (Exception e)
             {
@@ -683,7 +659,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }*/
 
             Progress++;
-            Status = $"Scanning: {Progress} / {MaxProgress}";         
+            Status = $"Scanning: {Progress} / {MaxProgress}";
+
+            return texes;       
         }
 
         void ConstructTree()

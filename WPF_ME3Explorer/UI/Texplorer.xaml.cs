@@ -52,7 +52,7 @@ namespace WPF_ME3Explorer.UI
 
             vm.TreePanelCloser = new Action(() =>
             {
-                Storyboard closer = (Storyboard)TreeScanBackground.Resources["ClosePanelAnimation"];
+                Storyboard closer = (Storyboard)TreeScanBackground.Resources["TreeScanClosePanelAnimation"];
                 closer.Begin();
             });
 
