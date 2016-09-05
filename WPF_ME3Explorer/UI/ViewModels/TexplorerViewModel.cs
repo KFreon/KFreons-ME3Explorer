@@ -488,7 +488,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             StartTime = 0; // Stop Elapsed Time from counting
             ThumbnailWriter.FinishAdding();
 
-            if (!cts.IsCancellationRequested)
+            if (cts.IsCancellationRequested)
             {
                 Busy = false;
                 return;

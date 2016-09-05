@@ -8,6 +8,7 @@
         xmlns:VM="clr-namespace:WPF_ME3Explorer.UI.ViewModels"
         xmlns:usefulUIElements="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Title="Texplorer" Height="900.334" Width="1748.575" Closing="Window_Closing" Icon="/WPF_ME3Explorer;component/Resources/Texplorer icon.ico">
 
@@ -632,7 +633,28 @@
                         </Button>
 
                         <Grid IsEnabled="{Binding CurrentTree.Exists}">
-                            <StackPanel x:Name="ReallyDeleteStacker">
+                            <StackPanel x:Name="ReallyDeleteStacker" IsHitTestVisible="False" Background="Transparent">
+                                <StackPanel.Triggers>
+                                    <EventTrigger RoutedEvent="StackPanel.MouseLeave">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="DeleteTreeButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.3">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseOut"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DeleteTreeButton" Storyboard.TargetProperty="Visibility">
+                                                    <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
+                                                </ObjectAnimationUsingKeyFrames>
+
+                                                <BooleanAnimationUsingKeyFrames Storyboard.TargetName="ReallyDeleteStacker" Storyboard.TargetProperty="IsHitTestVisible">
+                                                    <DiscreteBooleanKeyFrame KeyTime="0:0:0.3" Value="false"/>
+                                                </BooleanAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </StackPanel.Triggers>
                                 <TextBlock Text="Are you really sure you want to delete the current tree?" TextWrapping="Wrap" FontSize="20" TextAlignment="Center" FontWeight="Bold" Foreground="Red" Margin="0,0,0,30"/>
                                 <Button x:Name="ReallyDeleteTreeButton" Content="YES" FontSize="14" FontWeight="Bold" Click="ReallyDeleteTreeButton_Click" Background="Red" Foreground="White" HorizontalAlignment="Center" Padding="8,3">
                                     <Button.Triggers>
@@ -648,6 +670,10 @@
                                                     <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DeleteTreeButton" Storyboard.TargetProperty="Visibility">
                                                         <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
                                                     </ObjectAnimationUsingKeyFrames>
+
+                                                    <BooleanAnimationUsingKeyFrames Storyboard.TargetName="ReallyDeleteStacker" Storyboard.TargetProperty="IsHitTestVisible">
+                                                        <DiscreteBooleanKeyFrame KeyTime="0:0:0.3" Value="false"/>
+                                                    </BooleanAnimationUsingKeyFrames>
                                                 </Storyboard>
                                             </BeginStoryboard>
                                         </EventTrigger>
@@ -659,19 +685,19 @@
                                     <EventTrigger RoutedEvent="ButtonBase.Click">
                                         <BeginStoryboard>
                                             <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.3">
+                                                <DoubleAnimation Storyboard.TargetName="DeleteTreeButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.3">
                                                     <DoubleAnimation.EasingFunction>
                                                         <CubicEase EasingMode="EaseOut"/>
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
 
-                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
-                                                    <ObjectAnimationUsingKeyFrames.KeyFrames>
-                                                        <ObjectKeyFrameCollection>
-                                                            <DiscreteObjectKeyFrame KeyTime="0:0:0.3" Value="{x:Static Visibility.Collapsed}"/>
-                                                        </ObjectKeyFrameCollection>
-                                                    </ObjectAnimationUsingKeyFrames.KeyFrames>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DeleteTreeButton" Storyboard.TargetProperty="Visibility">
+                                                    <DiscreteObjectKeyFrame KeyTime="0:0:0.3" Value="{x:Static Visibility.Collapsed}"/>
                                                 </ObjectAnimationUsingKeyFrames>
+
+                                                <BooleanAnimationUsingKeyFrames Storyboard.TargetName="ReallyDeleteStacker" Storyboard.TargetProperty="IsHitTestVisible">
+                                                    <DiscreteBooleanKeyFrame KeyTime="0:0:0.3" Value="true"/>
+                                                </BooleanAnimationUsingKeyFrames>
                                             </Storyboard>
                                         </BeginStoryboard>
                                     </EventTrigger>
