@@ -595,7 +595,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             pccScanner.LinkTo(texSorter, new DataflowLinkOptions { PropagateCompletion = true });
 
             // Begin producer
-            var pccProducer = PCCProducer(PCCs, pccScanBuffer);
+            PCCProducer(PCCs, pccScanBuffer);
 
             // Return task to await for pipeline completion - only need to wait for last block as PropagateCompletion is set.
             return texSorter.Completion;
@@ -860,14 +860,30 @@ namespace WPF_ME3Explorer.UI.ViewModels
             LoadFTSandTree(true);
         }
 
-        public void InstallTextures(params AbstractTexInfo[] texes)
+        public async Task InstallTextures(params AbstractTexInfo[] texes)
         {
             Busy = true;
             Progress = 0;
             MaxProgress = texes.Length;
 
-            /* Save changes per file, so we don't go opening a pcc 5000000 times to change each of it's textures */
+            /* Save changes per file, so we don't go opening a pcc 5000000 times to change each of it's textures */         
+            BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccBuffer = new BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>>(new DataflowBlockOptions { BoundedCapacity = 10 });
+            var consumer = new TransformBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>, PCCObject>(pccBits => Consumer(pccBits), new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = NumThreads, BoundedCapacity = NumThreads });
+            var saver = new ActionBlock<PCCObject>(pcc => pcc.SaveToFile(pcc.pccFileName), new ExecutionDataflowBlockOptions { BoundedCapacity = 2 });
 
+            pccBuffer.LinkTo(consumer, new DataflowLinkOptions { PropagateCompletion = true });
+            consumer.LinkTo(saver, new DataflowLinkOptions { PropagateCompletion = true });
+
+            // Start producing
+            Producer(pccBuffer, texes);
+
+            await saver.Completion;
+
+            Busy = false;
+        }
+
+        async Task Producer(BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccBuffer, AbstractTexInfo[] texes)
+        {
             // Gets all distinct pcc's being altered.
             var pccTexGroups =
                 from tex in texes
@@ -878,34 +894,40 @@ namespace WPF_ME3Explorer.UI.ViewModels
             foreach (var texGroup in pccTexGroups)
             {
                 string pcc = texGroup.Key;
-                using (PCCObject pccobj = new PCCObject(pcc, GameVersion))
-                {
-                    // Loop over changed textures, installing to pccobj
-                    foreach (var tex in texGroup)
-                    {
-                        Texture2D newTex2D = null;
-                        var texType = tex as TreeTexInfo;
-                        if (texType != null)
-                            newTex2D = texType.Textures[0];
-                        else
-                            newTex2D = new Texture2D(pccobj, 0, 0); // TODO TPFTools
-
-                        // Loop over texture's pcc entries to install desired ones.
-                        foreach (var entry in tex.PCCS.Where(p => p.Name == pcc))
-                        {
-                            // TODO Get old tex2D  WHYYYY
-                            Texture2D oldTex2D = new Texture2D(pccobj, entry.ExpID, GameVersion);
-                            oldTex2D.CopyImgList(newTex2D, pccobj);
-
-                            ExportEntry export = pccobj.Exports[entry.ExpID];
-                            export.Data = oldTex2D.ToArray(export.DataOffset, pccobj);
-                        }
-                    }
-                    pccobj.SaveToFile(pcc);
-                }
+                PCCObject pccobj = new PCCObject(pcc, GameVersion);
+                await pccBuffer.SendAsync(new Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>(pccobj, texGroup));
             }
 
-            Busy = false;
+            pccBuffer.Complete();
+        }
+
+        PCCObject Consumer(Tuple<PCCObject, IGrouping<string, AbstractTexInfo>> pccBits)
+        {
+            var pcc = pccBits.Item1;
+            var texGroup = pccBits.Item2;
+
+            // Loop over changed textures, installing to pccobj
+            foreach (var tex in texGroup)
+            {
+                Texture2D newTex2D = null;
+                var texType = tex as TreeTexInfo;
+                if (texType != null)
+                    newTex2D = texType.Textures[0];
+                else
+                    newTex2D = new Texture2D(pcc, 0, 0); // TODO TPFTools
+
+                // Loop over texture's pcc entries to install desired ones.
+                foreach (var entry in tex.PCCS.Where(p => p.Name == pcc.pccFileName))
+                {
+                    // TODO Get old tex2D  WHYYYY
+                    Texture2D oldTex2D = new Texture2D(pcc, entry.ExpID, GameVersion);
+                    oldTex2D.CopyImgList(newTex2D, pcc);
+
+                    ExportEntry export = pcc.Exports[entry.ExpID];
+                    export.Data = oldTex2D.ToArray(export.DataOffset, pcc);
+                }
+            }
+            return pcc;
         }
 
         void SaveFile()
