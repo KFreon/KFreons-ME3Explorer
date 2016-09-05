@@ -23,8 +23,6 @@ namespace WPF_ME3Explorer.Textures
         public static CommandHandler LowResFixCommand { get; set; }
         public static CommandHandler RegenerateThumbCommand { get; set; }
         #region Properties
-
-
         public Action GenerateThumbnail = null;
 
         public List<Texture2D> Textures = new List<Texture2D>();
@@ -111,7 +109,20 @@ namespace WPF_ME3Explorer.Textures
                 SetProperty(ref mips, value);
             }
         }
-#endregion Properties
+
+        bool hasChanged = false;
+        public bool HasChanged
+        {
+            get
+            {
+                return hasChanged;
+            }
+            set
+            {
+                SetProperty(ref hasChanged, value);
+            }
+        }
+        #endregion Properties
 
         public TreeTexInfo() : base()
         {
@@ -185,21 +196,29 @@ namespace WPF_ME3Explorer.Textures
         /// <returns>MemoryStream containing thumbnail.</returns>
         public MemoryStream CreateThumbnail()
         {
+            if (HasChanged)
+                return GetThumbFromTex2D(Textures[0]);
+
             using (PCCObject pcc = new PCCObject(PCCS[0].Name, GameVersion))
             {
                 using (Texture2D tex2D = new Texture2D(pcc, PCCS[0].ExpID, GameVersion))
                 {
-                    byte[] imgData = null;
-                    var size = tex2D.ImageList.Where(img => img.ImageSize.Width == ThumbnailSize && img.ImageSize.Height == ThumbnailSize);
-                    if (size.Count() == 0)
-                        imgData = tex2D.ExtractMaxImage();
-                    else
-                        imgData = tex2D.ExtractImage(size.First());
-
-                    using (MemoryStream ms = new MemoryStream(imgData))
-                        return ImageEngine.GenerateThumbnailToStream(ms, ThumbnailSize, ThumbnailSize);
+                    return GetThumbFromTex2D(tex2D);
                 }
             }
+        }
+
+        MemoryStream GetThumbFromTex2D(Texture2D tex2D)
+        {
+            byte[] imgData = null;
+            var size = tex2D.ImageList.Where(img => img.ImageSize.Width == ThumbnailSize && img.ImageSize.Height == ThumbnailSize);
+            if (size.Count() == 0)
+                imgData = tex2D.ExtractMaxImage();
+            else
+                imgData = tex2D.ExtractImage(size.First());
+
+            using (MemoryStream ms = new MemoryStream(imgData))
+                return ImageEngine.GenerateThumbnailToStream(ms, ThumbnailSize, ThumbnailSize);
         }
 
         void CreateThumbnail(byte[] imgData, Texture2D tex2D, ThumbnailWriter ThumbWriter, ImageInfo info, Dictionary<string, MemoryStream> TFCs, IList<string> Errors)
@@ -325,18 +344,28 @@ namespace WPF_ME3Explorer.Textures
 
         internal void PopulateDetails()
         {
-            using (PCCObject pcc = new PCCObject(PCCS[0].Name, GameVersion))
+            if (HasChanged)
             {
-                using (Texture2D tex2D = new Texture2D(pcc, PCCS[0].ExpID, GameVersion))
-                {
-                    ImageInfo maxImg = tex2D.ImageList.Max();
-                    Width = (int)maxImg.ImageSize.Width;
-                    Height = (int)maxImg.ImageSize.Height;
-                    TextureCache = tex2D?.FullArcPath?.Remove(0, MEDirectories.MEDirectories.BasePathLength) ?? "PCC Stored";
-                    LODGroup = tex2D.LODGroup ?? "None (Uses World)";
-                    Mips = tex2D.ImageList.Count;
-                }
+                if (Textures.Count > 1)
+                    Debugger.Break(); // TODO: Don't think there can be more than one. So why a list?
+
+                var tex2D = Textures[0];
+                PopulateDetails(tex2D);
             }
+            else
+                using (PCCObject pcc = new PCCObject(PCCS[0].Name, GameVersion))
+                    using (Texture2D tex2D = new Texture2D(pcc, PCCS[0].ExpID, GameVersion))
+                        PopulateDetails(tex2D);   
+        }
+
+        void PopulateDetails(Texture2D tex2D)
+        {
+            ImageInfo maxImg = tex2D.ImageList.Max();
+            Width = (int)maxImg.ImageSize.Width;
+            Height = (int)maxImg.ImageSize.Height;
+            TextureCache = tex2D?.FullArcPath?.Remove(0, MEDirectories.MEDirectories.BasePathLength) ?? "PCC Stored";
+            LODGroup = tex2D.LODGroup ?? "None (Uses World)";
+            Mips = tex2D.ImageList.Count;
         }
     }
 }

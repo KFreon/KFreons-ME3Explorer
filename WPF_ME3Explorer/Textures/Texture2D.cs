@@ -65,7 +65,6 @@ namespace WPF_ME3Explorer.Textures
         public List<ImageInfo> ImageList { get; set; } // showable image list
         public ImageEngineFormat texFormat { get; set; }
         public uint pccOffset { get; set; }
-        public bool hasChanged { get; set; }
         public List<string> allPccs { get; set; }
         public List<int> expIDs { get; set; }
         public int pccExpIdx { get; set; }
@@ -82,7 +81,6 @@ namespace WPF_ME3Explorer.Textures
         {
             allPccs = new List<String>();
             expIDs = new List<int>();
-            hasChanged = false;
         }
 
         static Texture2D()
@@ -118,7 +116,6 @@ namespace WPF_ME3Explorer.Textures
         public Texture2D(string name, List<string> pccs, List<int> ExpIDs, uint hash, int gameVersion)  // Not calling base constructor to avoid double assigning expIDs and allPccs.
         {
             texName = name;
-            hasChanged = false;
 
             List<string> temppccs = new List<string>(pccs);
             List<int> tempexp = new List<int>(ExpIDs);
@@ -749,7 +746,7 @@ namespace WPF_ME3Explorer.Textures
             return propertyList;
         }
 
-        private void CopyImgList(Texture2D inTex, PCCObject pcc)
+        public void CopyImgList(Texture2D inTex, PCCObject pcc)
         {
             imageData = inTex.imageData;
             ImageList = inTex.ImageList;
@@ -1110,6 +1107,105 @@ namespace WPF_ME3Explorer.Textures
                 sw.WriteLine(pccOffset);
                 sw.WriteLine(texFormat);
                 sw.WriteLine(texName);
+            }
+        }
+
+        public byte[] ToArray(uint pccExportDataOffset, PCCObject pcc)
+        {
+            using (MemoryStream tempStream = new MemoryStream())
+            {
+                tempStream.WriteBytes(headerData);
+
+                // Whilst testing get rid of this
+                // Heff: Seems like the shadowmap was the best solution in most cases,
+                // adding an exception for known problematic animated textures for now.
+                // (See popup in tpftools)
+                if (properties.ContainsKey("LODGroup"))
+                    properties["LODGroup"].Value.String2 = "TEXTUREGROUP_Shadowmap";
+                else
+                {
+                    tempStream.WriteInt64(pcc.AddName("LODGroup"));
+                    tempStream.WriteInt64(pcc.AddName("ByteProperty"));
+                    tempStream.WriteInt64(8);
+                    tempStream.WriteInt64(pcc.AddName("TextureGroup"));
+                    tempStream.WriteInt64(pcc.AddName("TEXTUREGROUP_Shadowmap"));
+                }
+
+                foreach (KeyValuePair<string, SaltPropertyReader.Property> kvp in properties)
+                {
+                    SaltPropertyReader.Property prop = kvp.Value;
+
+                    if (prop.Name == "UnpackMin")
+                    {
+                        for (int i = 0; i < UnpackNum; i++)
+                        {
+                            tempStream.WriteInt64(pcc.AddName(prop.Name));
+                            tempStream.WriteInt64(pcc.AddName(prop.TypeVal.ToString()));
+                            tempStream.WriteInt32(prop.Size);
+                            tempStream.WriteInt32(i);
+                            tempStream.WriteFloat32(prop.Value.FloatValue);
+                        }
+                        continue;
+                    }
+
+                    tempStream.WriteInt64(pcc.AddName(prop.Name));
+
+                    if (prop.Name == "None")
+                        continue;
+
+                    tempStream.WriteInt64(pcc.AddName(prop.TypeVal.ToString()));
+                    tempStream.WriteInt64(prop.Size);
+
+                    switch (prop.TypeVal)
+                    {
+                        case SaltPropertyReader.Type.FloatProperty:
+                            tempStream.WriteFloat32(prop.Value.FloatValue);
+                            break;
+                        case SaltPropertyReader.Type.IntProperty:
+                            tempStream.WriteInt32(prop.Value.IntValue);
+                            break;
+                        case SaltPropertyReader.Type.NameProperty:
+                            tempStream.WriteInt64(pcc.AddName(prop.Value.StringValue));
+                            break;
+                        case SaltPropertyReader.Type.ByteProperty:
+                            tempStream.WriteInt64(pcc.AddName(prop.Value.StringValue));
+                            tempStream.WriteInt64(pcc.AddName(prop.Value.String2));
+                            break;
+                        case SaltPropertyReader.Type.BoolProperty:
+                            tempStream.WriteByte((byte)(prop.Value.Boolereno ? 1 : 0));
+                            break;
+                        case SaltPropertyReader.Type.StructProperty:
+                            tempStream.WriteInt64(pcc.AddName(prop.Value.StringValue));
+                            for (int i = 0; i < prop.Size; i++)
+                                tempStream.WriteByte((byte)prop.Value.Array[i].IntValue);
+                            break;
+                        default:
+                            throw new NotImplementedException("Property type: " + prop.TypeVal.ToString() + ", not yet implemented. TELL ME ABOUT THIS!");
+                    }
+                }
+
+
+                numMipMaps = (uint)ImageList.Count;
+
+                tempStream.WriteUInt32(numMipMaps);
+                foreach (ImageInfo imgInfo in ImageList)
+                {
+                    tempStream.WriteInt32((int)imgInfo.storageType);
+                    tempStream.WriteInt32(imgInfo.UncompressedSize);
+                    tempStream.WriteInt32(imgInfo.CompressedSize);
+                    if (imgInfo.storageType == storage.pccSto)
+                    {
+                        tempStream.WriteInt32((int)(imgInfo.Offset + pccExportDataOffset + dataOffset));
+                        tempStream.Write(imageData, (int)imgInfo.Offset, imgInfo.UncompressedSize);
+                    }
+                    else
+                        tempStream.WriteInt32(imgInfo.Offset);
+                    tempStream.WriteUInt32(imgInfo.ImageSize.Width);
+                    tempStream.WriteUInt32(imgInfo.ImageSize.Height);
+                }
+                //// Texture2D footer, 24 bytes size - changed to 20
+                tempStream.WriteBytes(footerData);
+                return tempStream.ToArray();
             }
         }
 

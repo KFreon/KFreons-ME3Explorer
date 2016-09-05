@@ -123,12 +123,9 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
                 ms.Seek((long)DataOffset, SeekOrigin.Begin);
                 return ms.ReadBytes(DataSize);
             }
-            ms.Dispose();
-            /*pccRef.listsStream.Seek((long)DataOffset, SeekOrigin.Begin);
-            return pccRef.listsStream.ReadBytes(DataSize);*/
         }
 
-        public void SetData(byte[] newData)
+        private void SetData(byte[] newData)
         {
             pccRef.listsStream.Seek(pccRef.expDataEndOffset, SeekOrigin.Begin);
             DataOffset = (uint)pccRef.listsStream.Position;

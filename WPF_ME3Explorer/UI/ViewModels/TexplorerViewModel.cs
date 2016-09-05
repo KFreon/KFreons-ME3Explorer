@@ -49,6 +49,18 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
+        CommandHandler saveChangesCommand = null;
+        public CommandHandler SaveChangesCommand
+        {
+            get
+            {
+                if (saveChangesCommand == null)
+                    saveChangesCommand = new CommandHandler(new Action<object>(param => InstallTextures(ChangedTextures.ToArray())));
+
+                return saveChangesCommand;
+            }
+        }
+
         CommandHandler changeTree = null;
         public CommandHandler ChangeTreeCommand
         {
@@ -237,13 +249,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 if (ofd.ShowDialog() != true)
                     return;
 
-                ChangeTexture((TreeTexInfo)tex, ofd.FileName);
+                Task.Run(() => ChangeTexture((TreeTexInfo)tex, ofd.FileName));
             }));
 
             TreeTexInfo.ExtractCommand = new CommandHandler(new Action<object>(tex =>
             {
                 SaveFileDialog sfd = new SaveFileDialog();
-                sfd.FileName = null;
+                var texture = tex as TreeTexInfo;
+                sfd.FileName = $"{texture.TexName}_{ToolsetTextureEngine.FormatTexmodHashAsString(texture.Hash)}.dds";
                 sfd.Filter = "DirectX Images|*.dds";  // TODO Expand to allow any ImageEngine supported format.
                 if (sfd.ShowDialog() != true)
                     return;
@@ -279,6 +292,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // No args = regen everything
             if (textures?.Length < 1)
                 texes.AddRange(Textures);
+            else
+                texes.AddRange(textures);
 
             // Open Progress Panel if worth it.
             if (texes.Count > 10)
@@ -762,6 +777,15 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 // Add only if not already added.
                 if (!ChangedTextures.Contains(tex))
                     ChangedTextures.Add(tex);
+
+                // Re-populate details
+                tex.PopulateDetails();
+
+                // Re-generate Thumbnail
+                var stream = tex.CreateThumbnail();
+                if (tex.Thumb == null) // Could happen
+                    tex.Thumb = new Thumbnail();
+                tex.Thumb.ChangedThumb = stream;
             }
 
             Status = $"Texture: {tex.TexName} changed!";
@@ -786,7 +810,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
 
             Busy = false;
-            Status = $"Texture: {tex.TexName} " + (error != null ? $"extracted to {filename}!" : $"failed to extract. Reason: {error}.");
+            Status = $"Texture: {tex.TexName} " + (error == null ? $"extracted to {filename}!" : $"failed to extract. Reason: {error}.");
         }
 
         internal void ME1_LowResFix(TreeTexInfo tex)
@@ -834,6 +858,59 @@ namespace WPF_ME3Explorer.UI.ViewModels
             RefreshTreeRelatedProperties();
 
             LoadFTSandTree(true);
+        }
+
+        public void InstallTextures(params AbstractTexInfo[] texes)
+        {
+            Busy = true;
+            Progress = 0;
+            MaxProgress = texes.Length;
+
+            /* Save changes per file, so we don't go opening a pcc 5000000 times to change each of it's textures */
+
+            // Gets all distinct pcc's being altered.
+            var pccTexGroups =
+                from tex in texes
+                from pcc in tex.PCCS
+                group tex by pcc.Name;
+
+            // Loop over pcc's, changing all their textures before saving.  Stops disk thrashing.
+            foreach (var texGroup in pccTexGroups)
+            {
+                string pcc = texGroup.Key;
+                using (PCCObject pccobj = new PCCObject(pcc, GameVersion))
+                {
+                    // Loop over changed textures, installing to pccobj
+                    foreach (var tex in texGroup)
+                    {
+                        Texture2D newTex2D = null;
+                        var texType = tex as TreeTexInfo;
+                        if (texType != null)
+                            newTex2D = texType.Textures[0];
+                        else
+                            newTex2D = new Texture2D(pccobj, 0, 0); // TODO TPFTools
+
+                        // Loop over texture's pcc entries to install desired ones.
+                        foreach (var entry in tex.PCCS.Where(p => p.Name == pcc))
+                        {
+                            // TODO Get old tex2D  WHYYYY
+                            Texture2D oldTex2D = new Texture2D(pccobj, entry.ExpID, GameVersion);
+                            oldTex2D.CopyImgList(newTex2D, pccobj);
+
+                            ExportEntry export = pccobj.Exports[entry.ExpID];
+                            export.Data = oldTex2D.ToArray(export.DataOffset, pccobj);
+                        }
+                    }
+                    pccobj.SaveToFile(pcc);
+                }
+            }
+
+            Busy = false;
+        }
+
+        void SaveFile()
+        {
+            
         }
     }
 }

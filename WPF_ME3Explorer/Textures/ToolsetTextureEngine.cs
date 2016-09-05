@@ -115,7 +115,7 @@ namespace WPF_ME3Explorer.Textures
             if (tex.Textures.Count == 0)
                 tex.Textures.Add(tex2D);
 
-            tex2D.hasChanged = true;
+            tex.HasChanged = true;
 
             return true;
         }

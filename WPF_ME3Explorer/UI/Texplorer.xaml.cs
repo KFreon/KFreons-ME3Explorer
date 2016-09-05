@@ -89,7 +89,7 @@ namespace WPF_ME3Explorer.UI
             else
             {
                 var texInfo = (TreeTexInfo)((FrameworkElement)sender).DataContext;
-                texInfo.PopulateDetails();
+                Task.Run(() => texInfo.PopulateDetails());
             }
         }
 

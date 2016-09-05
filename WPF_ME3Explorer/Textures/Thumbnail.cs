@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using CSharpImageLibrary;
+using UsefulThings;
 
 namespace WPF_ME3Explorer.Textures
 {
@@ -14,6 +15,9 @@ namespace WPF_ME3Explorer.Textures
         public long Offset { get; set; }
         public int Length { get; set; }
         string cachePath = null;
+        public MemoryStream ChangedThumb = null;  // Used when texture is changed.
+
+        public Thumbnail() { }  
 
         public Thumbnail(string cache)
         {
@@ -38,17 +42,22 @@ namespace WPF_ME3Explorer.Textures
 
         public BitmapSource GetImage()
         {
-            if (!File.Exists(cachePath))
-                return null;
-
-            byte[] data = new byte[Length];
-            using (FileStream fs = new FileStream(cachePath, FileMode.Open, FileAccess.Read, FileShare.Read))  // Allow simultaneous reads
+            MemoryStream ms = new MemoryStream();
+            if (ChangedThumb == null)
             {
-                fs.Seek(Offset, SeekOrigin.Begin);
-                fs.Read(data, 0, Length);
-            }
+                if (!File.Exists(cachePath))
+                    return null;
 
-            return UsefulThings.WPF.Images.CreateWPFBitmap(data);
+                using (FileStream fs = new FileStream(cachePath, FileMode.Open, FileAccess.Read, FileShare.Read))  // Allow simultaneous reads
+                {
+                    fs.Seek(Offset, SeekOrigin.Begin);
+                    ms.ReadFrom(fs, Length);
+                }
+            }
+            else
+                ms = ChangedThumb;
+
+            return UsefulThings.WPF.Images.CreateWPFBitmap(ms, DisposeStream: ChangedThumb == null);  // Dispose of stream only if it's not the ChangedThumb being used
         }
     }
 }

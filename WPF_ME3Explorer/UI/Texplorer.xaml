@@ -51,7 +51,7 @@
                     </Style.Triggers>
                 </Style>
             </Menu.Style>
-            <MenuItem x:Name="SaveChangesButton" Header="Save Changes">
+            <MenuItem x:Name="SaveChangesButton" Header="Save Changes" Command="{Binding SaveChangesCommand}">
                 <MenuItem.Style>
                     <Style TargetType="MenuItem" BasedOn="{StaticResource BaseMenuItemStyle}">
                         <Setter Property="IsEnabled" Value="False"/>
@@ -186,12 +186,12 @@
                                         </Style.Triggers>
                                     </Style>
                                 </ContextMenu.Resources>
-                                <MenuItem Header="Change" Command="{Binding ChangeCommand}">
+                                <MenuItem Header="Change" Command="{Binding ChangeCommand}" CommandParameter="{Binding}">
                                     <MenuItem.Icon>
                                         <Image Source="/WPF_ME3Explorer;component/Resources/Delete Tree.png"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
-                                <MenuItem Header="Extract" Command="{Binding ExtractCommand}"/>
+                                <MenuItem Header="Extract" Command="{Binding ExtractCommand}" CommandParameter="{Binding}"/>
                                 <MenuItem Header="Regenerate Thumbnail" Command="{Binding RegenerateThumbCommand}" CommandParameter="{Binding}"/>
                                 <MenuItem Header="Try Low Res Fix" Style="{StaticResource ME1_ItemsStyle}" Command="{Binding LowResFixCommand}" CommandParameter="{Binding}"/>
                             </ContextMenu>
@@ -424,7 +424,7 @@
 
         <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="2" Grid.ColumnSpan="3"/>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black">
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black" d:IsHidden="True">
             <Grid.Resources>
                 <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
                     <DoubleAnimation.EasingFunction>
