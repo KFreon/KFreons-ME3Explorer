@@ -308,8 +308,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             ThumbnailWriter.BeginAdding();
             int errors = 0;
-            Parallel.ForEach(texes, po, tex =>
+            Parallel.ForEach(texes, po, (tex, state) =>
             {
+                if (cts.IsCancellationRequested)
+                    state.Stop();
+
                 try
                 {
                     Status = $"Regenerating Thumbnails: {Progress} of {MaxProgress}";
@@ -323,7 +326,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 }
             });
 
-            Status = $"Regenerated {texes.Count - errors} thumbnails" + (errors == 0 ? "." : $" with {errors} errors.");
+            if (cts.IsCancellationRequested)
+            {
+                ThumbnailWriter.FinishAdding(); // Close thumbnail writer gracefully
+                Status = "Thumbnail Regeneration was cancelled!";
+            }
+            else
+                Status = $"Regenerated {texes.Count - errors} thumbnails" + (errors == 0 ? "." : $" with {errors} errors.");
+
             Progress = MaxProgress;
 
             ThumbnailWriter.FinishAdding();
@@ -478,18 +488,20 @@ namespace WPF_ME3Explorer.UI.ViewModels
             StartTime = 0; // Stop Elapsed Time from counting
             ThumbnailWriter.FinishAdding();
 
+            if (!cts.IsCancellationRequested)
+            {
+                Busy = false;
+                return;
+            }
+
             DebugOutput.PrintLn("Saving tree to disk...");
             await Task.Run(() => CurrentTree.SaveToFile()).ConfigureAwait(false);
-
             DebugOutput.PrintLn($"Treescan completed. Elapsed time: {ElapsedTime}. Num Textures: {CurrentTree.Textures.Count}.");
-
             await Task.Run(() => ConstructTree()).ConfigureAwait(false);
-
             CurrentTree.Valid = true; // It was just scanned after all.
 
             // Put away TreeScanProgress Window
             ProgressCloser();
-
             GC.Collect();  // On a high RAM x64 system, things sit around at like 6gb. Might as well clear it.
 
             Busy = false;
@@ -561,11 +573,15 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 TFCs = null;
             }
                 
-            Console.WriteLine($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}");
+            Debug.WriteLine($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}");
             DebugOutput.PrintLn($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}");
 
             Progress = MaxProgress;
-            Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures. Elapsed scan time: {ElapsedTime}.";
+
+            if (cts.IsCancellationRequested)
+                Status = "Tree scan was cancelled!";
+            else
+                Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures. Elapsed scan time: {ElapsedTime}.";
         }
 
         Task ScanAllPCCs(IList<string> PCCs, Dictionary<string, MemoryStream> TFCs)
@@ -581,8 +597,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             // Decide degrees of parallelism for each block of the pipeline
             int numScanners = NumThreads;
-
             int maxParallelForSorter = NumThreads;
+#if (ThreadedScan)
+            maxParallelForSorter = 1;
+            numScanners = 1;
+#endif
+
             var texSorterOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = maxParallelForSorter, MaxDegreeOfParallelism = maxParallelForSorter };
             var pccScannerOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = numScanners, MaxDegreeOfParallelism = numScanners };
 
@@ -595,16 +615,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
             pccScanner.LinkTo(texSorter, new DataflowLinkOptions { PropagateCompletion = true });
 
             // Begin producer
-            PCCProducer(PCCs, pccScanBuffer);
+            PCCScanProducer(PCCs, pccScanBuffer);
 
             // Return task to await for pipeline completion - only need to wait for last block as PropagateCompletion is set.
             return texSorter.Completion;
         }
 
-        async Task PCCProducer(IList<string> PCCs, BufferBlock<PCCObject> pccs)
+        async Task PCCScanProducer(IList<string> PCCs, BufferBlock<PCCObject> pccs)
         {
             for (int i = 0; i < PCCs.Count; i++)
             {
+                if (cts.IsCancellationRequested)
+                    break;
+
                 string file = PCCs[i];
                 DebugOutput.PrintLn($"Scanning: {file}");
                 PCCObject pcc = await PCCObject.CreateAsync(file, GameVersion);
@@ -867,22 +890,22 @@ namespace WPF_ME3Explorer.UI.ViewModels
             MaxProgress = texes.Length;
 
             /* Save changes per file, so we don't go opening a pcc 5000000 times to change each of it's textures */         
-            BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccBuffer = new BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>>(new DataflowBlockOptions { BoundedCapacity = 10 });
-            var consumer = new TransformBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>, PCCObject>(pccBits => Consumer(pccBits), new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = NumThreads, BoundedCapacity = NumThreads });
-            var saver = new ActionBlock<PCCObject>(pcc => pcc.SaveToFile(pcc.pccFileName), new ExecutionDataflowBlockOptions { BoundedCapacity = 2 });
+            BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccReadBuffer = new BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>>(new DataflowBlockOptions { BoundedCapacity = 10 });
+            var tex2DSaver = new TransformBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>, PCCObject>(pccBits => SaveTex2DToPCC(pccBits), new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = NumThreads, BoundedCapacity = NumThreads });
+            var pccFileSaver = new ActionBlock<PCCObject>(pcc => pcc.SaveToFile(pcc.pccFileName), new ExecutionDataflowBlockOptions { BoundedCapacity = 2 });
 
-            pccBuffer.LinkTo(consumer, new DataflowLinkOptions { PropagateCompletion = true });
-            consumer.LinkTo(saver, new DataflowLinkOptions { PropagateCompletion = true });
+            pccReadBuffer.LinkTo(tex2DSaver, new DataflowLinkOptions { PropagateCompletion = true });
+            tex2DSaver.LinkTo(pccFileSaver, new DataflowLinkOptions { PropagateCompletion = true });
 
             // Start producing
-            Producer(pccBuffer, texes);
+            PCCSaveProducer(pccReadBuffer, texes);
 
-            await saver.Completion;
+            await pccFileSaver.Completion;
 
             Busy = false;
         }
 
-        async Task Producer(BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccBuffer, AbstractTexInfo[] texes)
+        async Task PCCSaveProducer(BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccBuffer, AbstractTexInfo[] texes)
         {
             // Gets all distinct pcc's being altered.
             var pccTexGroups =
@@ -893,6 +916,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Loop over pcc's, changing all their textures before saving.  Stops disk thrashing.
             foreach (var texGroup in pccTexGroups)
             {
+                if (cts.IsCancellationRequested)
+                    break;
+
                 string pcc = texGroup.Key;
                 PCCObject pccobj = new PCCObject(pcc, GameVersion);
                 await pccBuffer.SendAsync(new Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>(pccobj, texGroup));
@@ -901,7 +927,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             pccBuffer.Complete();
         }
 
-        PCCObject Consumer(Tuple<PCCObject, IGrouping<string, AbstractTexInfo>> pccBits)
+        PCCObject SaveTex2DToPCC(Tuple<PCCObject, IGrouping<string, AbstractTexInfo>> pccBits)
         {
             var pcc = pccBits.Item1;
             var texGroup = pccBits.Item2;
@@ -912,7 +938,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 Texture2D newTex2D = null;
                 var texType = tex as TreeTexInfo;
                 if (texType != null)
-                    newTex2D = texType.Textures[0];
+                    newTex2D = texType.AssociatedTexture;
                 else
                     newTex2D = new Texture2D(pcc, 0, 0); // TODO TPFTools
 
@@ -928,11 +954,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 }
             }
             return pcc;
-        }
-
-        void SaveFile()
-        {
-            
         }
     }
 }

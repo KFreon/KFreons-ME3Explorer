@@ -4,7 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WPF_ME3Explorer.UI"
-        xmlns:dVM="clr-namespace:WPF_ME3Explorer.UI.ViewModels.DesignTime"
         xmlns:VM="clr-namespace:WPF_ME3Explorer.UI.ViewModels"
         x:Class="WPF_ME3Explorer.UI.TPFTools"
         mc:Ignorable="d"

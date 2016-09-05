@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.Textures;
 
-namespace WPF_ME3Explorer.UI
+namespace WPF_ME3Explorer.Textures
 {
     public class TexplorerTextureFolder : ViewModelBase, IComparable, ITreeSeekable
     {

@@ -25,7 +25,7 @@ namespace WPF_ME3Explorer.Textures
         #region Properties
         public Action GenerateThumbnail = null;
 
-        public List<Texture2D> Textures = new List<Texture2D>();
+        public Texture2D AssociatedTexture { get; set; }
 
         string fullPackage = null;
         public string FullPackage
@@ -197,7 +197,7 @@ namespace WPF_ME3Explorer.Textures
         public MemoryStream CreateThumbnail()
         {
             if (HasChanged)
-                return GetThumbFromTex2D(Textures[0]);
+                return GetThumbFromTex2D(AssociatedTexture);
 
             using (PCCObject pcc = new PCCObject(PCCS[0].Name, GameVersion))
             {
@@ -256,7 +256,7 @@ namespace WPF_ME3Explorer.Textures
 
         public void ReorderME2Files()
         {
-            if (GameVersion == 2 && (!String.IsNullOrEmpty(Textures[0].arcName) && Textures[0].arcName != "None"))
+            if (GameVersion == 2 && (!String.IsNullOrEmpty(AssociatedTexture.arcName) && AssociatedTexture.arcName != "None"))
             {
                 for (int i = 0; i < PCCS.Count; i++)
                 {
@@ -305,10 +305,6 @@ namespace WPF_ME3Explorer.Textures
                 PCCS.Add(tex.PCCS[i]);
             }
 
-            foreach (Texture2D tex2D in tex.Textures)
-                if (!Textures.Contains(tex2D))
-                    Textures.Add(tex2D);
-
             if (Hash == 0)
                 Hash = tex.Hash;
         }
@@ -345,13 +341,7 @@ namespace WPF_ME3Explorer.Textures
         internal void PopulateDetails()
         {
             if (HasChanged)
-            {
-                if (Textures.Count > 1)
-                    Debugger.Break(); // TODO: Don't think there can be more than one. So why a list?
-
-                var tex2D = Textures[0];
-                PopulateDetails(tex2D);
-            }
+                PopulateDetails(AssociatedTexture);
             else
                 using (PCCObject pcc = new PCCObject(PCCS[0].Name, GameVersion))
                     using (Texture2D tex2D = new Texture2D(pcc, PCCS[0].ExpID, GameVersion))

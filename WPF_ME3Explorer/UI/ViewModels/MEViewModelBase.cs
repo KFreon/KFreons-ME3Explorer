@@ -16,6 +16,25 @@ namespace WPF_ME3Explorer.UI.ViewModels
 {
     public class MEViewModelBase<T> : ViewModelBase where T : AbstractTexInfo
     {
+        protected CancellationTokenSource cts = new CancellationTokenSource();
+
+        CommandHandler cancelCommand = null;
+        public CommandHandler CancelCommand
+        {
+            get
+            {
+                // Reset cts
+                if (cts.IsCancellationRequested)
+                    cts = new CancellationTokenSource();
+
+
+                if (cancelCommand == null)
+                    cancelCommand = new CommandHandler(() => cts.Cancel());
+
+                return cancelCommand;
+            }
+        }
+
         bool busy = false;
         public bool Busy
         {

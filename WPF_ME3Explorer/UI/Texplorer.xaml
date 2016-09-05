@@ -5,7 +5,6 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:localUI="clr-namespace:WPF_ME3Explorer.UI"
         xmlns:local="clr-namespace:WPF_ME3Explorer"
-        xmlns:dVM="clr-namespace:WPF_ME3Explorer.UI.ViewModels.DesignTime"
         xmlns:VM="clr-namespace:WPF_ME3Explorer.UI.ViewModels"
         xmlns:usefulUIElements="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"

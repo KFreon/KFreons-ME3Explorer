@@ -105,7 +105,7 @@
     <Compile Include="UI\GameInformation.xaml.cs">
       <DependentUpon>GameInformation.xaml</DependentUpon>
     </Compile>
-    <Compile Include="UI\TexplorerTextureFolder.cs" />
+    <Compile Include="Textures\TexplorerTextureFolder.cs" />
     <Compile Include="UI\ValueConverters\HashStringConverter.cs" />
     <Compile Include="MEDirectories\MEDirectories.cs" />
     <Compile Include="PCCObjectsAndBits\CustomProperty.cs" />
@@ -137,8 +137,6 @@
     <Compile Include="UI\ValueConverters\MipmapCountConverter.cs" />
     <Compile Include="UI\ValueConverters\ImageEngineFormatConverter.cs" />
     <Compile Include="UI\ValueConverters\ThumbnailConverter.cs" />
-    <Compile Include="UI\ViewModels\DesignTime\DESIGN_TexplorerVM.cs" />
-    <Compile Include="UI\ViewModels\DesignTime\DESIGN_TPFToolsVM.cs" />
     <Compile Include="UI\ViewModels\GameInformationVM.cs" />
     <Compile Include="UI\ViewModels\MEViewModelBase.cs" />
     <Compile Include="UI\ViewModels\ModmakerViewModel.cs" />

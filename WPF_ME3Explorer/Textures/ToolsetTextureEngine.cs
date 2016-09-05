@@ -104,17 +104,14 @@ namespace WPF_ME3Explorer.Textures
             // Get Texture2D
             Texture2D tex2D = GetTexture2D(tex);
 
-
             byte[] imgData = File.ReadAllBytes(newTextureFileName);
 
             // Update Texture2D
             using (ImageEngineImage img = new ImageEngineImage(imgData))
                 tex2D.OneImageToRuleThemAll(img);
 
-            // Add to textures list
-            if (tex.Textures.Count == 0)
-                tex.Textures.Add(tex2D);
-
+            // Ensure tex2D is part of the TreeTexInfo for later use.
+            tex.AssociatedTexture = tex2D;
             tex.HasChanged = true;
 
             return true;
@@ -136,8 +133,8 @@ namespace WPF_ME3Explorer.Textures
             int expID = tex.PCCS[0].ExpID;
 
             // Texture object has already been created - likely due to texture being updated previously in current session
-            if (tex.Textures?.Any() == true)
-                tex2D = tex.Textures[0];
+            if (tex.AssociatedTexture == null)
+                tex2D = tex.AssociatedTexture;
             else
             {
                 // Create PCCObject
@@ -171,7 +168,7 @@ namespace WPF_ME3Explorer.Textures
             tex2D.ExtractMaxImage(filename);
 
             // Cleanup if required
-            if (!tex.Textures.Contains(tex2D))
+            if (tex.AssociatedTexture != tex2D)
                 tex2D.Dispose();
         }
 
@@ -184,7 +181,7 @@ namespace WPF_ME3Explorer.Textures
             tex2D.LowResFix();
 
             // Cleanup if required
-            if (!tex.Textures.Contains(tex2D))
+            if (tex.AssociatedTexture != tex2D)
                 tex2D.Dispose();
         }
     }
