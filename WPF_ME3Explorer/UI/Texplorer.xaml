@@ -746,7 +746,7 @@
             </Grid>
         </Grid>
 
-        <Grid x:Name="ProgressPanel" Background="#CC000000" Grid.RowSpan="3" Grid.ColumnSpan="3" d:IsHidden="True">
+        <Grid x:Name="ProgressPanel" Background="#CC000000" Grid.RowSpan="3" Grid.ColumnSpan="3">
             <Grid.Resources>
                 <Style TargetType="TextBlock">
                     <Setter Property="Foreground" Value="White"/>
@@ -756,7 +756,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="174*"/>
                 <RowDefinition Height="542*"/>
-                <RowDefinition Height="155*"/>
+                <RowDefinition Height="120*"/>
             </Grid.RowDefinitions>
 
             <MediaElement x:Name="BackgroundMovie" Grid.RowSpan="3" Source="Resources/Progress Background.avi" Stretch="Fill" Margin="0,0,0,0.333" UnloadedBehavior="Manual" LoadedBehavior="Manual" MediaEnded="BackgroundMovie_MediaEnded" MediaOpened="BackgroundMovie_MediaOpened" MediaFailed="BackgroundMovie_MediaFailed"/>

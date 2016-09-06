@@ -132,6 +132,18 @@ namespace WPF_ME3Explorer.UI.ViewModels
         }
         #endregion Commands
 
+        public bool TPFToolsModeEnabled
+        {
+            get
+            {
+                return ToolsetTextureEngine.TPFToolsModeEnabled;
+            }
+            set
+            {
+                SetProperty(ref ToolsetTextureEngine.TPFToolsModeEnabled, value);
+            }
+        }
+
         #region UI Actions
         public Action TreePanelCloser = null;
         public Action ProgressOpener = null;
@@ -151,19 +163,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
         public MTRangedObservableCollection<TexplorerTextureFolder> TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
         public MTRangedObservableCollection<TexplorerTextureFolder> AllFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
         public MTRangedObservableCollection<TreeTexInfo> ChangedTextures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
-
-        bool tpfToolsModeEnabled = false;
-        public bool TPFToolsModeEnabled
-        {
-            get
-            {
-                return tpfToolsModeEnabled;
-            }
-            set
-            {
-                SetProperty(ref tpfToolsModeEnabled, value);
-            }
-        }
 
         TexplorerTextureFolder mySelected = null;
         public TexplorerTextureFolder SelectedFolder
@@ -852,7 +851,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             Busy = true;
             Status = $"Changing Texture: {tex.TexName}...";
-
 
             bool success = ToolsetTextureEngine.ChangeTexture(tex, filename);
             if (success)

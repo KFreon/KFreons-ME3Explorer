@@ -14,6 +14,8 @@ namespace WPF_ME3Explorer.Textures
 {
     public static class ToolsetTextureEngine
     {
+        public static bool TPFToolsModeEnabled = false;
+
         /// <summary>
         /// Returns hash as a string in the 0xhash format.
         /// </summary>
@@ -105,6 +107,12 @@ namespace WPF_ME3Explorer.Textures
             Texture2D tex2D = GetTexture2D(tex);
 
             byte[] imgData = File.ReadAllBytes(newTextureFileName);
+
+            // Do stuff different for TPFToolsMode
+            if (TPFToolsModeEnabled)
+            {
+                return true;
+            }
 
             // Update Texture2D
             using (ImageEngineImage img = new ImageEngineImage(imgData))
