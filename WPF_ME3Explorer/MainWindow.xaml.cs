@@ -21,47 +21,32 @@ namespace WPF_ME3Explorer
     /// </summary>
     public partial class MainWindow : Window
     {
-        public UI.TPFTools TPFToolsInstance { get; private set; }
-        public UI.Texplorer TexplorerInstance { get; private set; }
-        public UI.Modmaker ModmakerInstance { get; private set; }
-
         public MainWindow()
         {
             InitializeComponent();
             DebugOutput.StartDebugger("The Toolset");
-
-            TPFToolsInstance = new UI.TPFTools();
-            TexplorerInstance = new UI.Texplorer();
-            ModmakerInstance = new UI.Modmaker();
-
         }
 
         private void TPFToolsButton_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (TPFToolsInstance.IsClosed)
-                TPFToolsInstance = new UI.TPFTools();
-            TPFToolsInstance.Show();
+            ToolsetInfo.TPFToolsInstance.Show();
         }
 
         private void TexplorerButton_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (TexplorerInstance.IsClosed)
-                TexplorerInstance = new UI.Texplorer();
-            TexplorerInstance.Show();
+            ToolsetInfo.TexplorerInstance.Show();
         }
 
         private void ModmakerButton_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (ModmakerInstance.IsClosed)
-                ModmakerInstance = new UI.Modmaker();
-            ModmakerInstance.Show();
+            ToolsetInfo.ModmakerInstance.Show();
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            TPFToolsInstance.Close();
-            TexplorerInstance.Close();
-            ModmakerInstance.Close();
+            ToolsetInfo.TPFToolsInstance.Close();
+            ToolsetInfo.TexplorerInstance.Close();
+            ToolsetInfo.ModmakerInstance.Close();
             DebugOutput.Close();
         }
     }

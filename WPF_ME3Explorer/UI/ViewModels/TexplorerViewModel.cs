@@ -83,6 +83,53 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 return changeTree;
             }
         }
+
+        CommandHandler startTPFToolsModeCommand = null;
+        public CommandHandler StartTPFToolsModeCommand
+        {
+            get
+            {
+                if (startTPFToolsModeCommand == null)
+                {
+                    // Start TPFTools
+                    var tpftools = ToolsetInfo.TPFToolsInstance;
+
+                    // Open window if necessary, minimising it either way.
+                    tpftools.WindowState = WindowState.Minimized;
+                    if (tpftools.Visibility != Visibility.Visible)
+                        tpftools.Show();
+
+
+                    // Change mode indicator
+                    TPFToolsModeEnabled = true;
+                }
+
+                return startTPFToolsModeCommand;
+            }
+        }
+
+        CommandHandler stopTPFToolsModeCommand = null;
+        public CommandHandler StopTPFToolsModeCommand
+        {
+            get
+            {
+                if (stopTPFToolsModeCommand == null)
+                {
+                    // Start TPFTools
+                    var tpftools = ToolsetInfo.TPFToolsInstance;
+
+                    // Show TPFTools window
+                    tpftools.WindowState = WindowState.Normal;
+                    tpftools.Activate();
+
+
+                    // Change mode indicator
+                    TPFToolsModeEnabled = false;
+                }
+
+                return stopTPFToolsModeCommand;
+            }
+        }
         #endregion Commands
 
         #region UI Actions
@@ -104,6 +151,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
         public MTRangedObservableCollection<TexplorerTextureFolder> TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
         public MTRangedObservableCollection<TexplorerTextureFolder> AllFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
         public MTRangedObservableCollection<TreeTexInfo> ChangedTextures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
+
+        bool tpfToolsModeEnabled = false;
+        public bool TPFToolsModeEnabled
+        {
+            get
+            {
+                return tpfToolsModeEnabled;
+            }
+            set
+            {
+                SetProperty(ref tpfToolsModeEnabled, value);
+            }
+        }
 
         TexplorerTextureFolder mySelected = null;
         public TexplorerTextureFolder SelectedFolder

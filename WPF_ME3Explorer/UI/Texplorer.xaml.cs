@@ -63,6 +63,9 @@ namespace WPF_ME3Explorer.UI
             });
 
             DataContext = vm;
+
+            // Start background on ProgressPanel
+            BackgroundMovie.Play();
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -212,6 +215,22 @@ namespace WPF_ME3Explorer.UI
         private void RegenerateTopMenu_Click(object sender, RoutedEventArgs e)
         {
             Task.Run(() => vm.RegenerateThumbs());
+        }
+
+        private void BackgroundMovie_MediaEnded(object sender, RoutedEventArgs e)
+        {
+            BackgroundMovie.Stop();
+            BackgroundMovie.Play();
+        }
+
+        private void BackgroundMovie_MediaOpened(object sender, RoutedEventArgs e)
+        {
+            BackgroundMovie.Play();
+        }
+
+        private void BackgroundMovie_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+        {
+            Console.WriteLine();
         }
     }
 }

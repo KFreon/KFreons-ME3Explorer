@@ -197,8 +197,28 @@ namespace WPF_ME3Explorer.Debugging
                 if (debugFileWriter == null)
                     PrintLn("Failed to open any debug output files. Disk cached debugging disabled for this session.");
 
+                // TESTING
+                DebugWindow debugger = new DebugWindow();
+                debugger.WindowState = System.Windows.WindowState.Minimized;
+                debugger.Closed += (sender, args) =>
+                {
+                    rtb = null;  // Nullify rtb to indicate window is closed.
+                    debugger.Dispatcher.InvokeShutdown();
+                };
+                debugger.Show();
+
+                Closer = new Action(() =>
+                {
+                    if (!debugger.Dispatcher.HasShutdownStarted)
+                        try
+                        {
+                            debugger.Dispatcher.Invoke(() => debugger.Close());
+                        }
+                        catch { } // Fails when closing toolset when debugger has already been closed.
+                });
+
                 // KFreon: Thread debugger
-                Thread thread = new Thread(() =>
+                /*Thread thread = new Thread(() =>
                 {
                     DebugWindow Debugger = new DebugWindow();
                     Debugger.WindowState = System.Windows.WindowState.Minimized;
@@ -222,7 +242,7 @@ namespace WPF_ME3Explorer.Debugging
                     Dispatcher.Run();
                 });
                 thread.SetApartmentState(ApartmentState.STA);
-                thread.Start();
+                thread.Start();*/
 
 
                 waiting = new StringBuilder();

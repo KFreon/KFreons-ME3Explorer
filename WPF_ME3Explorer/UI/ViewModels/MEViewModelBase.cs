@@ -161,6 +161,32 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
+        string diskActivity = null;
+        public string DiskActivity
+        {
+            get
+            {
+                return diskActivity;
+            }
+            set
+            {
+                SetProperty(ref diskActivity, value);
+            }
+        }
+
+        string diskUsage = null;
+        public string DiskUsage
+        {
+            get
+            {
+                return diskUsage;
+            }
+            set
+            {
+                SetProperty(ref diskUsage, value);
+            }
+        }
+
         public string ToolsetVersion
         {
             get
@@ -223,6 +249,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 MemoryUsage = ToolsetInfo.MemoryUsage;
                 CPUUsage = ToolsetInfo.CPUUsage;
+                DiskActivity = ToolsetInfo.DiskActiveTime;
+                DiskUsage = ToolsetInfo.DiskTransferRate;
+
 
                 if (StartTime != 0)
                     ElapsedTime = TimeSpan.FromMilliseconds(Environment.TickCount - StartTime);

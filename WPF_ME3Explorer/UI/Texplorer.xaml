@@ -65,6 +65,8 @@
                 </MenuItem.Style>
             </MenuItem>
             <MenuItem x:Name="RegenerateTopMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Regenerate All Thumbnails" Click="RegenerateTopMenu_Click"/>
+            <MenuItem x:Name="StartTPFToolsMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Start TPFTools Mode" Command="{Binding StartTPFToolsModeCommand}" Visibility="{Binding TPFToolsModeEnabled, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
+            <MenuItem x:Name="StopTPFToolsMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Stop TPFTools Mode" Command="{Binding StopTPFToolsModeCommand}" Visibility="{Binding TPFToolsModeEnabled, Converter={StaticResource BoolToVisConverter}}"/>
         </Menu>
 
         <StackPanel x:Name="GameAndTreeIndicators" Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right" Margin="0,0,-0.333,0.333">
@@ -728,7 +730,7 @@
                                 </Grid>
                             </Button>
                         </Grid>
-                        
+
 
 
                         <Button x:Name="ExportCSVButton" Click="ExportCSVButton_Click" IsEnabled="{Binding CurrentTree.Valid}">
@@ -744,7 +746,7 @@
             </Grid>
         </Grid>
 
-        <Grid x:Name="ProgressPanel" Background="#CC000000" Grid.RowSpan="3" Grid.ColumnSpan="3">
+        <Grid x:Name="ProgressPanel" Background="#CC000000" Grid.RowSpan="3" Grid.ColumnSpan="3" d:IsHidden="True">
             <Grid.Resources>
                 <Style TargetType="TextBlock">
                     <Setter Property="Foreground" Value="White"/>
@@ -752,11 +754,13 @@
                 </Style>
             </Grid.Resources>
             <Grid.RowDefinitions>
-                <RowDefinition Height="342*"/>
-                <RowDefinition Height="529*"/>
+                <RowDefinition Height="174*"/>
+                <RowDefinition Height="542*"/>
+                <RowDefinition Height="155*"/>
             </Grid.RowDefinitions>
-            <TextBlock x:Name="TreeScanTitle" Text="Tree Scan in progress..." VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="80"/>
-            <Button x:Name="HiderButton" Content="Close" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="30" Background="Transparent" BorderBrush="White" Foreground="White" Padding="10,2">
+
+            <MediaElement x:Name="BackgroundMovie" Grid.RowSpan="3" Source="Resources/Progress Background.avi" Stretch="Fill" Margin="0,0,0,0.333" UnloadedBehavior="Manual" LoadedBehavior="Manual" MediaEnded="BackgroundMovie_MediaEnded" MediaOpened="BackgroundMovie_MediaOpened" MediaFailed="BackgroundMovie_MediaFailed"/>
+            <Button x:Name="HiderButton" Content="Close" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="30" Background="Transparent" BorderBrush="White" Foreground="White" Padding="10,2" Height="46" Width="94">
                 <Button.Resources>
                     <Storyboard x:Key="ProgressPanelCloser">
                         <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="Visibility">
@@ -777,34 +781,79 @@
                 </Button.Triggers>
             </Button>
 
-            <TextBlock x:Name="MemoryUsage" HorizontalAlignment="Right" VerticalAlignment="Bottom" Grid.Row="1">
-                <Run Text="{Binding MemoryUsage}"/>
-                <Run Text=" :Memory Usage"/>
-            </TextBlock>
 
-            <TextBlock x:Name="CPUUsage" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,0,0,-0.667" Grid.Row="1">
-                <Run Text="CPU Usage: "/>
-                <Run Text="{Binding CPUUsage}"/>
-            </TextBlock>
+            <DockPanel Grid.Row="2" LastChildFill="False">
+                <DockPanel.Resources>
+                    <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="TextBlock">
+                        <Setter Property="Margin" Value="25,0"/>
+                        <Setter Property="FontSize" Value="45"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </DockPanel.Resources>
+                
+                <TextBlock x:Name="CPUUsage">
+                    <Run Text="CPU Usage" FontWeight="Bold"/>
+                    <LineBreak/>
+                    <Run Text="{Binding CPUUsage}"/>
+                </TextBlock>
 
-            <TextBlock x:Name="ElapsedTime" VerticalAlignment="Bottom" Margin="500,0,0,0" Grid.Row="1">
-                <Run Text="Elapsed Time: "/>
-                <Run Text="{Binding ElapsedTime, StringFormat=hh\\:mm\\:ss}"/>
-            </TextBlock>
+                <TextBlock x:Name="DiskActivity">
+                    <Run Text="Disk Activity" FontWeight="Bold"/>
+                    <LineBreak/>
+                    <Run Text="{Binding DiskActivity}"/>
+                </TextBlock>
 
-            <ProgressBar x:Name="ProgressBar" Margin="171,120,171,10" Value="{Binding Progress}" Maximum="{Binding MaxProgress}"/>
-            <Button x:Name="ErrorsShowButton" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="50" Background="Transparent" Foreground="White" BorderBrush="White" Padding="10,5">
-                <Button.Content>
-                    <TextBlock>
-                        <Run Foreground="White" Text="Errors during Scanning: "/>
-                        <Run Foreground="Red" Text="{Binding Errors.Count, Mode=OneWay}" FontWeight="Bold"/>
-                    </TextBlock>
-                </Button.Content>
-            </Button>
-            <ListBox x:Name="ErrorsDisplay" Margin="5,80,5,80.333" ItemsSource="{Binding Errors}" Grid.Row="1"/>
-            <Border x:Name="Status" HorizontalAlignment="Center" Margin="{Binding ElementName=ProgressBar, Path=Margin}">
+                <TextBlock x:Name="DiskUsage">
+                    <Run Text="Disk Usage" FontWeight="Bold"/>
+                    <LineBreak/>
+                    <Run Text="{Binding DiskUsage}"/>
+                </TextBlock>
+
+                <TextBlock x:Name="ElapsedTime">
+                    <Run Text="Elapsed Time" FontWeight="Bold"/>
+                    <LineBreak/>
+                    <Run Text="{Binding ElapsedTime, StringFormat=hh\\:mm\\:ss}"/>
+                </TextBlock>
+
+                <TextBlock x:Name="MemoryUsage" DockPanel.Dock="Right">
+                    <Run Text="Memory Usage" FontWeight="Bold"/>
+                    <LineBreak/>
+                    <Run Text="{Binding MemoryUsage}"/>
+                </TextBlock>
+            </DockPanel>
+            
+
+
+            <ProgressBar x:Name="ProgressBar" Margin="100,11,10,10" Value="{Binding Progress}" Maximum="{Binding MaxProgress}" Foreground="#B206B025" Background="#B2E6E6E6"/>
+            <Border x:Name="Status" HorizontalAlignment="Center" Margin="871,0">
                 <TextBlock Text="{Binding Status}" VerticalAlignment="Center"/>
             </Border>
+            <Button x:Name="ErrorsShowButton" Content="Errors" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="50" Background="Transparent" Foreground="White" BorderBrush="White" Padding="10,5">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Visibility" Value="Visible"/>
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Errors.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <ListBox Grid.Row="1" Margin="0,82,0,0" Background="#B2FFFFFF">
+                <ListBox.Style>
+                    <Style TargetType="ListBox">
+                        <Setter Property="Visibility" Value="Visible"/>
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Errors.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListBox.Style>
+            </ListBox>
         </Grid>
     </Grid>
 </Window>

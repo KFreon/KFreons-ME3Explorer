@@ -7,11 +7,50 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using UsefulThings;
+using WPF_ME3Explorer.UI;
 
 namespace WPF_ME3Explorer
 {
     public static class ToolsetInfo
     {
+        static TPFTools tpfToolsInstance = null;
+        public static TPFTools TPFToolsInstance
+        {
+            get
+            {
+                if (tpfToolsInstance?.IsClosed != false) // So if it's null or true, it resets the instance
+                    tpfToolsInstance = new TPFTools();
+
+                return tpfToolsInstance;
+            }
+        }
+
+        static Texplorer texplorerInstance = null;
+        public static Texplorer TexplorerInstance
+        {
+            get
+            {
+                if (texplorerInstance?.IsClosed != false) // So if it's null or true, it resets the instance
+                    texplorerInstance = new Texplorer();
+
+                return texplorerInstance;
+            }
+        }
+
+        static Modmaker modmakerInstance = null;
+        public static Modmaker ModmakerInstance
+        {
+            get
+            {
+                if (modmakerInstance?.IsClosed != false) // So if it's null or true, it resets the instance
+                    modmakerInstance = new Modmaker();
+
+                return modmakerInstance;
+            }
+        }
+
+
+
         static Process currentProcess = null;
         static PerformanceCounter CPUCounter = null;
         static PerformanceCounter DiskTransferCounter = null;
@@ -80,6 +119,9 @@ namespace WPF_ME3Explorer
         {
             get
             {
+                if (DiskActivityCounter == null)
+                    return null;
+
                 return Math.Round(DiskActivityCounter.NextValue(), 1) + "%";
             }
         }
@@ -88,6 +130,9 @@ namespace WPF_ME3Explorer
         {
             get
             {
+                if (DiskTransferCounter == null)
+                    return null;
+
                 return UsefulThings.General.GetFileSizeAsString(DiskTransferCounter.NextValue());
             }
         }
