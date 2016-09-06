@@ -149,13 +149,12 @@ namespace WPF_ME3Explorer.Textures
                             int texCount = bin.ReadInt32();
                             for (int i = 0; i < texCount; i++)
                             {
-                                TreeTexInfo tex = new TreeTexInfo();
+                                TreeTexInfo tex = new TreeTexInfo(GameDirecs);
                                 tex.TexName = bin.ReadString();
                                 tex.Hash = bin.ReadUInt32();
                                 tex.StorageType = (Texture2D.storage)bin.ReadInt32();
                                 tex.FullPackage = bin.ReadString();
                                 tex.Format = (ImageEngineFormat)bin.ReadInt32();
-                                tex.GameVersion = gameVersion;
 
                                 Thumbnail thumb = new Thumbnail(GameDirecs.ThumbnailCachePath);
                                 thumb.Offset = bin.ReadInt64();

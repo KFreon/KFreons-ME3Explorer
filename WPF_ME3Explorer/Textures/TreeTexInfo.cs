@@ -124,16 +124,20 @@ namespace WPF_ME3Explorer.Textures
         }
         #endregion Properties
 
-        public TreeTexInfo() : base()
+        public TreeTexInfo()
         {
 
         }
 
-        public TreeTexInfo(Texture2D tex2D, ThumbnailWriter ThumbWriter, ExportEntry export, Dictionary<string, MemoryStream> TFCs, IList<string> Errors) : this()
+        public TreeTexInfo(MEDirectories.MEDirectories direcs)
+        {
+            GameDirecs = direcs;
+        }
+
+        public TreeTexInfo(Texture2D tex2D, ThumbnailWriter ThumbWriter, ExportEntry export, Dictionary<string, MemoryStream> TFCs, IList<string> Errors, MEDirectories.MEDirectories direcs) : this(direcs)
         {
             TexName = tex2D.texName;
             Format = tex2D.texFormat;
-            GameVersion = tex2D.GameVersion;
             FullPackage = export.PackageFullName;
 
             // Hash
@@ -201,7 +205,7 @@ namespace WPF_ME3Explorer.Textures
 
             using (PCCObject pcc = new PCCObject(PCCS[0].Name, GameVersion))
             {
-                using (Texture2D tex2D = new Texture2D(pcc, PCCS[0].ExpID, GameVersion))
+                using (Texture2D tex2D = new Texture2D(pcc, PCCS[0].ExpID, GameDirecs))
                 {
                     return GetThumbFromTex2D(tex2D);
                 }
@@ -262,7 +266,7 @@ namespace WPF_ME3Explorer.Textures
                 {
                     using (PCCObject pcc = new PCCObject(PCCS[i].Name, GameVersion))
                     {
-                        using (Texture2D tex = new Texture2D(pcc, PCCS[i].ExpID, GameVersion))
+                        using (Texture2D tex = new Texture2D(pcc, PCCS[i].ExpID, GameDirecs))
                         {
                             string arc = tex.arcName;
                             if (i == 0 && (arc != "None" && !String.IsNullOrEmpty(arc)))
@@ -344,7 +348,7 @@ namespace WPF_ME3Explorer.Textures
                 PopulateDetails(AssociatedTexture);
             else
                 using (PCCObject pcc = new PCCObject(PCCS[0].Name, GameVersion))
-                    using (Texture2D tex2D = new Texture2D(pcc, PCCS[0].ExpID, GameVersion))
+                    using (Texture2D tex2D = new Texture2D(pcc, PCCS[0].ExpID, GameDirecs))
                         PopulateDetails(tex2D);   
         }
 

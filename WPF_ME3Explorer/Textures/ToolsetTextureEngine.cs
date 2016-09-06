@@ -151,7 +151,7 @@ namespace WPF_ME3Explorer.Textures
                     throw new InvalidDataException($"Export {expID} in {pccPath} is not a texture. Class: {export.ClassName}, Object Name:{export.ObjectName}.");
 
                 // Create Texture2D
-                tex2D = new Texture2D(pcc, expID, tex.GameVersion, tex.Hash);
+                tex2D = new Texture2D(pcc, expID, new MEDirectories.MEDirectories(tex.GameVersion), tex.Hash);
             }
 
             pcc.Dispose(); // Texture2D doesn't need this anymore

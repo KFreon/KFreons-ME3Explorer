@@ -17,12 +17,29 @@ namespace WPF_ME3Explorer.Textures
         public List<PCCEntry> PCCS { get; set; } = new List<PCCEntry>();
         public uint Hash { get; set; }
         public ImageEngineFormat Format { get; set; } = ImageEngineFormat.Unknown;
-        public int GameVersion { get; set; } = -1;
+        public int GameVersion
+        {
+            get
+            {
+                return GameDirecs.GameVersion;
+            }
+        }
         public Thumbnail Thumb { get; set; } = null;
 
         public abstract int Width { get; set; }
         public abstract int Height { get; set; }
         public abstract int Mips { get; set; }
+        public MEDirectories.MEDirectories GameDirecs { get; set; }
+
+        public AbstractTexInfo()
+        {
+            
+        }
+
+        public AbstractTexInfo(MEDirectories.MEDirectories direcs)
+        {
+            GameDirecs = direcs;
+        }
 
         public virtual List<string> Searchables
         {

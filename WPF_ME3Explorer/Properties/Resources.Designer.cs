@@ -63,6 +63,16 @@ namespace WPF_ME3Explorer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap ChangeTexture {
+            get {
+                object obj = ResourceManager.GetObject("ChangeTexture", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap DefaultMesh {
             get {
                 object obj = ResourceManager.GetObject("DefaultMesh", resourceCulture);
@@ -113,6 +123,16 @@ namespace WPF_ME3Explorer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap ExtractTexture {
+            get {
+                object obj = ResourceManager.GetObject("ExtractTexture", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Folder_Closed {
             get {
                 object obj = ResourceManager.GetObject("Folder_Closed", resourceCulture);
@@ -136,6 +156,16 @@ namespace WPF_ME3Explorer.Properties {
         internal static System.Drawing.Bitmap Import_Tree {
             get {
                 object obj = ResourceManager.GetObject("Import_Tree", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap LowResFix {
+            get {
+                object obj = ResourceManager.GetObject("LowResFix", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -186,6 +216,36 @@ namespace WPF_ME3Explorer.Properties {
         internal static System.Drawing.Bitmap Placeholder {
             get {
                 object obj = ResourceManager.GetObject("Placeholder", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap RegenerateFolder {
+            get {
+                object obj = ResourceManager.GetObject("RegenerateFolder", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap RegenerateSingle {
+            get {
+                object obj = ResourceManager.GetObject("RegenerateSingle", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap RegenerateSubFolders {
+            get {
+                object obj = ResourceManager.GetObject("RegenerateSubFolders", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

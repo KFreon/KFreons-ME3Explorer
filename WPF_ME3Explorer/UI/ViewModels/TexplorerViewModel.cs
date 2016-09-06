@@ -652,7 +652,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     Texture2D tex2D = null;
                     try
                     {
-                        tex2D = new Texture2D(pcc, i, GameVersion);
+                        tex2D = new Texture2D(pcc, i, GameDirecs);
                     }
                     catch (Exception e)
                     {
@@ -669,7 +669,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                     try
                     {
-                        TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs, Errors);
+                        TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs, Errors, GameDirecs);
                         texes.Add(info);
                     }
                     catch(Exception e)
@@ -777,7 +777,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             using (PCCObject pcc = new PCCObject(texInfo.PCCS[0].Name, GameVersion))
             {
-                using (Texture2D tex2D = new Texture2D(pcc, texInfo.PCCS[0].ExpID, GameVersion))
+                using (Texture2D tex2D = new Texture2D(pcc, texInfo.PCCS[0].ExpID, GameDirecs))
                 {
                     byte[] img = tex2D.ExtractMaxImage();
                     using (ImageEngineImage jpg = new ImageEngineImage(img))
@@ -940,13 +940,13 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 if (texType != null)
                     newTex2D = texType.AssociatedTexture;
                 else
-                    newTex2D = new Texture2D(pcc, 0, 0); // TODO TPFTools
+                    newTex2D = new Texture2D(pcc, 0, GameDirecs); // TODO TPFTools
 
                 // Loop over texture's pcc entries to install desired ones.
                 foreach (var entry in tex.PCCS.Where(p => p.Name == pcc.pccFileName))
                 {
                     // TODO Get old tex2D  WHYYYY
-                    Texture2D oldTex2D = new Texture2D(pcc, entry.ExpID, GameVersion);
+                    Texture2D oldTex2D = new Texture2D(pcc, entry.ExpID, GameDirecs);
                     oldTex2D.CopyImgList(newTex2D, pcc);
 
                     ExportEntry export = pcc.Exports[entry.ExpID];

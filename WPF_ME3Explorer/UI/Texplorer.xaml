@@ -113,8 +113,16 @@
                     <StackPanel Orientation="Horizontal" Background="Transparent">
                         <StackPanel.ContextMenu>
                             <ContextMenu IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}">
-                                <MenuItem Header="Regenerate Thumbnails (current Folder only)" Command="{Binding RegenerateThumbsCommand}"/>
-                                <MenuItem Header="Regenerate Sub Folder Thumbnails (incl this)" Command="{Binding RegenerateSubThumbsCommand}"/>
+                                <MenuItem Header="Regenerate Thumbnails (current Folder only)" Command="{Binding RegenerateThumbsCommand}">
+                                    <MenuItem.Icon>
+                                        <Image Source="/WPF_ME3Explorer;component/Resources/RegenerateFolder.png" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Regenerate Sub Folder Thumbnails (incl this)" Command="{Binding RegenerateSubThumbsCommand}">
+                                    <MenuItem.Icon>
+                                        <Image Source="/WPF_ME3Explorer;component/Resources/RegenerateSubFolders.png"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
                             </ContextMenu>
                         </StackPanel.ContextMenu>
                         <Image>
@@ -188,12 +196,24 @@
                                 </ContextMenu.Resources>
                                 <MenuItem Header="Change" Command="{Binding ChangeCommand}" CommandParameter="{Binding}">
                                     <MenuItem.Icon>
-                                        <Image Source="/WPF_ME3Explorer;component/Resources/Delete Tree.png"/>
+                                        <Image Source="/WPF_ME3Explorer;component/Resources/ChangeTexture.png"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
-                                <MenuItem Header="Extract" Command="{Binding ExtractCommand}" CommandParameter="{Binding}"/>
-                                <MenuItem Header="Regenerate Thumbnail" Command="{Binding RegenerateThumbCommand}" CommandParameter="{Binding}"/>
-                                <MenuItem Header="Try Low Res Fix" Style="{StaticResource ME1_ItemsStyle}" Command="{Binding LowResFixCommand}" CommandParameter="{Binding}"/>
+                                <MenuItem Header="Extract" Command="{Binding ExtractCommand}" CommandParameter="{Binding}">
+                                    <MenuItem.Icon>
+                                        <Image Source="/WPF_ME3Explorer;component/Resources/ExtractTexture.png"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Regenerate Thumbnail" Command="{Binding RegenerateThumbCommand}" CommandParameter="{Binding}">
+                                    <MenuItem.Icon>
+                                        <Image Source="/WPF_ME3Explorer;component/Resources/RegenerateSingle.png"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Try Low Res Fix" Style="{StaticResource ME1_ItemsStyle}" Command="{Binding LowResFixCommand}" CommandParameter="{Binding}">
+                                    <MenuItem.Icon>
+                                        <Image Source="/WPF_ME3Explorer;component/Resources/LowResFix.png"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
                             </ContextMenu>
                         </DockPanel.ContextMenu>
                         <Image Source="{Binding Thumb, Converter={StaticResource ThumbnailConverter}, ConverterParameter={StaticResource DefaultTexture}}" Width="128" Height="128" DockPanel.Dock="Top" Margin="5,0"/>
@@ -724,7 +744,7 @@
             </Grid>
         </Grid>
 
-        <Grid x:Name="ProgressPanel" Background="#CC000000" Grid.RowSpan="3" Grid.ColumnSpan="3" Visibility="Collapsed" d:IsHidden="True">
+        <Grid x:Name="ProgressPanel" Background="#CC000000" Grid.RowSpan="3" Grid.ColumnSpan="3">
             <Grid.Resources>
                 <Style TargetType="TextBlock">
                     <Setter Property="Foreground" Value="White"/>

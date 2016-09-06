@@ -264,6 +264,15 @@
     <Content Include="LZO\lzo2_64.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Resources\Progress Background.avi">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Resource Include="Resources\LowResFix.png" />
+    <Resource Include="Resources\ExtractTexture.png" />
+    <Resource Include="Resources\ChangeTexture.png" />
+    <Resource Include="Resources\RegenerateSubFolders.png" />
+    <Resource Include="Resources\RegenerateSingle.png" />
+    <Resource Include="Resources\RegenerateFolder.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

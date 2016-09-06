@@ -60,7 +60,14 @@ namespace WPF_ME3Explorer.Textures
         private int ArcDataSize;
         public String Class;
         public string Compression;
-        public int GameVersion = 0;
+        public int GameVersion
+        {
+            get
+            {
+                return GameDirecs.GameVersion;
+            }
+        }
+        public MEDirectories.MEDirectories GameDirecs = null;
         public string ME1_PackageFullName = null;
         public List<ImageInfo> ImageList { get; set; } // showable image list
         public ImageEngineFormat texFormat { get; set; }
@@ -112,8 +119,8 @@ namespace WPF_ME3Explorer.Textures
         /// <param name="pccs">PCC's containing this texture.</param>
         /// <param name="ExpIDs">Export ID's of texture in given PCC's.</param>
         /// <param name="hash">Hash of texture.</param>
-        /// <param name="gameVersion">Version of Mass Effect texture is from.</param>
-        public Texture2D(string name, List<string> pccs, List<int> ExpIDs, uint hash, int gameVersion)  // Not calling base constructor to avoid double assigning expIDs and allPccs.
+        /// <param name="direcs">Mass Effect Directory Information.</param>
+        public Texture2D(string name, List<string> pccs, List<int> ExpIDs, uint hash, MEDirectories.MEDirectories direcs)  // Not calling base constructor to avoid double assigning expIDs and allPccs.
         {
             texName = name;
 
@@ -124,7 +131,7 @@ namespace WPF_ME3Explorer.Textures
             expIDs = tempexp;
             Hash = hash;
             ImageList = new List<ImageInfo>();
-            GameVersion = gameVersion;
+            GameDirecs = direcs;
         }
 
 
@@ -133,11 +140,11 @@ namespace WPF_ME3Explorer.Textures
         /// </summary>
         /// <param name="pccObj">PCCObject containing texture.</param>
         /// <param name="texIdx">Export ID of texture in pcc.</param>
-        /// <param name="gameVersion">Version of Mass Effect texture is from.</param>
+        /// <param name="direcs">Mass Effect Directory information.</param>
         /// <param name="hash">Hash of texture.</param>
-        public Texture2D(PCCObject pccObj, int texIdx, int gameVersion, uint hash = 0) : this()
+        public Texture2D(PCCObject pccObj, int texIdx, MEDirectories.MEDirectories direcs, uint hash = 0) : this()
         {
-            GameVersion = gameVersion;
+            GameDirecs = direcs;
             allPccs.Add(pccObj.pccFileName);
             expIDs.Add(texIdx);
             Hash = hash;
@@ -283,7 +290,7 @@ namespace WPF_ME3Explorer.Textures
                         {
                             if (String.Compare(texName, temp.Exports[i].ObjectName, true) == 0 && temp.Exports[i].ValidTextureClass())
                             {
-                                Texture2D temptex = new Texture2D(temp, i, GameVersion);
+                                Texture2D temptex = new Texture2D(temp, i, GameDirecs);
                                 byte[] tempBuffer = temptex.ExtractImage(imgInfo.ImageSize);
                                 if (tempBuffer != null)
                                     imgBuffer = tempBuffer;   // Should really just be able to exit here, but for some reason, you can't. Early exports seem to be broken in some way, so you have to extract all the damn things.
@@ -521,32 +528,19 @@ namespace WPF_ME3Explorer.Textures
                     if (imgBuffer.Length != imgInfo.UncompressedSize)
                         throw new FormatException("image sizes do not match, original is " + imgInfo.UncompressedSize + ", new is " + imgBuffer.Length);
 
-                    // archiveDir is just BIOGame path
-                    string archiveDir = null;
-                    switch (GameVersion)
+                    // TODO ME1 completely different...
+                    if (!arcName.Contains(Path.GetFileNameWithoutExtension(GameDirecs.CachePath), StringComparison.OrdinalIgnoreCase))  // CachePath is usually CustTextures, but arcName can be CustTextures#, so check for substring
                     {
-                        case 1:
-                            archiveDir = MEDirectories.MEDirectories.ME1BIOGame;
-                            break;
-                        case 2:
-                            archiveDir = MEDirectories.MEDirectories.ME2BIOGame;
-                            break;
-                        case 3:
-                            archiveDir = MEDirectories.MEDirectories.ME3BIOGame;
-                            break;
-                    }
-
-                    if (!arcName.ToLower().Contains(Path.GetFileNameWithoutExtension(MEDirectories.MEDirectories.CachePath.ToLower())))  // CachePath is usually CustTextures, but arcName can be CustTextures#, so check for substring
-                    {
-                        ChooseNewCache(archiveDir, imgBuffer.Length);
+                        ChooseNewCache(imgBuffer.Length);
                         archivePath = FullArcPath;
                     }
                     else
                     {
+                        // Check cache not full.
                         FileInfo arc = new FileInfo(archivePath);
                         if (arc.Length + imgBuffer.Length >= 0x80000000)
                         {
-                            ChooseNewCache(archiveDir, imgBuffer.Length);
+                            ChooseNewCache(imgBuffer.Length);
                             archivePath = FullArcPath;
                         }
                     }
@@ -555,7 +549,7 @@ namespace WPF_ME3Explorer.Textures
                     {
                         int newOffset = (int)archiveStream.Position;
 
-                        if (imgInfo.storageType == storage.arcCpr)
+                        if (imgInfo.storageType == storage.ME3arcCpr)
                         {
                             imgBuffer = ZBlock.Compress(imgBuffer);
                             imgInfo.CompressedSize = imgBuffer.Length;
@@ -846,68 +840,45 @@ namespace WPF_ME3Explorer.Textures
                 throw new Exception("\"None\" property not found");
         }
 
-        private void ChooseNewCache(string bioPath, int buffLength)
+        private void ChooseNewCache(int buffLength)
         {
-            if (File.Exists(MEDirectories.MEDirectories.CachePath))
+            string pathCooked = GameDirecs.PathCooked;
+
+            string cachePath = GameDirecs.CachePath;
+            string cacheName = Path.GetFileNameWithoutExtension(cachePath);
+            string cacheFileName = Path.GetFileName(cachePath);
+            string rootFolder = Path.GetDirectoryName(cachePath);
+
+            // Cache needs creating
+            int i = 0;
+            while (i < 100)  // KFreon: Arbitrary limit on number of TFC's - was 10, turns out that isn't enough.
             {
-                FileInfo cacheInfo = new FileInfo(MEDirectories.MEDirectories.CachePath);
-                string cacheName = Path.GetFileNameWithoutExtension(MEDirectories.MEDirectories.CachePath);
-                string cacheFileName = Path.GetFileName(MEDirectories.MEDirectories.CachePath);
-                string rootFolder = Path.GetDirectoryName(MEDirectories.MEDirectories.CachePath);
+                FileInfo cacheInfo = new FileInfo(cachePath);
 
                 if (!cacheInfo.Exists)
-                    MakeCache(cacheInfo.FullName, bioPath);
-
-                MoveCaches(rootFolder, cacheFileName);
-                properties["TextureFileCacheName"].Value.StringValue = cacheName;
-                arcName = cacheName;
-                FullArcPath = cacheInfo.FullName;
-            }
-            else
-            {
-                int i = 0;
-                string CustCache = "CustTextures";
-                while (i < 10)
                 {
-                    FileInfo cacheInfo;
-                    List<string> parts = new List<string>(bioPath.Split('\\'));
-                    parts.Remove("");
-                    if (parts[parts.Count - 1] == "CookedPCConsole")
-                        cacheInfo = new FileInfo(Path.Combine(bioPath, CustCache + i + ".tfc"));
-                    else
-                        cacheInfo = new FileInfo(Path.Combine(bioPath, "CookedPCConsole", CustCache + i + ".tfc"));
-
-                    if (!cacheInfo.Exists)
-                    {
-                        MakeCache(cacheInfo.FullName, bioPath);
-                        List<string> parts1 = new List<string>(bioPath.Split('\\'));
-                        parts1.Remove("");
-                        if (parts1[parts1.Count - 1] == "CookedPCConsole")
-                            MoveCaches(bioPath, CustCache + i + ".tfc");
-                        else
-                            MoveCaches(bioPath + "\\CookedPCConsole", CustCache + i + ".tfc");
-
-                        properties["TextureFileCacheName"].Value.StringValue = CustCache + i;
-                        arcName = CustCache + i;
-                        FullArcPath = cacheInfo.FullName;
-                        return;
-                    }
-                    else if (cacheInfo.Length + buffLength + ArcDataSize < 0x80000000)
-                    {
-                        List<string> parts1 = new List<string>(bioPath.Split('\\'));
-                        parts1.Remove("");
-                        if (parts1[parts1.Count - 1] == "CookedPCConsole")
-                            MoveCaches(bioPath, CustCache + i + ".tfc");
-                        else
-                            MoveCaches(bioPath + "\\CookedPCConsole", CustCache + i + ".tfc");
-                        properties["TextureFileCacheName"].Value.StringValue = CustCache + i;
-                        arcName = CustCache + i;
-                        FullArcPath = cacheInfo.FullName;
-                        return;
-                    }
-                    i++;
+                    MakeCache(cachePath);
+                    break;
                 }
+                else if (cacheInfo.Length + buffLength + ArcDataSize < 0x80000000)  // Test if cache is full
+                    break;
+                i++;
+
+                // Cache full - move to next one
+                cachePath = Path.Combine(rootFolder, Path.GetFileNameWithoutExtension(GameDirecs.CachePath), i + ".tfc");  // Add number to end
+
+                // Update working properties.
+                cacheName = Path.GetFileNameWithoutExtension(cachePath);
+                cacheFileName = Path.GetFileName(cachePath);
             }
+
+
+            // Move texture to new cache and update properties
+            GameDirecs.CachePath = cachePath;
+            MoveCaches(rootFolder, cacheFileName);
+            properties["TextureFileCacheName"].Value.StringValue = cacheName;
+            arcName = cacheName;
+            FullArcPath = cachePath;
         }
 
         private void MoveCaches(string cookedPath, string NewCache)
@@ -1009,7 +980,7 @@ namespace WPF_ME3Explorer.Textures
                     ExportEntry exp = temp.Exports[j];
                     if (String.Compare(texName, exp.ObjectName, true) == 0 && exp.ClassName == "Texture2D")// && (GameVersion == 1 ? ME1_PackageFullName == exp.PackageFullName : true))
                     {
-                        Texture2D temptex = new Texture2D(temp, j, 1);
+                        Texture2D temptex = new Texture2D(temp, j, GameDirecs);  
                         if (temptex.ImageList[0].storageType == storage.pccCpr || temptex.ImageList[0].storageType == storage.pccSto)
                         {
                             return GameFiles[i];
@@ -1020,7 +991,7 @@ namespace WPF_ME3Explorer.Textures
             return null;
         }
 
-        private void MakeCache(String filename, String biopath)
+        private void MakeCache(String filename)
         {
             Random r = new Random();
 

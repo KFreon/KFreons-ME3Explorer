@@ -62,7 +62,18 @@ namespace WPF_ME3Explorer.MEDirectories
             { "DLC_UPD_Patch02", "Patch" }
         };
 
-        public static string CachePath { get; set; }
+        string customCachePath = null;
+        public string CachePath
+        {
+            get
+            {
+                return customCachePath ?? Path.Combine(PathBIOGame, "CustTextures.tfc"); // Default
+            }
+            set
+            {
+                customCachePath = value;
+            }
+        }
 
         static List<string> BIOGames = new List<string>() { "", "", "" };
 
@@ -358,7 +369,6 @@ namespace WPF_ME3Explorer.MEDirectories
 
         public MEDirectories()
         {
-            CachePath = "CustTextures";
             SetupPaths();
         }
 
