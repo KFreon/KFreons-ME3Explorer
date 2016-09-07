@@ -26,8 +26,30 @@
     <s:Boolean x:Key="False">False</s:Boolean>
 
     <ControlTemplate x:Key="SearchBoxTemplate" TargetType="TextBox">
+        <ControlTemplate.Triggers>
+            <EventTrigger RoutedEvent="GotFocus">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="SearchBox" Storyboard.TargetProperty="(Effect).Opacity" From="0" To="1" Duration="0:0:0.1"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+
+            <EventTrigger RoutedEvent="LostFocus">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="SearchBox" Storyboard.TargetProperty="(Effect).Opacity" From="1" To="0" Duration="0:0:0.1"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </ControlTemplate.Triggers>
+        
         <Grid>
-            <TextBox x:Name="SearchBox" Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Text, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" VerticalContentAlignment="Center"/>
+            <TextBox x:Name="SearchBox" Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Text, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" VerticalContentAlignment="Center">
+                <TextBox.Effect>
+                    <DropShadowEffect BlurRadius="15" Color="LightBlue" Direction="0" ShadowDepth="0" Opacity="0"/>
+                </TextBox.Effect>
+            </TextBox>
             <Label x:Name="BlankText" Content="{TemplateBinding Tag}"  IsHitTestVisible="False" Foreground="Gray" Background="{x:Null}" Margin="2,0,0,0" Padding="3">
                 <Label.Style>
                     <Style TargetType="Label">
@@ -63,6 +85,58 @@
             </Label>
         </Grid>
     </ControlTemplate>
+
+    <ControlTemplate x:Key="CancelButtonTemplate">
+        <Grid>
+            <Button Content="Cancel" Visibility="{Binding Busy, Converter={StaticResource BoolToVisConverter}}" Background="{TemplateBinding Background}" VerticalAlignment="Center" Padding="10,2" Margin="10,0,3,0">
+                <Button.Triggers>
+                    <EventTrigger RoutedEvent="Button.Click">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CancelConfirmationPanel" Storyboard.TargetProperty="Visibility">
+                                    <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
+                                </ObjectAnimationUsingKeyFrames>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Button.Triggers>
+            </Button>
+
+            <StackPanel x:Name="CancelConfirmationPanel" Visibility="Collapsed" Orientation="Horizontal" Background="{TemplateBinding Background}">
+                <StackPanel.Triggers>
+                    <EventTrigger RoutedEvent="StackPanel.MouseLeave">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CancelConfirmationPanel" Storyboard.TargetProperty="Visibility">
+                                    <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}"/>
+                                </ObjectAnimationUsingKeyFrames>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </StackPanel.Triggers>
+                <Button Content="Yes" Command="{Binding CancelCommand}" Padding="6,2" Margin="0,0,5,0" Background="Red" Foreground="White">
+                    <Button.Triggers>
+                        <EventTrigger RoutedEvent="Button.Click">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CancelConfirmationPanel" Storyboard.TargetProperty="Visibility">
+                                        <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}"/>
+                                    </ObjectAnimationUsingKeyFrames>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Button.Triggers>
+                </Button>
+                <Label Content="---- Are you certain you want to cancel this operation?" FontWeight="Bold" Foreground="Red" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+    </ControlTemplate>
+
+    <Style x:Key="ProgressBarStyle" TargetType="ProgressBar">
+        <Setter Property="Value" Value="{Binding Progress}"/>
+        <Setter Property="Maximum" Value="{Binding MaxProgress}"/>
+        <Setter Property="IsIndeterminate" Value="{Binding ProgressIndeterminate}"/>
+    </Style>
     
     <ControlTemplate x:Key="StatusBarTemplate" TargetType="{x:Type StatusBar}">
         <DockPanel LastChildFill="False">
@@ -73,52 +147,10 @@
                     <Setter Property="Margin" Value="3,0,3,0"/>
                 </Style>
             </DockPanel.Resources>
-            <ProgressBar x:Name="PrimaryProgressBar" Width="200" Height="25" Value="{Binding Progress}" Maximum="{Binding MaxProgress}" IsIndeterminate="{Binding ProgressIndeterminate}" DockPanel.Dock="Left"/>
+            <ProgressBar x:Name="PrimaryProgressBar" Style="{StaticResource ProgressBarStyle}" Width="200" Height="25"  DockPanel.Dock="Left"/>
             <TextBlock x:Name="PrimaryStatusText" Text="{Binding Status}" Margin="5,0"/>
-            <Grid DockPanel.Dock="Right">
-                <Button Content="Cancel" Visibility="{Binding Busy, Converter={StaticResource BoolToVisConverter}}" Background="White" VerticalAlignment="Center" Padding="10,2" Margin="10,0,3,0">
-                    <Button.Triggers>
-                        <EventTrigger RoutedEvent="Button.Click">
-                            <BeginStoryboard>
-                                <Storyboard>
-                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CancelConfirmationPanel" Storyboard.TargetProperty="Visibility">
-                                        <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
-                                    </ObjectAnimationUsingKeyFrames>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                    </Button.Triggers>
-                </Button>
-                    
-                <StackPanel x:Name="CancelConfirmationPanel" Visibility="Collapsed" Orientation="Horizontal" Background="White">
-                    <StackPanel.Triggers>
-                        <EventTrigger RoutedEvent="StackPanel.MouseLeave">
-                            <BeginStoryboard>
-                                <Storyboard>
-                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CancelConfirmationPanel" Storyboard.TargetProperty="Visibility">
-                                        <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}"/>
-                                    </ObjectAnimationUsingKeyFrames>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                    </StackPanel.Triggers>
-                    <Button Content="Yes" Command="{Binding CancelCommand}" Padding="6,2" Margin="0,0,5,0" Background="Red" Foreground="White">
-                        <Button.Triggers>
-                            <EventTrigger RoutedEvent="Button.Click">
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CancelConfirmationPanel" Storyboard.TargetProperty="Visibility">
-                                            <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}"/>
-                                        </ObjectAnimationUsingKeyFrames>
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </EventTrigger>
-                        </Button.Triggers>
-                    </Button>
-                    <TextBlock Text="---- Are you certain you want to cancel this operation?" Foreground="Red"/>
-                </StackPanel>
-            </Grid>
-            
+            <Control Template="{StaticResource CancelButtonTemplate}" Background="White" DockPanel.Dock="Right"/>
+
             <TextBlock Text="WV, AK, Salt, Gibbed = The Real Heros" DockPanel.Dock="Right"/>
             <Label Content="|" DockPanel.Dock="Right" Foreground="Gray"/>
             <TextBlock x:Name="VersionString" Text="{Binding ToolsetVersion}" DockPanel.Dock="Right" FontStyle="Italic"/>
@@ -134,6 +166,8 @@
             </StackPanel>
         </DockPanel>
     </ControlTemplate>
+
+    
 
     <Style TargetType="Button" x:Key="MainButtonStyle">
         <Setter Property="Background" Value="White"/>

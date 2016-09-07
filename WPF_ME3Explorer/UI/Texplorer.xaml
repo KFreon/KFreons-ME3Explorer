@@ -10,7 +10,7 @@
         xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="Texplorer" Height="900.334" Width="1748.575" Closing="Window_Closing" Icon="/WPF_ME3Explorer;component/Resources/Texplorer icon.ico">
+        Title="Texplorer" Height="900.334" Width="1748.575" Closing="Window_Closing" Icon="/WPF_ME3Explorer;component/Resources/Texplorer icon.ico" PreviewKeyDown="TexplorerWindow_PreviewKeyDown">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -72,7 +72,7 @@
         <StackPanel x:Name="GameAndTreeIndicators" Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right" Margin="0,0,-0.333,0.333">
             <ContentControl x:Name="GameIndicatorPanel" Template="{StaticResource GameIndicators}"/>
             <ContentControl x:Name="TreeIndicatorPanel" Template="{StaticResource TreeIndicators}"/>
-            <Button x:Name="SettingsButton" Content="Settings" Style="{StaticResource MainButtonStyle}">
+            <Button x:Name="SettingsButton" Content="Settings" Style="{StaticResource MainButtonStyle}" Focusable="False">
                 <Button.Resources>
                     <Storyboard x:Key="TreeScanPanelOpener">
                         <DoubleAnimation Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="0" To="1500" Duration="0:0:1" DecelerationRatio="1">
@@ -282,7 +282,8 @@
                 </Style>
             </Grid.Resources>
 
-            <TextBox x:Name="SearchBox" Text="{Binding TextureSearch, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Template="{StaticResource SearchBoxTemplate}" Tag="Search..." VerticalAlignment="Top" BorderBrush="{x:Null}" Margin="0,0,0.333,0" Height="22"/>
+            <TextBox x:Name="SearchBox" Text="{Binding TextureSearch, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" 
+                     Template="{StaticResource SearchBoxTemplate}" Tag="Search..." VerticalAlignment="Top" BorderBrush="{x:Null}" Margin="0,0,0.333,0" Height="22"/>
 
             <DockPanel x:Name="SelectedTextureDetails" Margin="0,35,0.333,1.667" LastChildFill="False" DataContext="{Binding ElementName=MainDisplayPanel,Path=SelectedItem}">
                 <DockPanel.Resources>
@@ -752,6 +753,14 @@
                     <Setter Property="Foreground" Value="White"/>
                     <Setter Property="FontSize" Value="50"/>
                 </Style>
+
+                <Style BasedOn="{StaticResource MainButtonStyle}" TargetType="Button">
+                    <Setter Property="FontSize" Value="30"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="BorderBrush" Value="White"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Padding" Value="10,4"/>
+                </Style>
             </Grid.Resources>
             <Grid.RowDefinitions>
                 <RowDefinition Height="174*"/>
@@ -760,7 +769,7 @@
             </Grid.RowDefinitions>
 
             <MediaElement x:Name="BackgroundMovie" Grid.RowSpan="3" Source="Resources/Progress Background.avi" Stretch="Fill" Margin="0,0,0,0.333" UnloadedBehavior="Manual" LoadedBehavior="Manual" MediaEnded="BackgroundMovie_MediaEnded" MediaOpened="BackgroundMovie_MediaOpened" MediaFailed="BackgroundMovie_MediaFailed"/>
-            <Button x:Name="HiderButton" Content="Close" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="30" Background="Transparent" BorderBrush="White" Foreground="White" Padding="10,2" Height="46" Width="94">
+            <Button x:Name="HiderButton" Content="Close" HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Button.Resources>
                     <Storyboard x:Key="ProgressPanelCloser">
                         <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="Visibility">
@@ -782,7 +791,7 @@
             </Button>
 
 
-            <DockPanel Grid.Row="2" LastChildFill="False">
+            <DockPanel x:Name="ResourceMonitorPanel" Grid.Row="2" LastChildFill="False">
                 <DockPanel.Resources>
                     <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="TextBlock">
                         <Setter Property="Margin" Value="25,0"/>
@@ -822,15 +831,14 @@
                 </TextBlock>
             </DockPanel>
             
-
-
-            <ProgressBar x:Name="ProgressBar" Margin="100,11,10,10" Value="{Binding Progress}" Maximum="{Binding MaxProgress}" Foreground="#B206B025" Background="#B2E6E6E6"/>
+            <ProgressBar x:Name="ProgressBar" Margin="100,11,120,10" Style="{StaticResource ProgressBarStyle}" Foreground="#B206B025" Background="#B2E6E6E6"/>
+            <Control Template="{StaticResource CancelButtonTemplate}" VerticalAlignment="Top" HorizontalAlignment="Right" Background="Transparent" Grid.Row="1"/>
             <Border x:Name="Status" HorizontalAlignment="Center" Margin="871,0">
                 <TextBlock Text="{Binding Status}" VerticalAlignment="Center"/>
             </Border>
-            <Button x:Name="ErrorsShowButton" Content="Errors" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="50" Background="Transparent" Foreground="White" BorderBrush="White" Padding="10,5">
+            <Button x:Name="ErrorsShowButton" Content="Errors" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="50" Padding="20,3">
                 <Button.Style>
-                    <Style TargetType="Button">
+                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                         <Setter Property="Visibility" Value="Visible"/>
 
                         <Style.Triggers>

@@ -232,5 +232,15 @@ namespace WPF_ME3Explorer.UI
         {
             Console.WriteLine();
         }
+
+        private void TexplorerWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)   // Catch Ctrl + F
+            {
+                SearchBox.Focus();
+                Keyboard.Focus(SearchBox);
+                e.Handled = true;
+            }
+        }
     }
 }

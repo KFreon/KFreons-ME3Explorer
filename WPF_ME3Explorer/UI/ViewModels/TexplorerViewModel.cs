@@ -91,17 +91,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 if (startTPFToolsModeCommand == null)
                 {
-                    // Start TPFTools
-                    var tpftools = ToolsetInfo.TPFToolsInstance;
+                    startTPFToolsModeCommand = new CommandHandler(() =>
+                    {
+                        // Start TPFTools
+                        var tpftools = ToolsetInfo.TPFToolsInstance;
 
-                    // Open window if necessary, minimising it either way.
-                    tpftools.WindowState = WindowState.Minimized;
-                    if (tpftools.Visibility != Visibility.Visible)
-                        tpftools.Show();
+                        // Open window if necessary, minimising it either way.
+                        tpftools.WindowState = WindowState.Minimized;
+                        if (tpftools.Visibility != Visibility.Visible)
+                            tpftools.Show();
 
-
-                    // Change mode indicator
-                    TPFToolsModeEnabled = true;
+                        // Change mode indicator
+                        TPFToolsModeEnabled = true;
+                    });
                 }
 
                 return startTPFToolsModeCommand;
@@ -115,16 +117,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 if (stopTPFToolsModeCommand == null)
                 {
-                    // Start TPFTools
-                    var tpftools = ToolsetInfo.TPFToolsInstance;
+                    stopTPFToolsModeCommand = new CommandHandler(() =>
+                    {
+                        // Start TPFTools
+                        var tpftools = ToolsetInfo.TPFToolsInstance;
 
-                    // Show TPFTools window
-                    tpftools.WindowState = WindowState.Normal;
-                    tpftools.Activate();
+                        // Show TPFTools window
+                        tpftools.WindowState = WindowState.Normal;
+                        tpftools.Activate();
 
 
-                    // Change mode indicator
-                    TPFToolsModeEnabled = false;
+                        // Change mode indicator
+                        TPFToolsModeEnabled = false;
+                    });
                 }
 
                 return stopTPFToolsModeCommand;
@@ -944,6 +949,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
         public async Task InstallTextures(params AbstractTexInfo[] texes)
         {
             Busy = true;
+
+            // Show progress panel
+            if (texes.Length > 5)
+                ProgressOpener();
+
             Progress = 0;
             MaxProgress = texes.Length;
 
@@ -959,6 +969,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
             PCCSaveProducer(pccReadBuffer, texes);
 
             await pccFileSaver.Completion;
+
+            // Close progress
+            if (texes.Length > 5)
+                ProgressCloser();
 
             Busy = false;
         }
