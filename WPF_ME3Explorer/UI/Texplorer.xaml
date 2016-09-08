@@ -747,7 +747,7 @@
             </Grid>
         </Grid>
 
-        <Grid x:Name="ProgressPanel" Background="#CC000000" Grid.RowSpan="3" Grid.ColumnSpan="3">
+        <Grid x:Name="ProgressPanel" Background="#CC000000" Visibility="Collapsed" Grid.RowSpan="3" Grid.ColumnSpan="3">
             <Grid.Resources>
                 <Style TargetType="TextBlock">
                     <Setter Property="Foreground" Value="White"/>
@@ -833,7 +833,7 @@
             
             <ProgressBar x:Name="ProgressBar" Margin="100,11,120,10" Style="{StaticResource ProgressBarStyle}" Foreground="#B206B025" Background="#B2E6E6E6"/>
             <Control Template="{StaticResource CancelButtonTemplate}" VerticalAlignment="Top" HorizontalAlignment="Right" Background="Transparent" Grid.Row="1"/>
-            <Border x:Name="Status" HorizontalAlignment="Center" Margin="871,0">
+            <Border x:Name="StatusBorder" HorizontalAlignment="Center">
                 <TextBlock Text="{Binding Status}" VerticalAlignment="Center"/>
             </Border>
             <Button x:Name="ErrorsShowButton" Content="Errors" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="50" Padding="20,3">

@@ -106,10 +106,12 @@ namespace SaltTPF
                 ZipEntry fileentry = new ZipEntry(databuff);
                 if (!fileentry.Compare(this))
                     throw new InvalidDataException("File header not as expected");
-                if (BitConverter.ToUInt32(databuff, (int)ComprSize + dataoff) != datadescriptormagic)
-                    throw new InvalidDataException("Footer not as expected");
 
-                //ZipCrypto.DecryptData(this, databuff, dataoff, (int)ComprSize);
+
+                // KFreon: Apparently not necessary. Some TPF's fail to load with this, but when commented out, they load fine, so...
+                /*if (BitConverter.ToUInt32(databuff, (int)ComprSize + dataoff) != datadescriptormagic) 
+                    throw new InvalidDataException("Footer not as expected");*/
+
                 ZipDecrypto crypto = new ZipDecrypto(this, databuff, dataoff, (int)ComprSize);
                 databuff = crypto.GetBlocks();
 

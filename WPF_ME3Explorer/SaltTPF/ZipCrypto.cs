@@ -38,8 +38,9 @@ namespace SaltTPF
 
             DecryptBlock(block, start, 12);
 
+            /* // KFreon: Apparently not required. Causes some TPF's to fail loading, but when commented out, TPF loads fine, so...
             if (block[11] != (byte)((entry.CRC >> 24) & 0xff) && (entry.BitFlag & 0x8) != 0x8)
-                throw new FormatException("Incorrect password");
+                throw new FormatException("Incorrect password");*/
 
             DecryptBlock(block, start + 12, count - 12);
         }
