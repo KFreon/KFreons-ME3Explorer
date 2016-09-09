@@ -120,6 +120,14 @@ namespace WPF_ME3Explorer.Textures
             set
             {
                 SetProperty(ref hasChanged, value);
+
+                // Reset things when they need to be
+                if (!value)
+                {
+                    Thumb.ChangedThumb = null;
+                    OnPropertyChanged(nameof(Thumb));
+                }
+                
             }
         }
         #endregion Properties
@@ -360,6 +368,12 @@ namespace WPF_ME3Explorer.Textures
             TextureCache = tex2D?.FullArcPath?.Remove(0, MEDirectories.MEDirectories.BasePathLength) ?? "PCC Stored";
             LODGroup = tex2D.LODGroup ?? "None (Uses World)";
             Mips = tex2D.ImageList.Count;
+        }
+
+        internal void SetChangedThumb(MemoryStream stream)
+        {
+            Thumb.ChangedThumb = stream;
+            OnPropertyChanged(nameof(Thumb));
         }
     }
 }

@@ -55,7 +55,31 @@ namespace WPF_ME3Explorer.UI.ViewModels
             get
             {
                 if (saveChangesCommand == null)
-                    saveChangesCommand = new CommandHandler(new Action<object>(param => InstallTextures(ChangedTextures.ToArray())));
+                    saveChangesCommand = new CommandHandler(new Action<object>(async param =>
+                    {
+                        Busy = true;
+
+                        var texes = ChangedTextures.ToArray();
+
+                        // Show progress panel
+                        if (texes.Length > 5)
+                            ProgressOpener();
+
+
+                        await ToolsetTextureEngine.InstallTextures(NumThreads, this, GameDirecs, cts, texes);
+
+                        // Clear ChangedTextures
+                        foreach (var tex in ChangedTextures)
+                            tex.HasChanged = false;
+
+                        ChangedTextures.Clear();
+
+                        // Close progress
+                        if (texes.Length > 5)
+                            ProgressCloser();
+
+                        Busy = false;
+                    }));
 
                 return saveChangesCommand;
             }
@@ -871,7 +895,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 var stream = tex.CreateThumbnail();
                 if (tex.Thumb == null) // Could happen
                     tex.Thumb = new Thumbnail();
-                tex.Thumb.ChangedThumb = stream;
+
+                tex.SetChangedThumb(stream);
             }
 
             Status = $"Texture: {tex.TexName} changed!";
@@ -944,88 +969,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             RefreshTreeRelatedProperties();
 
             LoadFTSandTree(true);
-        }
-
-        public async Task InstallTextures(params AbstractTexInfo[] texes)
-        {
-            Busy = true;
-
-            // Show progress panel
-            if (texes.Length > 5)
-                ProgressOpener();
-
-            Progress = 0;
-            MaxProgress = texes.Length;
-
-            /* Save changes per file, so we don't go opening a pcc 5000000 times to change each of it's textures */         
-            BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccReadBuffer = new BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>>(new DataflowBlockOptions { BoundedCapacity = 10 });
-            var tex2DSaver = new TransformBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>, PCCObject>(pccBits => SaveTex2DToPCC(pccBits), new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = NumThreads, BoundedCapacity = NumThreads });
-            var pccFileSaver = new ActionBlock<PCCObject>(pcc => pcc.SaveToFile(pcc.pccFileName), new ExecutionDataflowBlockOptions { BoundedCapacity = 2 });
-
-            pccReadBuffer.LinkTo(tex2DSaver, new DataflowLinkOptions { PropagateCompletion = true });
-            tex2DSaver.LinkTo(pccFileSaver, new DataflowLinkOptions { PropagateCompletion = true });
-
-            // Start producing
-            PCCSaveProducer(pccReadBuffer, texes);
-
-            await pccFileSaver.Completion;
-
-            // Close progress
-            if (texes.Length > 5)
-                ProgressCloser();
-
-            Busy = false;
-        }
-
-        async Task PCCSaveProducer(BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccBuffer, AbstractTexInfo[] texes)
-        {
-            // Gets all distinct pcc's being altered.
-            var pccTexGroups =
-                from tex in texes
-                from pcc in tex.PCCS
-                group tex by pcc.Name;
-
-            // Loop over pcc's, changing all their textures before saving.  Stops disk thrashing.
-            foreach (var texGroup in pccTexGroups)
-            {
-                if (cts.IsCancellationRequested)
-                    break;
-
-                string pcc = texGroup.Key;
-                PCCObject pccobj = new PCCObject(pcc, GameVersion);
-                await pccBuffer.SendAsync(new Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>(pccobj, texGroup));
-            }
-
-            pccBuffer.Complete();
-        }
-
-        PCCObject SaveTex2DToPCC(Tuple<PCCObject, IGrouping<string, AbstractTexInfo>> pccBits)
-        {
-            var pcc = pccBits.Item1;
-            var texGroup = pccBits.Item2;
-
-            // Loop over changed textures, installing to pccobj
-            foreach (var tex in texGroup)
-            {
-                Texture2D newTex2D = null;
-                var texType = tex as TreeTexInfo;
-                if (texType != null)
-                    newTex2D = texType.AssociatedTexture;
-                else
-                    newTex2D = new Texture2D(pcc, 0, GameDirecs); // TODO TPFTools
-
-                // Loop over texture's pcc entries to install desired ones.
-                foreach (var entry in tex.PCCS.Where(p => p.Name == pcc.pccFileName))
-                {
-                    // TODO Get old tex2D  WHYYYY
-                    Texture2D oldTex2D = new Texture2D(pcc, entry.ExpID, GameDirecs);
-                    oldTex2D.CopyImgList(newTex2D, pcc);
-
-                    ExportEntry export = pcc.Exports[entry.ExpID];
-                    export.Data = oldTex2D.ToArray(export.DataOffset, pcc);
-                }
-            }
-            return pcc;
         }
     }
 }

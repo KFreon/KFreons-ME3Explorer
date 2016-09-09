@@ -27,6 +27,7 @@ namespace WPF_ME3Explorer.UI
     {
         public bool IsClosed { get; private set; }
         TexplorerViewModel vm = null;
+
         public Texplorer()
         {
             InitializeComponent();
@@ -38,6 +39,7 @@ namespace WPF_ME3Explorer.UI
                 {
                     Storyboard closer = (Storyboard)HiderButton.Resources["ProgressPanelCloser"];
                     closer.Begin();
+                    BackgroundMovie.Stop();
                 });
             });
 
@@ -47,6 +49,7 @@ namespace WPF_ME3Explorer.UI
                 {
                     Storyboard closer = (Storyboard)TreeScanBackground.Resources["ProgressPanelOpener"];
                     closer.Begin();
+                    BackgroundMovie.Play();
                 });
             });
 
@@ -63,13 +66,19 @@ namespace WPF_ME3Explorer.UI
             });
 
             DataContext = vm;
-
-            // Start background on ProgressPanel
-            BackgroundMovie.Play();
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            if (vm.ChangedTextures.Count != 0)
+            {
+                if (MessageBox.Show("There are unsaved changes! Are you sure you want to quit?", "Forgetting something Commander?", MessageBoxButton.YesNo) == MessageBoxResult.No)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+            }
+
             IsClosed = true;
         }
 

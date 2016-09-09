@@ -184,6 +184,17 @@
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <DockPanel x:Name="MainListView" MouseDown="MainListView_MouseDown">
+                        <DockPanel.Style>
+                            <Style TargetType="DockPanel">
+                                <Setter Property="Background" Value="Transparent"/>
+
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasChanged}" Value="true">
+                                        <Setter Property="Background" Value="#2FFF0000"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DockPanel.Style>
                         <DockPanel.ContextMenu>
                             <ContextMenu IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}">
                                 <ContextMenu.Resources>
@@ -313,7 +324,7 @@
                     <Line Stroke="LightSkyBlue" StrokeThickness="1" X1="10" X2="210" Y1="215" Y2="215"/>
                     <Line Stroke="LightSkyBlue" StrokeThickness="1" X1="215" X2="215" Y1="10" Y2="210"/>
                     <Label Content="{Binding Width}" Margin="2,210,119.333,62" HorizontalContentAlignment="Center" FontSize="15"/>
-                    <Label Content="{Binding Height}" Margin="215,92,0.333,173" VerticalContentAlignment="Center" FontSize="15"/>
+                    <Label Content="{Binding Height}" Margin="215,60,0.333,173" VerticalContentAlignment="Center" FontSize="15"/>
 
                     <Border Width="200" Height="200" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10" BorderBrush="#FF404040" BorderThickness="2">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">

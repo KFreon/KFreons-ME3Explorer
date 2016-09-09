@@ -561,7 +561,7 @@ namespace WPF_ME3Explorer.Textures
                     break;
                 case storage.pccSto:
                     // Get image data and remove header.
-                    byte[] imgData = imgFile.Save(imgFile.Format.SurfaceFormat, MipHandling.KeepExisting);
+                    byte[] imgData = imgFile.Save(imgFile.Format.SurfaceFormat, MipHandling.KeepTopOnly);
                     imgBuffer = new byte[imgData.Length - 128];
                     Array.Copy(imgData, 128, imgBuffer, 0, imgBuffer.Length);
 
@@ -693,11 +693,11 @@ namespace WPF_ME3Explorer.Textures
         {
             // starts from the smaller image
             ImageEngineFormat mipFormat = newImg.Format.SurfaceFormat;
-            for (int i = newImg.NumMipMaps; i >= 0; i--)
+            for (int i = newImg.NumMipMaps - 1; i >= 0; i--)
             {
                 MipMap mip = newImg.MipMaps[i];
 
-                if (mip.Height < 4 || mip.Width < 4)
+                if (mip.Height <= 4 || mip.Width <= 4)
                     continue;
 
                 //NEW Check for correct format

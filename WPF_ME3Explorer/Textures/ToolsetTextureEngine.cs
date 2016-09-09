@@ -4,11 +4,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using WPF_ME3Explorer.Debugging;
 using WPF_ME3Explorer.PCCObjectsAndBits;
+using WPF_ME3Explorer.UI.ViewModels;
 
 namespace WPF_ME3Explorer.Textures
 {
@@ -135,16 +138,17 @@ namespace WPF_ME3Explorer.Textures
 
             // Read new texture file
             Texture2D tex2D = null;
-            PCCObject pcc = null;
 
             string pccPath = tex.PCCS[0].Name;
             int expID = tex.PCCS[0].ExpID;
 
             // Texture object has already been created - likely due to texture being updated previously in current session
-            if (tex.AssociatedTexture == null)
+            if (tex.AssociatedTexture != null)
                 tex2D = tex.AssociatedTexture;
             else
             {
+                PCCObject pcc = null;
+
                 // Create PCCObject
                 if (!File.Exists(pccPath))
                     throw new FileNotFoundException($"PCC not found at: {pccPath}.");
@@ -160,9 +164,9 @@ namespace WPF_ME3Explorer.Textures
 
                 // Create Texture2D
                 tex2D = new Texture2D(pcc, expID, new MEDirectories.MEDirectories(tex.GameVersion), tex.Hash);
-            }
 
-            pcc.Dispose(); // Texture2D doesn't need this anymore
+                pcc?.Dispose(); // Texture2D doesn't need this anymore
+            }
 
             return tex2D;
         }
@@ -191,6 +195,76 @@ namespace WPF_ME3Explorer.Textures
             // Cleanup if required
             if (tex.AssociatedTexture != tex2D)
                 tex2D.Dispose();
+        }
+
+        public static Task InstallTextures<T>(int NumThreads, MEViewModelBase<T> vm, MEDirectories.MEDirectories GameDirecs, CancellationTokenSource cts, params AbstractTexInfo[] texes) where T : AbstractTexInfo
+        {
+            vm.Progress = 0;
+            vm.MaxProgress = texes.Length;
+
+            /* Save changes per file, so we don't go opening a pcc 5000000 times to change each of it's textures */
+            BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccReadBuffer = new BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>>(new DataflowBlockOptions { BoundedCapacity = 10 });
+            var tex2DSaver = new TransformBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>, PCCObject>(pccBits => SaveTex2DToPCC(pccBits, GameDirecs), new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = NumThreads, BoundedCapacity = NumThreads });
+            var pccFileSaver = new ActionBlock<PCCObject>(pcc => pcc.SaveToFile(pcc.pccFileName), new ExecutionDataflowBlockOptions { BoundedCapacity = 2 });
+
+            pccReadBuffer.LinkTo(tex2DSaver, new DataflowLinkOptions { PropagateCompletion = true });
+            tex2DSaver.LinkTo(pccFileSaver, new DataflowLinkOptions { PropagateCompletion = true });
+
+            // Start producing
+            PCCSaveProducer(pccReadBuffer, texes, GameDirecs.GameVersion, cts);
+
+            return pccFileSaver.Completion;
+        }
+
+        static async Task PCCSaveProducer(BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccBuffer, AbstractTexInfo[] texes, int GameVersion, CancellationTokenSource cts)
+        {
+            // Gets all distinct pcc's being altered.
+            var pccTexGroups =
+                from tex in texes
+                from pcc in tex.PCCS
+                group tex by pcc.Name;
+
+            // Loop over pcc's, changing all their textures before saving.  Stops disk thrashing.
+            foreach (var texGroup in pccTexGroups)
+            {
+                if (cts.IsCancellationRequested)
+                    break;
+
+                string pcc = texGroup.Key;
+                PCCObject pccobj = new PCCObject(pcc, GameVersion);
+                await pccBuffer.SendAsync(new Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>(pccobj, texGroup));
+            }
+
+            pccBuffer.Complete();
+        }
+
+        static PCCObject SaveTex2DToPCC(Tuple<PCCObject, IGrouping<string, AbstractTexInfo>> pccBits, MEDirectories.MEDirectories GameDirecs)
+        {
+            var pcc = pccBits.Item1;
+            var texGroup = pccBits.Item2;
+
+            // Loop over changed textures, installing to pccobj
+            foreach (var tex in texGroup)
+            {
+                Texture2D newTex2D = null;
+                var texType = tex as TreeTexInfo;
+                if (texType != null)
+                    newTex2D = texType.AssociatedTexture;
+                else
+                    newTex2D = new Texture2D(pcc, 0, GameDirecs); // TODO TPFTools
+
+                // Loop over texture's pcc entries to install desired ones.
+                foreach (var entry in tex.PCCS.Where(p => p.Name == pcc.pccFileName))
+                {
+                    // TODO Get old tex2D  WHYYYY
+                    Texture2D oldTex2D = new Texture2D(pcc, entry.ExpID, GameDirecs);
+                    oldTex2D.CopyImgList(newTex2D, pcc);
+
+                    ExportEntry export = pcc.Exports[entry.ExpID];
+                    export.Data = oldTex2D.ToArray(export.DataOffset, pcc);
+                }
+            }
+            return pcc;
         }
     }
 }

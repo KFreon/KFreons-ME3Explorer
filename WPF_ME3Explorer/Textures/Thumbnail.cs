@@ -15,7 +15,7 @@ namespace WPF_ME3Explorer.Textures
         public long Offset { get; set; }
         public int Length { get; set; }
         string cachePath = null;
-        public MemoryStream ChangedThumb = null;  // Used when texture is changed.
+        internal MemoryStream ChangedThumb = null;  // Used when texture is changed.
 
         public Thumbnail() { }  
 

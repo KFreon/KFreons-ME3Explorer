@@ -24,7 +24,19 @@ namespace WPF_ME3Explorer.Textures
                 return GameDirecs.GameVersion;
             }
         }
-        public Thumbnail Thumb { get; set; } = null;
+
+        Thumbnail thumb = null;
+        public Thumbnail Thumb
+        {
+            get
+            {
+                return thumb;
+            }
+            set
+            {
+                SetProperty(ref thumb, value);
+            }
+        }
 
         public abstract int Width { get; set; }
         public abstract int Height { get; set; }
