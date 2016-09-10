@@ -39,7 +39,6 @@ namespace WPF_ME3Explorer.UI
                 {
                     Storyboard closer = (Storyboard)HiderButton.Resources["ProgressPanelCloser"];
                     closer.Begin();
-                    BackgroundMovie.Stop();
                 });
             });
 
@@ -49,7 +48,6 @@ namespace WPF_ME3Explorer.UI
                 {
                     Storyboard closer = (Storyboard)TreeScanBackground.Resources["ProgressPanelOpener"];
                     closer.Begin();
-                    BackgroundMovie.Play();
                 });
             });
 
@@ -66,6 +64,7 @@ namespace WPF_ME3Explorer.UI
             });
 
             DataContext = vm;
+            BackgroundMovie.Play();
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

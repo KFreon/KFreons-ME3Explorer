@@ -152,7 +152,7 @@ namespace WPF_ME3Explorer.Textures
                                 TreeTexInfo tex = new TreeTexInfo(GameDirecs);
                                 tex.TexName = bin.ReadString();
                                 tex.Hash = bin.ReadUInt32();
-                                tex.StorageType = (Texture2D.storage)bin.ReadInt32();
+                                //tex.StorageType = (Texture2D.storage)bin.ReadInt32();
                                 tex.FullPackage = bin.ReadString();
                                 tex.Format = (ImageEngineFormat)bin.ReadInt32();
 
@@ -174,6 +174,10 @@ namespace WPF_ME3Explorer.Textures
                         }
                     }   
                 }
+
+                // Sort ME1 files
+                if (GameVersion == 1)
+                    ToolsetTextureEngine.ME1_SortTexturesPCCs(Textures);
             }
             catch (Exception e)
             {
@@ -216,7 +220,7 @@ namespace WPF_ME3Explorer.Textures
                         {
                             bw.Write(tex.TexName);
                             bw.Write(tex.Hash);
-                            bw.Write((int)tex.StorageType);
+                            //bw.Write((int)tex.StorageType);
                             bw.Write(tex.FullPackage);
                             bw.Write((int)tex.Format);
                             bw.Write(tex.Thumb.Offset);

@@ -22,6 +22,25 @@ namespace WPF_ME3Explorer.Textures
         public static CommandHandler ChangeCommand { get; set; }
         public static CommandHandler LowResFixCommand { get; set; }
         public static CommandHandler RegenerateThumbCommand { get; set; }
+
+        CommandHandler restoreOriginalCommand = null;
+        public CommandHandler RestoreOriginalCommand
+        {
+            get
+            {
+                if (restoreOriginalCommand == null)
+                {
+                    restoreOriginalCommand = new CommandHandler(() =>
+                    {
+                        HasChanged = false;
+                        AssociatedTexture = null;
+                    });
+                }
+
+                return restoreOriginalCommand;
+            }
+        }
+
         #region Properties
         public Action GenerateThumbnail = null;
 
@@ -40,7 +59,7 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        public storage StorageType { get; set; }
+        public storage StorageType { get; private set; }
 
         string textureCache = null;
         public string TextureCache
@@ -152,12 +171,12 @@ namespace WPF_ME3Explorer.Textures
             ImageInfo info = tex2D.ImageList[0];
             uint hash = 0;
             CRC32 crcgen = new CRC32();
-            StorageType = info.storageType;
+            //StorageType = info.storageType;
 
             byte[] imgData = null;
             try
             {
-                imgData = tex2D.ExtractImage(info.ImageSize, TFCs);
+                imgData = tex2D.ExtractImage(info.ImageSize, false, TFCs);
             }
             catch (Exception e)
             {
@@ -189,7 +208,7 @@ namespace WPF_ME3Explorer.Textures
             Hash = hash;
 
             // Don't generate thumbnail till necessary i.e. not a duplicate texture - This is done after the check in the TreeDB
-            GenerateThumbnail = new Action(() => CreateThumbnail(imgData, tex2D, ThumbWriter, info, TFCs, Errors));
+            GenerateThumbnail = new Action(() => CreateThumbnail(ToolsetTextureEngine.AddDDSHeader(imgData, info, tex2D.texFormat), tex2D, ThumbWriter, info, TFCs, Errors));
 
             for (int i = 0; i < tex2D.allPccs.Count; i++)
                 PCCS.Add(new PCCEntry(tex2D.allPccs[i], tex2D.expIDs[i]));
@@ -225,9 +244,9 @@ namespace WPF_ME3Explorer.Textures
             byte[] imgData = null;
             var size = tex2D.ImageList.Where(img => img.ImageSize.Width == ThumbnailSize && img.ImageSize.Height == ThumbnailSize);
             if (size.Count() == 0)
-                imgData = tex2D.ExtractMaxImage();
+                imgData = tex2D.ExtractMaxImage(true);
             else
-                imgData = tex2D.ExtractImage(size.First());
+                imgData = tex2D.ExtractImage(size.First(), true);
 
             using (MemoryStream ms = new MemoryStream(imgData))
                 return ImageEngine.GenerateThumbnailToStream(ms, ThumbnailSize, ThumbnailSize);
@@ -240,7 +259,7 @@ namespace WPF_ME3Explorer.Textures
             // Try to get a smaller mipmap to use so don't need to resize.
             var thumbInfo = tex2D.ImageList.Where(img => img.ImageSize.Width <= ThumbnailSize && img.ImageSize.Height <= ThumbnailSize).FirstOrDefault();
             if (thumbInfo.ImageSize != null) // i.e.image size doesn't exist.
-                thumbImageData = tex2D.ExtractImage(thumbInfo.ImageSize, TFCs);
+                thumbImageData = tex2D.ExtractImage(thumbInfo.ImageSize, true, TFCs);
 
             using (MemoryStream ms = new MemoryStream(thumbImageData))
             {
@@ -368,6 +387,7 @@ namespace WPF_ME3Explorer.Textures
             TextureCache = tex2D?.FullArcPath?.Remove(0, MEDirectories.MEDirectories.BasePathLength) ?? "PCC Stored";
             LODGroup = tex2D.LODGroup ?? "None (Uses World)";
             Mips = tex2D.ImageList.Count;
+            StorageType = tex2D.ImageList[0].storageType;
         }
 
         internal void SetChangedThumb(MemoryStream stream)

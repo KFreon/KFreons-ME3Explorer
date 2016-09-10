@@ -96,6 +96,7 @@
     </Compile>
     <Compile Include="DLCEntry.cs" />
     <Compile Include="GameFileEntry.cs" />
+    <Compile Include="LZO\MiniLZO.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -267,6 +268,7 @@
     <Content Include="Resources\Progress Background.avi">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Resource Include="Resources\UndoChanges.png" />
     <Resource Include="Resources\LowResFix.png" />
     <Resource Include="Resources\ExtractTexture.png" />
     <Resource Include="Resources\ChangeTexture.png" />

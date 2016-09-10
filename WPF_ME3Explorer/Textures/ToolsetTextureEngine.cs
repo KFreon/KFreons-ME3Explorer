@@ -12,12 +12,46 @@ using System.Windows.Media.Imaging;
 using WPF_ME3Explorer.Debugging;
 using WPF_ME3Explorer.PCCObjectsAndBits;
 using WPF_ME3Explorer.UI.ViewModels;
+using static WPF_ME3Explorer.Textures.Texture2D;
 
 namespace WPF_ME3Explorer.Textures
 {
     public static class ToolsetTextureEngine
     {
         public static bool TPFToolsModeEnabled = false;
+
+        public static void ME1_SortTexturesPCCs(IEnumerable<TreeTexInfo> texes)
+        {
+            foreach (var tex in texes)
+            {
+                /*var ordered = tex.PCCS.OrderBy(pcc => pcc.Name.Length).ToList();   // For some reason, the longest paths represent the "proper" "pcc" to get details and stuff out of.
+                tex.PCCS.Clear();
+                tex.PCCS.AddRange(ordered);*/  // Not in place sorting
+
+                tex.PCCS.Sort((x, y) => y.Name.Length.CompareTo(x.Name.Length));
+            }
+        }
+
+        /// <summary>
+        /// Adds valid DDS header to DDS image data.
+        /// </summary>
+        /// <param name="imgBuffer"></param>
+        /// <param name="imgInfo"></param>
+        /// <param name="texFormat"></param>
+        /// <returns></returns>
+        public static byte[] AddDDSHeader(byte[] imgBuffer, ImageInfo imgInfo, ImageEngineFormat texFormat)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                using (BinaryWriter bw = new BinaryWriter(ms, Encoding.Default, true))
+                {
+                    var header = CSharpImageLibrary.DDSGeneral.Build_DDS_Header(1, (int)imgInfo.ImageSize.Height, (int)imgInfo.ImageSize.Width, texFormat);
+                    CSharpImageLibrary.DDSGeneral.Write_DDS_Header(header, bw);
+                    bw.Write(imgBuffer);
+                }
+                return ms.ToArray();
+            }
+        }
 
         /// <summary>
         /// Returns hash as a string in the 0xhash format.

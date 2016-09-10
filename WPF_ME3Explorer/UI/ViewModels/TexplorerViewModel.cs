@@ -65,13 +65,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         if (texes.Length > 5)
                             ProgressOpener();
 
-
+                        // Install changed textures
                         await ToolsetTextureEngine.InstallTextures(NumThreads, this, GameDirecs, cts, texes);
 
                         // Clear ChangedTextures
                         foreach (var tex in ChangedTextures)
                             tex.HasChanged = false;
-
                         ChangedTextures.Clear();
 
                         // Close progress
@@ -359,7 +358,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             TreeTexInfo.RegenerateThumbCommand = new CommandHandler(new Action<object>(async tex =>
             {
-                await Task.Run(() =>RegenerateThumbs((TreeTexInfo)tex)).ConfigureAwait(false);
+                await Task.Run(() => RegenerateThumbs((TreeTexInfo)tex)).ConfigureAwait(false);
             }));
 
             TexplorerTextureFolder.RegenerateThumbsDelegate = RegenerateThumbs;
@@ -613,11 +612,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
         async Task BeginScanningPCCs(List<string> pccs = null)
         {
             Progress = 0;
-            MaxProgress = pccs?.Count ?? CurrentTree.ScannedPCCs.Count;
+
+            // DEBUGGING
+            /*CurrentTree.ScannedPCCs.Clear();
+            CurrentTree.ScannedPCCs.Add(@"R:\Games\Mass Effect\BioGame\CookedPC\Packages\GameObjects\Characters\Humanoids\Salarian\BIOG_SAL_HED_PROMorph_R.upk");*/
 
             IList<string> PCCsToScan = CurrentTree.ScannedPCCs;  // Can't use ?? here as ScannedPCCs and pccs are different classes.
             if (pccs != null)
                 PCCsToScan = pccs;
+
+            MaxProgress = PCCsToScan.Count;
 
             //ME3 only
             Dictionary<string, MemoryStream> TFCs = null;
@@ -641,15 +645,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 }
             }
 
-
-            // DEBUGGING
-            /*PCCObject pcc = new PCCObject(@"R:\Games\Mass Effect\BIOGame\CookedPC\Maps\ICE\DSG\BIOA_ICE20_01leave_DSG.SFM", 1);
-            await PCCConsumer(pcc, null);*/
-
             Status = "Beginning Scan...";
+
+            
 
             // Perform scan
             await ScanAllPCCs(PCCsToScan, TFCs).ConfigureAwait(false);   // Start entire thing on another thread which awaits when collection is full, then wait for pipeline completion.
+
+            // Re-arrange files
+            if (GameVersion == 1)
+                ToolsetTextureEngine.ME1_SortTexturesPCCs(CurrentTree.Textures);
 
             // Dispose all TFCs
             if (TFCs != null)
@@ -690,6 +695,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             maxParallelForSorter = 1;
             numScanners = 1;
 #endif
+
 
             var texSorterOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = maxParallelForSorter, MaxDegreeOfParallelism = maxParallelForSorter };
             var pccScannerOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = numScanners, MaxDegreeOfParallelism = numScanners };
@@ -867,7 +873,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 using (Texture2D tex2D = new Texture2D(pcc, texInfo.PCCS[0].ExpID, GameDirecs))
                 {
-                    byte[] img = tex2D.ExtractMaxImage();
+                    byte[] img = tex2D.ExtractMaxImage(true);
                     using (ImageEngineImage jpg = new ImageEngineImage(img))
                         PreviewImage = jpg.GetWPFBitmap();
 

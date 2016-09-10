@@ -233,7 +233,7 @@ namespace WPF_ME3Explorer.Textures
                 imgInfo.ImageSize = new ImageSize(dataStream.ReadUInt32(), dataStream.ReadUInt32());  // FG: 6th & 7th [or nth and (nth + 1) if local] int32 are width x height
 
                 // KFreon: Test - instead of filtering out the null entries later, just don't add them here.
-                if (imgInfo.Offset != -1)
+                if (imgInfo.Offset != -1 && imgInfo.CompressedSize != -1)
                     ImageList.Add(imgInfo);                                                                   // FG: A salty's favorite, add the struct to a list<struct>
                 count--;
             }
@@ -248,16 +248,23 @@ namespace WPF_ME3Explorer.Textures
             dataStream.Dispose();
         }
 
-        public byte[] ExtractImage(ImageSize size, Dictionary<string, MemoryStream> TFCs = null)
+        /// <summary>
+        /// Extracts image data from game files, optionally adding a proper header.
+        /// </summary>
+        /// <param name="size">Size of image to extract from mipmaps.</param>
+        /// <param name="RequireHeader">True = adds a DDS header to the data.</param>
+        /// <param name="TFCs">List of TFC's if available.</param>
+        /// <returns>Byte[] containing image data, optionally including header.</returns>
+        public byte[] ExtractImage(ImageSize size, bool RequireHeader, Dictionary<string, MemoryStream> TFCs = null)
         {
             byte[] retval = null;
             if (ImageList.Exists(img => img.ImageSize == size))
-                retval = ExtractImage(ImageList.Find(img => img.ImageSize == size), TFCs);
+                retval = ExtractImage(ImageList.Find(img => img.ImageSize == size), RequireHeader, TFCs);
 
             return retval;
         }
 
-        public byte[] ExtractImage(ImageInfo imgInfo, Dictionary<string, MemoryStream> TFCs = null)
+        public byte[] ExtractImage(ImageInfo imgInfo, bool RequireHeader, Dictionary<string, MemoryStream> TFCs = null)
         {
             byte[] imgBuffer = null;
 
@@ -291,7 +298,7 @@ namespace WPF_ME3Explorer.Textures
                             if (String.Compare(texName, temp.Exports[i].ObjectName, true) == 0 && temp.Exports[i].ValidTextureClass())
                             {
                                 Texture2D temptex = new Texture2D(temp, i, GameDirecs);
-                                byte[] tempBuffer = temptex.ExtractImage(imgInfo.ImageSize);
+                                byte[] tempBuffer = temptex.ExtractImage(imgInfo.ImageSize, RequireHeader);
                                 if (tempBuffer != null)
                                     imgBuffer = tempBuffer;   // Should really just be able to exit here, but for some reason, you can't. Early exports seem to be broken in some way, so you have to extract all the damn things.
                             }
@@ -306,7 +313,10 @@ namespace WPF_ME3Explorer.Textures
                     throw new FormatException("Unsupported texture storage type");
             }
 
-            return AddDDSHeader(imgBuffer, imgInfo);
+            if (RequireHeader)
+                return ToolsetTextureEngine.AddDDSHeader(imgBuffer, imgInfo, texFormat);
+            else
+                return imgBuffer;
         }
 
         byte[] ExtractME2_3ArcTex(Dictionary<string, MemoryStream> TFCs, ImageInfo imgInfo)
@@ -349,20 +359,6 @@ namespace WPF_ME3Explorer.Textures
             return imgBuffer;
         }
 
-        byte[] AddDDSHeader(byte[] imgBuffer, ImageInfo imgInfo)
-        {
-            using (MemoryStream ms = new MemoryStream())
-            {
-                using (BinaryWriter bw = new BinaryWriter(ms, Encoding.Default, true))
-                {
-                    var header = CSharpImageLibrary.DDSGeneral.Build_DDS_Header(1, (int)imgInfo.ImageSize.Height, (int)imgInfo.ImageSize.Width, texFormat);
-                    CSharpImageLibrary.DDSGeneral.Write_DDS_Header(header, bw);
-                    bw.Write(imgBuffer);
-                }
-                return ms.ToArray();
-            }
-        }
-
         /// <summary>
         /// Extracts texture to file.
         /// </summary>
@@ -370,7 +366,7 @@ namespace WPF_ME3Explorer.Textures
         /// <param name="info">Information of texture to be extracted.</param>
         public void ExtractImage(string fileName, ImageInfo info)
         {
-            byte[] data = ExtractImage(info);
+            byte[] data = ExtractImage(info, true); // Always want a header for a file
             File.WriteAllBytes(fileName, data);
         }
 
@@ -389,12 +385,12 @@ namespace WPF_ME3Explorer.Textures
         /// Extracts largest image to byte[].
         /// </summary>
         /// <returns>Byte[] containing largest image.</returns>
-        public byte[] ExtractMaxImage()
+        public byte[] ExtractMaxImage(bool RequireHeader)
         {
             // select max image size
             ImageSize maxImgSize = ImageList.Max(image => image.ImageSize);
             // extracting max image
-            return ExtractImage(ImageList.Find(img => img.ImageSize == maxImgSize));
+            return ExtractImage(ImageList.Find(img => img.ImageSize == maxImgSize), RequireHeader);
         }
 
         /// <summary>
@@ -403,7 +399,7 @@ namespace WPF_ME3Explorer.Textures
         /// <param name="filename">Filename to save extracted image as.</param>
         public void ExtractMaxImage(string filename)
         {
-            byte[] data = ExtractMaxImage();
+            byte[] data = ExtractMaxImage(true);  // Always want header for file.
             File.WriteAllBytes(filename, data);
         }
 
@@ -513,7 +509,7 @@ namespace WPF_ME3Explorer.Textures
 
             switch (imgInfo.storageType)
             {
-                case storage.arcCpr:
+                case storage.ME3arcCpr:
                 case storage.arcUnc:
                     string archivePath = FullArcPath;
                     if (String.IsNullOrEmpty(archivePath))
@@ -583,8 +579,13 @@ namespace WPF_ME3Explorer.Textures
                 case storage.pccCpr:
                     using (MemoryStream dataStream = new MemoryStream())
                     {
+                        imgData = imgFile.Save(imgFile.Format.SurfaceFormat, MipHandling.KeepTopOnly);
+                        imgBuffer = new byte[imgData.Length - 128];
+                        Array.Copy(imgData, 128, imgBuffer, 0, imgBuffer.Length);
+
                         dataStream.WriteBytes(imageData);
-                        imgBuffer = SaltLZOHelper.CompressTex(imgFile.Save(imgFile.Format.SurfaceFormat, MipHandling.KeepExisting));
+                        imgBuffer = SaltLZOHelper.CompressTex(imgBuffer);
+
                         if (imgBuffer.Length <= imgInfo.CompressedSize && imgInfo.Offset > 0)
                             dataStream.Seek(imgInfo.Offset, SeekOrigin.Begin);
                         else
@@ -662,26 +663,30 @@ namespace WPF_ME3Explorer.Textures
                 rawStream.WriteInt32(propY);
                 properties["SizeY"].raw = rawStream.ToArray();
             }
-            try
+
+            if (GameVersion == 3)
             {
-                properties["OriginalSizeX"].Value.IntValue = propX;
-                using (MemoryStream rawStream = new MemoryStream(properties["OriginalSizeX"].raw))
+                try
                 {
-                    rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
-                    rawStream.WriteInt32(propX);
-                    properties["OriginalSizeX"].raw = rawStream.ToArray();
+                    properties["OriginalSizeX"].Value.IntValue = propX;
+                    using (MemoryStream rawStream = new MemoryStream(properties["OriginalSizeX"].raw))
+                    {
+                        rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
+                        rawStream.WriteInt32(propX);
+                        properties["OriginalSizeX"].raw = rawStream.ToArray();
+                    }
+                    properties["OriginalSizeY"].Value.IntValue = propY;
+                    using (MemoryStream rawStream = new MemoryStream(properties["OriginalSizeY"].raw))
+                    {
+                        rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
+                        rawStream.WriteInt32(propY);
+                        properties["OriginalSizeY"].raw = rawStream.ToArray();
+                    }
                 }
-                properties["OriginalSizeY"].Value.IntValue = propY;
-                using (MemoryStream rawStream = new MemoryStream(properties["OriginalSizeY"].raw))
+                catch
                 {
-                    rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
-                    rawStream.WriteInt32(propY);
-                    properties["OriginalSizeY"].raw = rawStream.ToArray();
+                    // Some lightmaps don't have these properties. I'm ignoring them cos I'm ignorant. KFreon.
                 }
-            }
-            catch
-            {
-                // Some lightmaps don't have these properties. I'm ignoring them cos I'm ignorant. KFreon.
             }
         }
 
@@ -1029,7 +1034,7 @@ namespace WPF_ME3Explorer.Textures
         {
             try
             {
-                byte[] imgdata = ExtractMaxImage();
+                byte[] imgdata = ExtractMaxImage(true);
                 if (imgdata == null)
                     return null;
                 using (ImageEngineImage img = new ImageEngineImage(imgdata))

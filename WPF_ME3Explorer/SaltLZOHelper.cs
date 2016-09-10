@@ -6,58 +6,90 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using UsefulThings;
+using WPF_ME3Explorer.LZO;
 using WPF_ME3Explorer.PCCObjectsAndBits;
 
 namespace WPF_ME3Explorer
 {
     public static class SaltLZOHelper
     {
+        [ThreadStatic]
+        static byte[] _workingMem;
+
+        static byte[] _WorkingMem
+        {
+            get
+            {
+                if (_workingMem == null)
+                    _workingMem = new byte[16384L * 4];
+
+                return _workingMem;
+            }
+        }
+
         static class x86_Natives
         {
             [DllImport("LZO\\lzo2.dll")]
-            public static extern int lzo1x_decompress(byte[] src, uint srcLen, byte[] dst, ref uint dstLen);
+            public static extern int __lzo_init_v2(uint v, int s1, int s2, int s3, int s4, int s5, int s6, int s7, int s8, int s9);
 
             [DllImport("LZO\\lzo2.dll")]
-            public static extern int lzo1x_1_compress(byte[] src, uint srcLen, byte[] dst, ref uint dstLen);
+            public static extern int lzo1x_decompress(byte[] src, int srcLen, byte[] dst, ref int dstLen, byte[] workingMem);
+
+            [DllImport("LZO\\lzo2.dll")]
+            public static extern int lzo1x_1_compress(byte[] src, int srcLen, byte[] dst, ref int dstLen, byte[] workingMem);
         }
 
         static class x64_Natives
         {
             [DllImport("LZO\\lzo2_64.dll")]
-            public static extern int lzo1x_decompress(byte[] src, uint srcLen, byte[] dst, ref uint dstLen);
+            public static extern int __lzo_init_v2(uint v, int s1, int s2, int s3, int s4, int s5, int s6, int s7, int s8, int s9);
 
 
             [DllImport("LZO\\lzo2_64.dll")]
-            public static extern int lzo1x_1_compress(byte[] src, uint srcLen, byte[] dst, ref uint dstLen);
+            public static extern int lzo1x_decompress(byte[] src, int srcLen, byte[] dst, ref int dstLen, byte[] workingMem);
+
+
+            [DllImport("LZO\\lzo2_64.dll")]
+            public static extern int lzo1x_1_compress(byte[] src, int srcLen, byte[] dst, ref int dstLen, byte[] workingMem);
+        }
+
+        static SaltLZOHelper()
+        {
+            int t = -1;
+            if (Environment.Is64BitProcess)
+                t = x64_Natives.__lzo_init_v2(1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+            else
+                t = x86_Natives.__lzo_init_v2(1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+
+            if (t != 0)
+                throw new Exception("Initialisation failed!");
         }
 
 
         public static byte[] LZOCompress(byte[] src)
         {
-            uint dstLen = 0;
+            int dstLen = 0;
             byte[] tmpbuf = new byte[src.Length + (src.Length / 16) + 64 + 3];
             int status = int.MinValue;
             if (Environment.Is64BitProcess)
-                status =  x64_Natives.lzo1x_1_compress(src, (uint)src.Length, tmpbuf, ref dstLen);
+                status =  x64_Natives.lzo1x_1_compress(src, src.Length, tmpbuf, ref dstLen, _WorkingMem);
             else
-                status = x86_Natives.lzo1x_1_compress(src, (uint)src.Length, tmpbuf, ref dstLen);
+                status = x86_Natives.lzo1x_1_compress(src, src.Length, tmpbuf, ref dstLen, _WorkingMem);
 
             if (status != 0)
                 return new byte[0];
             byte[] dst = new byte[dstLen];
             Array.Copy(tmpbuf, dst, dstLen);
             return dst;
-
-            
         }
 
         public static int LZODecompress(byte[] src, byte[] dst)
         {
-            uint dstLen = 0;
+            int dstLen = 0;
             if (Environment.Is64BitProcess)
-                return x64_Natives.lzo1x_decompress(src, (uint)src.Length, dst, ref dstLen);
+                return x64_Natives.lzo1x_decompress(src, src.Length, dst, ref dstLen, _WorkingMem);
             else
-                return x86_Natives.lzo1x_decompress(src, (uint)src.Length, dst, ref dstLen);
+                return x86_Natives.lzo1x_decompress(src, src.Length, dst, ref dstLen, _WorkingMem);
         }
 
 
@@ -131,6 +163,7 @@ namespace WPF_ME3Explorer
             for (int i = 0; i < noChunks; i++)
             {
                 newChunks[i].rawData = LZOCompress(chunks[i].rawData);
+                //MiniLZO.Compress(chunks[i].rawData, out newChunks[i].rawData);
                 if (newChunks[i].rawData.Length == 0)
                     throw new Exception("LZO compression failed!");
                 newChunks[i].cprSize = newChunks[i].rawData.Length;
