@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using UsefulThings;
-using WPF_ME3Explorer.LZO;
 using WPF_ME3Explorer.PCCObjectsAndBits;
 
 namespace WPF_ME3Explorer
@@ -133,8 +132,8 @@ namespace WPF_ME3Explorer
         /// <summary>
         /// Takes regular image data and returns it in a compressed form ready for archiving
         /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
+        /// <param name="data">Data to compress</param>
+        /// <returns>Compressed texture</returns>
         public static byte[] CompressTex(byte[] data)
         {
             int chunkSize = 131072; //Set at this stage. Easy to change later

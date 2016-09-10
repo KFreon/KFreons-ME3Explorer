@@ -218,6 +218,21 @@ namespace WPF_ME3Explorer.Textures
                 tex2D.Dispose();
         }
 
+        internal static byte[] ExtractTexture(TreeTexInfo tex)
+        {
+            // Get Texture2D
+            Texture2D tex2D = GetTexture2D(tex);
+
+            // Extract texture
+            byte[] data = tex2D.ExtractMaxImage(true);
+
+            // Cleanup if required
+            if (tex.AssociatedTexture != tex2D)
+                tex2D.Dispose();
+
+            return data;
+        }
+
         internal static void ME1_LowResFix(TreeTexInfo tex)
         {
             // Get Texture2D

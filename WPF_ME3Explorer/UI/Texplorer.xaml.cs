@@ -17,6 +17,8 @@ using System.Windows.Threading;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.Textures;
 using WPF_ME3Explorer.UI.ViewModels;
+using UsefulThings;
+using CSharpImageLibrary;
 
 namespace WPF_ME3Explorer.UI
 {
@@ -248,6 +250,71 @@ namespace WPF_ME3Explorer.UI
                 SearchBox.Focus();
                 Keyboard.Focus(SearchBox);
                 e.Handled = true;
+            }
+        }
+
+        private void MainDisplayPanel_Drop(object sender, DragEventArgs e)
+        {
+            string file = ((string[])e.Data.GetData(DataFormats.FileDrop))[0];  // Can't be more than one due to DragEnter and DragOver events
+            TreeTexInfo tex = (TreeTexInfo)(((DockPanel)sender).DataContext);
+            vm.ChangeTexture(tex, file);
+        }
+
+        private void MainListView_MouseMove(object sender, MouseEventArgs e)
+        {
+            DockPanel item = sender as DockPanel;
+            if (item != null && e.LeftButton == MouseButtonState.Pressed)
+            {
+                var context = item.DataContext as TreeTexInfo;
+                if (context == null)
+                    return;
+
+                VirtualFileDataObject obj = new VirtualFileDataObject(context.DefaultSaveName, ToolsetTextureEngine.ExtractTexture(context));
+                VirtualFileDataObject.DoDragDrop(item, obj, DragDropEffects.Copy);
+            }
+        }
+
+        private void MainListView_DragOver(object sender, DragEventArgs e)
+        {
+            DoItemDragEnter(e);
+        }
+
+        private void MainListView_DragEnter(object sender, DragEventArgs e)
+        {
+            DoItemDragEnter(e);
+        }
+
+        void DoItemDragEnter(DragEventArgs e)
+        {
+            e.Effects = DragDropEffects.None;
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (files.Length == 1 && !files.Any(file => ImageFormats.ParseExtension(Path.GetExtension(file)) == ImageFormats.SupportedExtensions.UNKNOWN))
+                    e.Effects = DragDropEffects.Copy;
+            }
+            e.Handled = true;
+        }
+
+        private void MainTreeView_MouseMove(object sender, MouseEventArgs e)
+        {
+            StackPanel item = sender as StackPanel;
+            if (item != null && e.LeftButton == MouseButtonState.Pressed)
+            {
+                var context = item.DataContext as TexplorerTextureFolder;
+                if (context == null)
+                    return;
+
+                VirtualFileDataObject.FileDescriptor[] files = new VirtualFileDataObject.FileDescriptor[context.TexturesInclSubs.Count];
+                for (int i = 0; i < context.TexturesInclSubs.Count; i++)
+                {
+                    var tex = context.TexturesInclSubs[i];
+                    var data = ToolsetTextureEngine.ExtractTexture(tex);
+                    files[i] = new VirtualFileDataObject.FileDescriptor { Name = tex.DefaultSaveName, Length = data.Length, StreamContents = stream => stream.Write(data, 0, data.Length) };
+                }
+
+                VirtualFileDataObject obj = new VirtualFileDataObject(files);
+                VirtualFileDataObject.DoDragDrop(item, obj, DragDropEffects.Copy);
             }
         }
     }

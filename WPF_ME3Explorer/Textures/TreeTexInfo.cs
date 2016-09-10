@@ -46,6 +46,14 @@ namespace WPF_ME3Explorer.Textures
 
         public Texture2D AssociatedTexture { get; set; }
 
+        public string DefaultSaveName
+        {
+            get
+            {
+                return $"{TexName}_{ToolsetTextureEngine.FormatTexmodHashAsString(Hash)}.dds";
+            }
+        }
+
         string fullPackage = null;
         public string FullPackage
         {

@@ -96,7 +96,6 @@
     </Compile>
     <Compile Include="DLCEntry.cs" />
     <Compile Include="GameFileEntry.cs" />
-    <Compile Include="LZO\MiniLZO.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

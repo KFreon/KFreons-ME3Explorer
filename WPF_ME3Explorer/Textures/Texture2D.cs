@@ -105,10 +105,10 @@ namespace WPF_ME3Explorer.Textures
 
             // Doesn't matter that it does ME2 and 3, it's all deferred evaluation, so it only assigns a "job" to each one and doesn't do anything with it unless asked to.
             if (ME3TFCs == null)
-                ME3TFCs = MEDirectories.MEDirectories.ME3Files.Where(file => file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase));
+                ME3TFCs = MEDirectories.MEDirectories.ME3Files?.Where(file => file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase));
 
             if (ME2TFCs == null)
-                ME2TFCs = MEDirectories.MEDirectories.ME2Files.Where(file => file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase));
+                ME2TFCs = MEDirectories.MEDirectories.ME2Files?.Where(file => file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase));
         }
 
 

@@ -343,7 +343,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 SaveFileDialog sfd = new SaveFileDialog();
                 var texture = tex as TreeTexInfo;
-                sfd.FileName = $"{texture.TexName}_{ToolsetTextureEngine.FormatTexmodHashAsString(texture.Hash)}.dds";
+                sfd.FileName = texture.DefaultSaveName;
                 sfd.Filter = "DirectX Images|*.dds";  // TODO Expand to allow any ImageEngine supported format.
                 if (sfd.ShowDialog() != true)
                     return;
@@ -882,7 +882,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
-        void ChangeTexture(TreeTexInfo tex, string filename)
+        public void ChangeTexture(TreeTexInfo tex, string filename)
         {
             Busy = true;
             Status = $"Changing Texture: {tex.TexName}...";
@@ -909,7 +909,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Busy = false;
         }
 
-        void ExtractTexture(TreeTexInfo tex, string filename)
+        internal void ExtractTexture(TreeTexInfo tex, string filename)
         {
             Busy = true;
             Status = $"Extracting Texture: {tex.TexName}...";
