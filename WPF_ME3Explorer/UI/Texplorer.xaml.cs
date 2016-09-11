@@ -19,6 +19,7 @@ using WPF_ME3Explorer.Textures;
 using WPF_ME3Explorer.UI.ViewModels;
 using UsefulThings;
 using CSharpImageLibrary;
+using System.Runtime.InteropServices;
 
 namespace WPF_ME3Explorer.UI
 {
@@ -29,6 +30,8 @@ namespace WPF_ME3Explorer.UI
     {
         public bool IsClosed { get; private set; }
         TexplorerViewModel vm = null;
+        DragDropHandler<TreeTexInfo> TextureDragDropper = null;
+        DragDropHandler<TexplorerTextureFolder> FolderDragDropper = null;
 
         public Texplorer()
         {
@@ -67,6 +70,28 @@ namespace WPF_ME3Explorer.UI
 
             DataContext = vm;
             BackgroundMovie.Play();
+
+
+            Action<TreeTexInfo, string[]> textureDropper = new Action<TreeTexInfo, string[]>((tex, files) => vm.ChangeTexture(tex, files[0])); // Can only be one due to validation in DragOver
+
+            Func<TexplorerTextureFolder, Dictionary<string, byte[]>> FolderDataGetter = new Func<TexplorerTextureFolder, Dictionary<string, byte[]>>(context =>
+            {
+                Dictionary<string, byte[]> SaveInformation = new Dictionary<string, byte[]>();
+                for (int i = 0; i < context.TexturesInclSubs.Count; i++)
+                {
+                    var tex = context.TexturesInclSubs[i];
+                    var data = ToolsetTextureEngine.ExtractTexture(tex);
+                    SaveInformation.Add(tex.DefaultSaveName, data);
+                }
+                return SaveInformation;
+            });
+
+            Func<TreeTexInfo, Dictionary<string, byte[]>> TextureDataGetter = new Func<TreeTexInfo, Dictionary<string, byte[]>>(context => new Dictionary<string, byte[]> { { context.DefaultSaveName, ToolsetTextureEngine.ExtractTexture(context) } });
+
+            Predicate<string[]> DropValidator = new Predicate<string[]>(files => files.Length == 1 && !files.Any(file => ImageFormats.ParseExtension(Path.GetExtension(file)) == ImageFormats.SupportedExtensions.UNKNOWN));
+
+            TextureDragDropper = new DragDropHandler<TreeTexInfo>(this, textureDropper, DropValidator, TextureDataGetter);
+            FolderDragDropper = new DragDropHandler<TexplorerTextureFolder>(this, null, null, FolderDataGetter);  // DropAction and Validator not required as TreeView not droppable.
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -255,67 +280,22 @@ namespace WPF_ME3Explorer.UI
 
         private void MainDisplayPanel_Drop(object sender, DragEventArgs e)
         {
-            string file = ((string[])e.Data.GetData(DataFormats.FileDrop))[0];  // Can't be more than one due to DragEnter and DragOver events
-            TreeTexInfo tex = (TreeTexInfo)(((DockPanel)sender).DataContext);
-            vm.ChangeTexture(tex, file);
+            TextureDragDropper.Drop<DockPanel>(sender, e);
         }
 
         private void MainListView_MouseMove(object sender, MouseEventArgs e)
         {
-            DockPanel item = sender as DockPanel;
-            if (item != null && e.LeftButton == MouseButtonState.Pressed)
-            {
-                var context = item.DataContext as TreeTexInfo;
-                if (context == null)
-                    return;
-
-                VirtualFileDataObject obj = new VirtualFileDataObject(context.DefaultSaveName, ToolsetTextureEngine.ExtractTexture(context));
-                VirtualFileDataObject.DoDragDrop(item, obj, DragDropEffects.Copy);
-            }
+            TextureDragDropper.MouseMove<DockPanel>(sender, e);
         }
 
         private void MainListView_DragOver(object sender, DragEventArgs e)
         {
-            DoItemDragEnter(e);
-        }
-
-        private void MainListView_DragEnter(object sender, DragEventArgs e)
-        {
-            DoItemDragEnter(e);
-        }
-
-        void DoItemDragEnter(DragEventArgs e)
-        {
-            e.Effects = DragDropEffects.None;
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                if (files.Length == 1 && !files.Any(file => ImageFormats.ParseExtension(Path.GetExtension(file)) == ImageFormats.SupportedExtensions.UNKNOWN))
-                    e.Effects = DragDropEffects.Copy;
-            }
-            e.Handled = true;
+            TextureDragDropper.DragEnter_Over(e);
         }
 
         private void MainTreeView_MouseMove(object sender, MouseEventArgs e)
         {
-            StackPanel item = sender as StackPanel;
-            if (item != null && e.LeftButton == MouseButtonState.Pressed)
-            {
-                var context = item.DataContext as TexplorerTextureFolder;
-                if (context == null)
-                    return;
-
-                VirtualFileDataObject.FileDescriptor[] files = new VirtualFileDataObject.FileDescriptor[context.TexturesInclSubs.Count];
-                for (int i = 0; i < context.TexturesInclSubs.Count; i++)
-                {
-                    var tex = context.TexturesInclSubs[i];
-                    var data = ToolsetTextureEngine.ExtractTexture(tex);
-                    files[i] = new VirtualFileDataObject.FileDescriptor { Name = tex.DefaultSaveName, Length = data.Length, StreamContents = stream => stream.Write(data, 0, data.Length) };
-                }
-
-                VirtualFileDataObject obj = new VirtualFileDataObject(files);
-                VirtualFileDataObject.DoDragDrop(item, obj, DragDropEffects.Copy);
-            }
+            FolderDragDropper.MouseMove<StackPanel>(sender, e);
         }
     }
 }

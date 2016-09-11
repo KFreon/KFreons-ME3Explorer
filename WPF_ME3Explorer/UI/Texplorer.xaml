@@ -183,7 +183,7 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <DockPanel x:Name="MainListView" MouseDown="MainListView_MouseDown" AllowDrop="True" Drop="MainDisplayPanel_Drop" MouseMove="MainListView_MouseMove" DragEnter="MainListView_DragEnter" DragOver="MainListView_DragOver">
+                    <DockPanel x:Name="MainListView" MouseDown="MainListView_MouseDown" AllowDrop="True" Drop="MainDisplayPanel_Drop" MouseMove="MainListView_MouseMove" DragOver="MainListView_DragOver">
                         <DockPanel.Style>
                             <Style TargetType="DockPanel">
                                 <Setter Property="Background" Value="Transparent"/>
