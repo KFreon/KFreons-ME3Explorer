@@ -68,6 +68,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         // Install changed textures
                         await ToolsetTextureEngine.InstallTextures(NumThreads, this, GameDirecs, cts, texes);
 
+                        MaxProgress = Progress;
+                        Status = $"Saved all files!";
+
                         // Clear ChangedTextures
                         foreach (var tex in ChangedTextures)
                             tex.HasChanged = false;
@@ -645,7 +648,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 }
             }
 
-            Status = "Beginning Scan...";
+            Status = "Beginning Tree Scan...";
 
             
 
@@ -781,17 +784,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 pcc.Dispose();
             }
 
-            /*Interlocked.Increment(ref count);  // Threadsafely increment count
-
-            // Only change progress and status every 10 or so. Improves UI performance, otherwise it'll be updating the display 40 times a second on top of all the scanning.
-            if (count % 10 == 0)
-            {
-                Progress += 10;
-                Status = $"Scanning: {count} / {MaxProgress}";
-            }*/
-
             Progress++;
-            Status = $"Scanning: {Progress} / {MaxProgress}";
+            Status = $"Scanning PCC's to build tree: {Progress} / {MaxProgress}";
 
             return texes;       
         }

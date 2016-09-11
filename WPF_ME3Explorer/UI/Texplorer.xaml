@@ -425,7 +425,7 @@
                                 </DataTrigger.ExitActions>
                             </DataTrigger>
 
-                            <Trigger Property="IsMouseOver" Value="True">
+                            <Trigger Property="IsMouseCaptureWithin" Value="true">
                                 <Setter Property="Opacity" Value="1"/>
                             </Trigger>
 

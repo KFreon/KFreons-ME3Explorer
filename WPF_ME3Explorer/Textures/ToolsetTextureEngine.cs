@@ -248,13 +248,18 @@ namespace WPF_ME3Explorer.Textures
 
         public static Task InstallTextures<T>(int NumThreads, MEViewModelBase<T> vm, MEDirectories.MEDirectories GameDirecs, CancellationTokenSource cts, params AbstractTexInfo[] texes) where T : AbstractTexInfo
         {
-            vm.Progress = 0;
-            vm.MaxProgress = texes.Length;
+            vm.Progress = 1;
+            vm.MaxProgress = texes.Length + 1;
 
             /* Save changes per file, so we don't go opening a pcc 5000000 times to change each of it's textures */
             BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccReadBuffer = new BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>>(new DataflowBlockOptions { BoundedCapacity = 10 });
             var tex2DSaver = new TransformBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>, PCCObject>(pccBits => SaveTex2DToPCC(pccBits, GameDirecs), new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = NumThreads, BoundedCapacity = NumThreads });
-            var pccFileSaver = new ActionBlock<PCCObject>(pcc => pcc.SaveToFile(pcc.pccFileName), new ExecutionDataflowBlockOptions { BoundedCapacity = 2 });
+            var pccFileSaver = new ActionBlock<PCCObject>(pcc =>
+            {
+                vm.Status = $"Saving file: {Path.GetFileName(pcc.pccFileName)}. {vm.Progress} / {vm.MaxProgress}";
+                pcc.SaveToFile(pcc.pccFileName);
+                vm.Progress++;
+            }, new ExecutionDataflowBlockOptions { BoundedCapacity = 2 });
 
             pccReadBuffer.LinkTo(tex2DSaver, new DataflowLinkOptions { PropagateCompletion = true });
             tex2DSaver.LinkTo(pccFileSaver, new DataflowLinkOptions { PropagateCompletion = true });
