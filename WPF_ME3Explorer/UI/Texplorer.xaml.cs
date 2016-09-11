@@ -74,19 +74,19 @@ namespace WPF_ME3Explorer.UI
 
             Action<TreeTexInfo, string[]> textureDropper = new Action<TreeTexInfo, string[]>((tex, files) => vm.ChangeTexture(tex, files[0])); // Can only be one due to validation in DragOver
 
-            Func<TexplorerTextureFolder, Dictionary<string, byte[]>> FolderDataGetter = new Func<TexplorerTextureFolder, Dictionary<string, byte[]>>(context =>
+            var FolderDataGetter = new Func<TexplorerTextureFolder, Dictionary<string, Func<byte[]>>>(context =>
             {
-                Dictionary<string, byte[]> SaveInformation = new Dictionary<string, byte[]>();
+                var SaveInformation = new Dictionary<string, Func<byte[]>>();
                 for (int i = 0; i < context.TexturesInclSubs.Count; i++)
                 {
                     var tex = context.TexturesInclSubs[i];
-                    var data = ToolsetTextureEngine.ExtractTexture(tex);
+                    Func<byte[]> data = () =>  ToolsetTextureEngine.ExtractTexture(tex);
                     SaveInformation.Add(tex.DefaultSaveName, data);
                 }
                 return SaveInformation;
             });
 
-            Func<TreeTexInfo, Dictionary<string, byte[]>> TextureDataGetter = new Func<TreeTexInfo, Dictionary<string, byte[]>>(context => new Dictionary<string, byte[]> { { context.DefaultSaveName, ToolsetTextureEngine.ExtractTexture(context) } });
+            var TextureDataGetter = new Func<TreeTexInfo, Dictionary<string, Func<byte[]>>>(context => new Dictionary<string, Func<byte[]>> { { context.DefaultSaveName, () => ToolsetTextureEngine.ExtractTexture(context) } });
 
             Predicate<string[]> DropValidator = new Predicate<string[]>(files => files.Length == 1 && !files.Any(file => ImageFormats.ParseExtension(Path.GetExtension(file)) == ImageFormats.SupportedExtensions.UNKNOWN));
 

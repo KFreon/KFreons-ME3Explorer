@@ -90,6 +90,10 @@
                         <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="Visibility">
                             <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
                         </ObjectAnimationUsingKeyFrames>
+
+                        <BooleanAnimationUsingKeyFrames Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="IsHitTestVisible">
+                            <DiscreteBooleanKeyFrame KeyTime="0:0:0" Value="true"/>
+                        </BooleanAnimationUsingKeyFrames>
                     </Storyboard>
                 </Button.Resources>
                 <Button.Triggers>
@@ -482,16 +486,25 @@
                     <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Collapsed}"/>
                 </ObjectAnimationUsingKeyFrames>
 
+                <BooleanAnimationUsingKeyFrames x:Key="TreeScanBackGroundHitTest" Storyboard.TargetName="TreeScanBackground" Storyboard.TargetProperty="IsHitTestVisible">
+                    <DiscreteBooleanKeyFrame KeyTime="0:0:0.8" Value="false"/>
+                </BooleanAnimationUsingKeyFrames>
+
                 <Storyboard x:Key="TreeScanClosePanelAnimation">
                     <StaticResource ResourceKey="TreeScanPanelClose"/>
                     <StaticResource ResourceKey="TreeScanBackGroundFader"/>
                     <StaticResource ResourceKey="TreeScanBackGroundVisibility"/>
+                    <StaticResource ResourceKey="TreeScanBackGroundHitTest"/>
                 </Storyboard>
 
                 <Storyboard x:Key="ProgressPanelOpener">
                     <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="Visibility">
                         <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Visible}"/>
                     </ObjectAnimationUsingKeyFrames>
+
+                    <BooleanAnimationUsingKeyFrames Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="IsHitTestVisible">
+                        <DiscreteBooleanKeyFrame KeyTime="0" Value="true"/>
+                    </BooleanAnimationUsingKeyFrames>
 
                     <DoubleAnimation Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:1" DecelerationRatio="1">
                         <DoubleAnimation.EasingFunction>
@@ -689,7 +702,7 @@
                                                 </ObjectAnimationUsingKeyFrames>
 
                                                 <BooleanAnimationUsingKeyFrames Storyboard.TargetName="ReallyDeleteStacker" Storyboard.TargetProperty="IsHitTestVisible">
-                                                    <DiscreteBooleanKeyFrame KeyTime="0:0:0.3" Value="false"/>
+                                                    <DiscreteBooleanKeyFrame KeyTime="0:0:0.1" Value="false"/>
                                                 </BooleanAnimationUsingKeyFrames>
                                             </Storyboard>
                                         </BeginStoryboard>
@@ -712,7 +725,7 @@
                                                     </ObjectAnimationUsingKeyFrames>
 
                                                     <BooleanAnimationUsingKeyFrames Storyboard.TargetName="ReallyDeleteStacker" Storyboard.TargetProperty="IsHitTestVisible">
-                                                        <DiscreteBooleanKeyFrame KeyTime="0:0:0.3" Value="false"/>
+                                                        <DiscreteBooleanKeyFrame KeyTime="0:0:0.1" Value="false"/>
                                                     </BooleanAnimationUsingKeyFrames>
                                                 </Storyboard>
                                             </BeginStoryboard>
@@ -792,6 +805,10 @@
                         <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="Visibility">
                             <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Collapsed}"/>
                         </ObjectAnimationUsingKeyFrames>
+
+                        <BooleanAnimationUsingKeyFrames Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="IsHitTestVisible">
+                            <DiscreteBooleanKeyFrame KeyTime="0:0:0.8" Value="false"/>
+                        </BooleanAnimationUsingKeyFrames>
 
                         <DoubleAnimation Storyboard.TargetName="ProgressPanel" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:1" DecelerationRatio="1">
                             <DoubleAnimation.EasingFunction>
