@@ -72,7 +72,7 @@ namespace WPF_ME3Explorer.UI
             BackgroundMovie.Play();
 
 
-            Action<TreeTexInfo, string[]> textureDropper = new Action<TreeTexInfo, string[]>((tex, files) => vm.ChangeTexture(tex, files[0])); // Can only be one due to validation in DragOver
+            Action<TreeTexInfo, string[]> textureDropper = new Action<TreeTexInfo, string[]>((tex, files) => Task.Run(() => vm.ChangeTexture(tex, files[0]))); // Can only be one due to validation in DragOver
 
             var FolderDataGetter = new Func<TexplorerTextureFolder, Dictionary<string, Func<byte[]>>>(context =>
             {

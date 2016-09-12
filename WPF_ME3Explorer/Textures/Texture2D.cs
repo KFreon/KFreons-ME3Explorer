@@ -175,7 +175,7 @@ namespace WPF_ME3Explorer.Textures
                     switch (property.Name)
                     {
                         case "Format":
-                            texFormat = Textures.Misc.ParseFormat(GameVersion == 3 ? pccObj.Names[property.Value.IntValue].Substring(3) : property.Value.StringValue);
+                            texFormat = ToolsetTextureEngine.ParseFormat(GameVersion == 3 ? pccObj.Names[property.Value.IntValue].Substring(3) : property.Value.StringValue);
                             break;
                         case "TextureFileCacheName": arcName = property.Value.NameValue.Name; break;
                         case "LODGroup": LODGroup = GameVersion == 3 ? property.Value.NameValue.Name : property.Value.StringValue; break;
@@ -507,10 +507,17 @@ namespace WPF_ME3Explorer.Textures
                 imgInfo.CompressedSize = imgInfo.UncompressedSize; // Don't know why...
             }
 
+            byte[] imgData = imgFile.Save(imgFile.Format.SurfaceFormat, MipHandling.KeepTopOnly);
+            imgBuffer = ToolsetTextureEngine.RemoveDDSHeader(imgData);
+
             switch (imgInfo.storageType)
             {
                 case storage.ME3arcCpr:
+                case storage.arcCpr:
                 case storage.arcUnc:
+                    if (GameVersion == 1)
+                        Debugger.Break();
+
                     string archivePath = FullArcPath;
                     if (String.IsNullOrEmpty(archivePath))
                         archivePath = GetTexArchive();
@@ -518,8 +525,6 @@ namespace WPF_ME3Explorer.Textures
                         throw new FileNotFoundException("Teture archive not found!");
                     if (!File.Exists(archivePath))
                         throw new FileNotFoundException("Texture archive not found in " + archivePath);
-
-                    imgBuffer = imgFile.Save(imgFile.Format.SurfaceFormat, MipHandling.KeepExisting);
 
                     if (imgBuffer.Length != imgInfo.UncompressedSize)
                         throw new FormatException("image sizes do not match, original is " + imgInfo.UncompressedSize + ", new is " + imgBuffer.Length);
@@ -550,6 +555,14 @@ namespace WPF_ME3Explorer.Textures
                             imgBuffer = ZBlock.Compress(imgBuffer);
                             imgInfo.CompressedSize = imgBuffer.Length;
                         }
+                        else if (GameVersion == 2 && imgInfo.storageType == storage.arcCpr)
+                        {
+                            byte[] tempBuff;
+                            tempBuff = SaltLZOHelper.CompressTex(imgBuffer);
+                            imgBuffer = new byte[tempBuff.Length];
+                            Buffer.BlockCopy(tempBuff, 0, imgBuffer, 0, tempBuff.Length);
+                            imgInfo.CompressedSize = imgBuffer.Length;
+                        }
                         archiveStream.Write(imgBuffer, 0, imgBuffer.Length);
 
                         imgInfo.Offset = newOffset;
@@ -557,9 +570,6 @@ namespace WPF_ME3Explorer.Textures
                     break;
                 case storage.pccSto:
                     // Get image data and remove header.
-                    byte[] imgData = imgFile.Save(imgFile.Format.SurfaceFormat, MipHandling.KeepTopOnly);
-                    imgBuffer = new byte[imgData.Length - 128];
-                    Array.Copy(imgData, 128, imgBuffer, 0, imgBuffer.Length);
 
                     if (imgBuffer.Length != imgInfo.UncompressedSize)
                         throw new FormatException("image sizes do not match, original is " + imgInfo.UncompressedSize + ", new is " + imgBuffer.Length);
@@ -579,9 +589,6 @@ namespace WPF_ME3Explorer.Textures
                 case storage.pccCpr:
                     using (MemoryStream dataStream = new MemoryStream())
                     {
-                        imgData = imgFile.Save(imgFile.Format.SurfaceFormat, MipHandling.KeepTopOnly);
-                        imgBuffer = new byte[imgData.Length - 128];
-                        Array.Copy(imgData, 128, imgBuffer, 0, imgBuffer.Length);
 
                         dataStream.WriteBytes(imageData);
                         imgBuffer = SaltLZOHelper.CompressTex(imgBuffer);
@@ -747,6 +754,392 @@ namespace WPF_ME3Explorer.Textures
 
         public void CopyImgList(Texture2D inTex, PCCObject pcc)
         {
+            switch (GameVersion)
+            {
+                case 1:
+                    ME1_CopyImgList(inTex, pcc);
+                    break;
+                case 2:
+                    ME2_CopyImgList(inTex, pcc);
+                    break;
+                case 3:
+                    ME3_CopyImgList(inTex, pcc);
+                    break;
+            }
+        }
+
+        void ME1_CopyImgList(Texture2D inTex, PCCObject pcc, bool norender = false)
+        {
+            List<ImageInfo> tempList = new List<ImageInfo>();
+            MemoryStream tempData = new MemoryStream();
+            numMipMaps = inTex.numMipMaps;
+
+            // forced norenderfix
+            // norender = true;
+
+            int type = -1;
+            if (!norender)
+            {
+                if (ImageList.Exists(img => img.storageType == storage.arcCpr) && ImageList.Count > 1)
+                    type = 1;
+                else if (ImageList.Exists(img => img.storageType == storage.pccCpr))
+                    type = 2;
+                else if (ImageList.Exists(img => img.storageType == storage.pccSto) || ImageList.Count == 1)
+                    type = 3;
+            }
+            else
+                type = 3;
+
+            switch (type)
+            {
+                case 1:
+                    for (int i = 0; i < inTex.ImageList.Count; i++)
+                    {
+                        try
+                        {
+                            ImageInfo newImg = new ImageInfo();
+                            ImageInfo replaceImg = inTex.ImageList[i];
+                            storage replaceType = ImageList.Find(img => img.ImageSize == replaceImg.ImageSize).storageType;
+
+                            int j = 0;
+                            while (replaceType == storage.empty)
+                            {
+                                j++;
+                                replaceType = ImageList[ImageList.FindIndex(img => img.ImageSize == replaceImg.ImageSize) + j].storageType;
+                            }
+
+                            if (replaceType == storage.arcCpr || !ImageList.Exists(img => img.ImageSize == replaceImg.ImageSize))
+                            {
+                                newImg.storageType = storage.arcCpr;
+                                newImg.UncompressedSize = replaceImg.UncompressedSize;
+                                newImg.CompressedSize = replaceImg.CompressedSize;
+                                newImg.ImageSize = replaceImg.ImageSize;
+                                newImg.Offset = (int)(replaceImg.Offset + inTex.pccOffset + inTex.dataOffset);
+                            }
+                            else
+                            {
+                                newImg.storageType = storage.pccSto;
+                                newImg.UncompressedSize = replaceImg.UncompressedSize;
+                                newImg.CompressedSize = replaceImg.UncompressedSize;
+                                newImg.ImageSize = replaceImg.ImageSize;
+                                newImg.Offset = (int)(tempData.Position);
+                                using (MemoryStream tempStream = new MemoryStream(inTex.imageData))
+                                    tempData.WriteBytes(SaltLZOHelper.DecompressTex(tempStream, replaceImg.Offset, replaceImg.UncompressedSize, replaceImg.CompressedSize));
+                            }
+                            tempList.Add(newImg);
+                        }
+                        catch
+                        {
+                            ImageInfo replaceImg = inTex.ImageList[i];
+                            if (!ImageList.Exists(img => img.ImageSize == replaceImg.ImageSize))
+                                throw new Exception("An error occurred during imglist copying and no suitable replacement was found");
+                            ImageInfo newImg = ImageList.Find(img => img.ImageSize == replaceImg.ImageSize);
+                            if (newImg.storageType != storage.pccCpr && newImg.storageType != storage.pccSto)
+                                throw new Exception("An error occurred during imglist copying and no suitable replacement was found");
+                            int temppos = newImg.Offset;
+                            newImg.Offset = (int)tempData.Position;
+                            tempData.Write(imageData, temppos, newImg.CompressedSize);
+                            tempList.Add(newImg);
+                        }
+                    }
+                    break;
+                case 2:
+                    for (int i = 0; i < inTex.ImageList.Count; i++)
+                    {
+                        ImageInfo newImg = new ImageInfo();
+                        ImageInfo replaceImg = inTex.ImageList[i];
+                        newImg.storageType = storage.pccCpr;
+                        newImg.UncompressedSize = replaceImg.UncompressedSize;
+                        newImg.CompressedSize = replaceImg.CompressedSize;
+                        newImg.ImageSize = replaceImg.ImageSize;
+                        newImg.Offset = (int)(tempData.Position);
+                        byte[] buffer = new byte[newImg.CompressedSize];
+                        Buffer.BlockCopy(inTex.imageData, replaceImg.Offset, buffer, 0, buffer.Length);
+                        tempData.WriteBytes(buffer);
+                        tempList.Add(newImg);
+                    }
+                    break;
+                case 3:
+                    for (int i = 0; i < inTex.ImageList.Count; i++)
+                    {
+                        ImageInfo newImg = new ImageInfo();
+                        ImageInfo replaceImg = inTex.ImageList[i];
+                        newImg.storageType = storage.pccSto;
+                        newImg.UncompressedSize = replaceImg.UncompressedSize;
+                        newImg.CompressedSize = replaceImg.UncompressedSize;
+                        newImg.ImageSize = replaceImg.ImageSize;
+                        newImg.Offset = (int)(tempData.Position);
+                        if (replaceImg.storageType == storage.pccCpr)
+                        {
+                            using (MemoryStream tempStream = new MemoryStream(inTex.imageData))
+                            {
+                                tempData.WriteBytes(SaltLZOHelper.DecompressTex(tempStream, replaceImg.Offset, replaceImg.UncompressedSize, replaceImg.CompressedSize));
+                            }
+                        }
+                        else if (replaceImg.storageType == storage.pccSto)
+                        {
+                            byte[] buffer = new byte[newImg.CompressedSize];
+                            Buffer.BlockCopy(inTex.imageData, replaceImg.Offset, buffer, 0, buffer.Length);
+                            tempData.WriteBytes(buffer);
+                        }
+                        else
+                            throw new NotImplementedException("Copying from non package stored texture no available");
+                        tempList.Add(newImg);
+                    }
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+
+            for (int i = 0; i < tempList.Count; i++)
+            {
+                ImageInfo tempinfo = tempList[i];
+                if (inTex.ImageList[i].storageType == storage.empty)
+                    tempinfo.storageType = storage.empty;
+                tempList[i] = tempinfo;
+            }
+
+            ImageList = tempList;
+            imageData = tempData.ToArray();
+            tempData.Close();
+
+            byte[] buff;
+            //Copy properties
+            using (MemoryStream tempMem = new MemoryStream())
+            {
+                tempMem.WriteBytes(headerData);
+                for (int i = 0; i < inTex.properties.Count; i++)
+                {
+                    SaltPropertyReader.Property prop = inTex.properties.ElementAt(i).Value;
+
+                    if (prop.Name == "UnpackMin")
+                    {
+                        for (int j = 0; j < inTex.UnpackNum; j++)
+                        {
+                            tempMem.WriteInt64(pcc.AddName(prop.Name));
+                            tempMem.WriteInt64(pcc.AddName(prop.TypeVal.ToString()));
+                            tempMem.WriteInt32(prop.Size);
+                            tempMem.WriteInt32(j);
+                            tempMem.WriteFloat32(prop.Value.FloatValue);
+                        }
+                        continue;
+                    }
+
+                    tempMem.WriteInt64(pcc.AddName(prop.Name));
+                    if (prop.Name == "None")
+                    {
+                        for (int j = 0; j < 12; j++)
+                            tempMem.WriteByte(0);
+                    }
+                    else
+                    {
+                        tempMem.WriteInt64(pcc.AddName(prop.TypeVal.ToString()));
+                        tempMem.WriteInt64(prop.Size);
+
+                        switch (prop.TypeVal)
+                        {
+                            case SaltPropertyReader.Type.IntProperty:
+                                tempMem.WriteInt32(prop.Value.IntValue);
+                                break;
+                            case SaltPropertyReader.Type.BoolProperty:
+                                tempMem.Seek(-4, SeekOrigin.Current);
+                                tempMem.WriteInt32(prop.Value.IntValue);
+                                tempMem.Seek(4, SeekOrigin.Current);
+                                break;
+                            case SaltPropertyReader.Type.NameProperty:
+                                tempMem.WriteInt64(pcc.AddName(prop.Value.StringValue));
+                                // Heff: Modified to handle name references.
+                                //var index = pcc.AddName(prop.Value.StringValue);
+                                //tempMem.WriteInt32(index);
+                                //tempMem.WriteInt32(prop.Value.NameValue.count);
+                                break;
+                            case SaltPropertyReader.Type.StrProperty:
+                                tempMem.WriteInt32(prop.Value.StringValue.Length + 1);
+                                foreach (char c in prop.Value.StringValue)
+                                    tempMem.WriteByte((byte)c);
+                                tempMem.WriteByte(0);
+                                break;
+                            case SaltPropertyReader.Type.StructProperty:
+                                tempMem.WriteInt64(pcc.AddName(prop.Value.StringValue));
+                                foreach (SaltPropertyReader.PropertyValue value in prop.Value.Array)
+                                    tempMem.WriteInt32(value.IntValue);
+                                break;
+                            case SaltPropertyReader.Type.ByteProperty:
+                                tempMem.WriteInt32(pcc.AddName(prop.Value.StringValue));
+                                tempMem.WriteInt32(prop.Value.IntValue);
+                                break;
+                            case SaltPropertyReader.Type.FloatProperty:
+                                tempMem.WriteFloat32(prop.Value.FloatValue);
+                                break;
+                            default:
+                                throw new FormatException("unknown property");
+                        }
+                    }
+                }
+                buff = tempMem.ToArray();
+            }
+
+            int propertiesOffset = SaltPropertyReader.detectStart(pcc, buff);
+            headerData = new byte[propertiesOffset];
+            Buffer.BlockCopy(buff, 0, headerData, 0, propertiesOffset);
+            properties = new Dictionary<string, SaltPropertyReader.Property>();
+            List<SaltPropertyReader.Property> tempProperties = SaltPropertyReader.getPropList(pcc, buff);
+            UnpackNum = 0;
+            for (int i = 0; i < tempProperties.Count; i++)
+            {
+                SaltPropertyReader.Property property = tempProperties[i];
+                if (property.Name == "UnpackMin")
+                    UnpackNum++;
+
+                if (!properties.ContainsKey(property.Name))
+                    properties.Add(property.Name, property);
+
+                switch (property.Name)
+                {
+                    case "Format": texFormat = ToolsetTextureEngine.ParseFormat(property.Value.StringValue); break;
+                    case "LODGroup": LODGroup = property.Value.StringValue; break;
+                    case "CompressionSettings": Compression = property.Value.StringValue; break;
+                    case "None": dataOffset = (uint)(property.offsetval + property.Size); break;
+                }
+            }
+
+            // if "None" property isn't found throws an exception
+            if (dataOffset == 0)
+                throw new Exception("\"None\" property not found");
+        }
+
+        void ME2_CopyImgList(Texture2D inTex, PCCObject pcc)
+        {
+            numMipMaps = inTex.numMipMaps;
+
+            if (properties.ContainsKey("NeverStream") && properties["NeverStream"].Value.IntValue == 1)
+            {
+                imageData = null;
+                // store images as pccSto format
+                ImageList = new List<ImageInfo>();
+                MemoryStream tempData = new MemoryStream();
+
+                for (int i = 0; i < inTex.ImageList.Count; i++)
+                {
+                    ImageInfo newImg = new ImageInfo();
+                    ImageInfo replaceImg = inTex.ImageList[i];
+                    newImg.storageType = storage.pccSto;
+                    newImg.UncompressedSize = replaceImg.UncompressedSize;
+                    newImg.CompressedSize = replaceImg.UncompressedSize;
+                    newImg.ImageSize = replaceImg.ImageSize;
+                    newImg.Offset = (int)(tempData.Position);
+                    if (replaceImg.storageType == storage.arcCpr)
+                    {
+                        string archivePath = inTex.FullArcPath;
+                        if (!File.Exists(archivePath))
+                            throw new FileNotFoundException("Texture archive not found in " + archivePath);
+
+                        using (FileStream archiveStream = File.OpenRead(archivePath))
+                        {
+                            archiveStream.Seek(replaceImg.Offset, SeekOrigin.Begin);
+                            tempData.WriteBytes(SaltLZOHelper.DecompressTex(archiveStream, replaceImg.Offset, replaceImg.UncompressedSize, replaceImg.CompressedSize));
+                        }
+                    }
+                    else if (replaceImg.storageType == storage.pccSto)
+                    {
+                        byte[] buffer = new byte[newImg.CompressedSize];
+                        Buffer.BlockCopy(inTex.imageData, replaceImg.Offset, buffer, 0, buffer.Length);
+                        tempData.WriteBytes(buffer);
+                    }
+                    else
+                        throw new NotImplementedException("Copying from non package stored texture no available");
+                    ImageList.Add(newImg);
+                }
+
+                for (int i = 0; i < ImageList.Count; i++)
+                {
+                    ImageInfo tempinfo = ImageList[i];
+                    if (inTex.ImageList[i].storageType == storage.empty)
+                        tempinfo.storageType = storage.empty;
+                    ImageList[i] = tempinfo;
+                }
+
+                imageData = tempData.ToArray();
+                tempData.Close();
+                tempData = null;
+                GC.Collect();
+            }
+            else
+            {
+                imageData = inTex.imageData;
+                ImageList = inTex.ImageList;
+            }
+
+            // add properties "TextureFileCacheName" and "TFCFileGuid" if they are missing,
+            if (!properties.ContainsKey("TextureFileCacheName") && inTex.properties.ContainsKey("TextureFileCacheName"))
+            {
+                SaltPropertyReader.Property none = properties["None"];
+                properties.Remove("None");
+
+                SaltPropertyReader.Property property = new SaltPropertyReader.Property();
+                property.TypeVal = SaltPropertyReader.Type.NameProperty;
+                property.Name = "TextureFileCacheName";
+                property.Size = 8;
+                SaltPropertyReader.PropertyValue value = new SaltPropertyReader.PropertyValue();
+                value.StringValue = "Textures";
+                property.Value = value;
+                properties.Add("TextureFileCacheName", property);
+                arcName = value.StringValue;
+
+                if (!properties.ContainsKey("TFCFileGuid"))
+                {
+                    SaltPropertyReader.Property guidprop = new SaltPropertyReader.Property();
+                    guidprop.TypeVal = SaltPropertyReader.Type.StructProperty;
+                    guidprop.Name = "TFCFileGuid";
+                    guidprop.Size = 16;
+                    SaltPropertyReader.PropertyValue guid = new SaltPropertyReader.PropertyValue();
+                    guid.len = guidprop.Size;
+                    guid.StringValue = "Guid";
+                    guid.IntValue = pcc.AddName(guid.StringValue);
+                    guid.Array = new List<SaltPropertyReader.PropertyValue>();
+                    for (int i = 0; i < 4; i++)
+                        guid.Array.Add(new SaltPropertyReader.PropertyValue());
+                    guidprop.Value = guid;
+                    properties.Add("TFCFileGuid", guidprop);
+                }
+
+                properties.Add("None", none);
+            }
+
+            // copy specific properties from inTex
+            for (int i = 0; i < inTex.properties.Count; i++)
+            {
+                SaltPropertyReader.Property prop = inTex.properties.ElementAt(i).Value;
+                switch (prop.Name)
+                {
+                    case "TextureFileCacheName":
+                        arcName = prop.Value.StringValue;
+                        properties["TextureFileCacheName"].Value.StringValue = arcName;
+                        break;
+                    case "TFCFileGuid":
+                        SaltPropertyReader.Property GUIDProp = properties["TFCFileGuid"];
+                        for (int l = 0; l < 4; l++)
+                        {
+                            SaltPropertyReader.PropertyValue tempVal = GUIDProp.Value.Array[l];
+                            tempVal.IntValue = prop.Value.Array[l].IntValue;
+                            GUIDProp.Value.Array[l] = tempVal;
+                        }
+                        break;
+                    case "MipTailBaseIdx":
+                        properties["MipTailBaseIdx"].Value.IntValue = prop.Value.IntValue;
+                        break;
+                    case "SizeX":
+                        properties["SizeX"].Value.IntValue = prop.Value.IntValue;
+                        break;
+                    case "SizeY":
+                        properties["SizeY"].Value.IntValue = prop.Value.IntValue;
+                        break;
+                }
+            }
+        }
+
+        void ME3_CopyImgList(Texture2D inTex, PCCObject pcc)
+        {
             imageData = inTex.imageData;
             ImageList = inTex.ImageList;
             numMipMaps = inTex.numMipMaps;
@@ -832,7 +1225,7 @@ namespace WPF_ME3Explorer.Textures
                 switch (property.Name)
                 {
                     case "Format":
-                        texFormat = Textures.Misc.ParseFormat(pcc.Names[property.Value.IntValue].Substring(3));
+                        texFormat = ToolsetTextureEngine.ParseFormat(pcc.Names[property.Value.IntValue].Substring(3));
                         break;
                     case "TextureFileCacheName": arcName = property.Value.NameValue.Name; break;
                     case "LODGroup": LODGroup = property.Value.NameValue.Name; break;
@@ -844,6 +1237,7 @@ namespace WPF_ME3Explorer.Textures
             if (dataOffset == 0)
                 throw new Exception("\"None\" property not found");
         }
+
 
         private void ChooseNewCache(int buffLength)
         {
@@ -893,10 +1287,10 @@ namespace WPF_ME3Explorer.Textures
             {
                 SaltPropertyReader.Property GUIDProp = properties["TFCFileGuid"];
 
-                for (int i = 0; i < 16; i++)
+                for (int i = 0; i < (GameVersion == 3 ? 16 : 4); i++)
                 {
                     SaltPropertyReader.PropertyValue tempVal = GUIDProp.Value.Array[i];
-                    tempVal.IntValue = newCache.ReadByte();
+                    tempVal.IntValue = GameVersion == 3 ? newCache.ReadByte() : newCache.ReadInt32();
                     GUIDProp.Value.Array[i] = tempVal;
                 }
             }
@@ -1086,7 +1480,282 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
+
         public byte[] ToArray(uint pccExportDataOffset, PCCObject pcc)
+        {
+            switch (GameVersion)
+            {
+                case 1:
+                    return ME1_ToArray(pccExportDataOffset, pcc);
+                case 2:
+                    return ME2_ToArray(pccExportDataOffset, pcc);
+                case 3:
+                    return ME3_ToArray(pccExportDataOffset, pcc);
+            }
+            return null;
+        }
+
+        byte[] ME1_ToArray(uint pccExportDataOffset, PCCObject pcc)
+        {
+            MemoryStream buffer = new MemoryStream();
+            buffer.Write(headerData, 0, headerData.Length);
+
+            if (properties.ContainsKey("LODGroup"))
+            {
+                properties["LODGroup"].Value.StringValue = "TEXTUREGROUP_LightAndShadowMap";
+                //properties["LODGroup"].Value.IntValue = 1025;
+            }
+            else
+            {
+                buffer.WriteInt64(pcc.AddName("LODGroup"));
+                buffer.WriteInt64(pcc.AddName("ByteProperty"));
+                buffer.WriteInt64(8);
+                buffer.WriteInt32(pcc.AddName("TEXTUREGROUP_LightAndShadowMap"));
+                buffer.WriteInt32(1025);
+            }
+
+            foreach (KeyValuePair<string, SaltPropertyReader.Property> kvp in properties)
+            {
+                SaltPropertyReader.Property prop = kvp.Value;
+
+                if (prop.Name == "UnpackMin")
+                {
+                    for (int j = 0; j < UnpackNum; j++)
+                    {
+                        buffer.WriteInt64(pcc.AddName(prop.Name));
+                        buffer.WriteInt64(pcc.AddName(prop.TypeVal.ToString()));
+                        buffer.WriteInt32(prop.Size);
+                        buffer.WriteInt32(j);
+                        buffer.WriteFloat32(prop.Value.FloatValue);
+                    }
+                    continue;
+                }
+
+                buffer.WriteInt64(pcc.AddName(prop.Name));
+                if (prop.Name == "None")
+                {
+                    for (int j = 0; j < 12; j++)
+                        buffer.WriteByte(0);
+                }
+                else
+                {
+                    buffer.WriteInt64(pcc.AddName(prop.TypeVal.ToString()));
+                    buffer.WriteInt64(prop.Size);
+
+                    switch (prop.TypeVal)
+                    {
+                        case SaltPropertyReader.Type.IntProperty:
+                            buffer.WriteInt32(prop.Value.IntValue);
+                            break;
+                        case SaltPropertyReader.Type.BoolProperty:
+                            buffer.Seek(-4, SeekOrigin.Current);
+                            buffer.WriteInt32(prop.Value.IntValue);
+                            buffer.Seek(4, SeekOrigin.Current);
+                            break;
+                        case SaltPropertyReader.Type.NameProperty:
+                            buffer.WriteInt64(pcc.AddName(prop.Value.StringValue));
+                            // Heff: Modified to handle name references.
+                            //var index = pcc.AddName(prop.Value.StringValue);
+                            //buffer.WriteInt32(index);
+                            //buffer.WriteInt32(prop.Value.NameValue.count);
+                            break;
+                        case SaltPropertyReader.Type.StrProperty:
+                            buffer.WriteInt32(prop.Value.StringValue.Length + 1);
+                            foreach (char c in prop.Value.StringValue)
+                                buffer.WriteByte((byte)c);
+                            buffer.WriteByte(0);
+                            break;
+                        case SaltPropertyReader.Type.StructProperty:
+                            buffer.WriteInt64(pcc.AddName(prop.Value.StringValue));
+                            foreach (SaltPropertyReader.PropertyValue value in prop.Value.Array)
+                                buffer.WriteInt32(value.IntValue);
+                            break;
+                        case SaltPropertyReader.Type.ByteProperty:
+                            buffer.WriteInt32(pcc.AddName(prop.Value.StringValue));
+                            buffer.WriteInt32(prop.Value.IntValue);
+                            break;
+                        case SaltPropertyReader.Type.FloatProperty:
+                            buffer.WriteFloat32(prop.Value.FloatValue);
+                            break;
+                        default:
+                            throw new FormatException("unknown property");
+                    }
+                }
+            }
+
+            buffer.WriteInt32((int)(pccOffset + buffer.Position + 4));
+
+            //Remove empty textures
+            List<ImageInfo> tempList = new List<ImageInfo>();
+            foreach (ImageInfo imgInfo in ImageList)
+            {
+                if (imgInfo.storageType != storage.empty)
+                    tempList.Add(imgInfo);
+            }
+            ImageList = tempList;
+            numMipMaps = (uint)ImageList.Count;
+
+            buffer.WriteUInt32(numMipMaps);
+
+            foreach (ImageInfo imgInfo in ImageList)
+            {
+                buffer.WriteInt32((int)imgInfo.storageType);
+                buffer.WriteInt32(imgInfo.UncompressedSize);
+                buffer.WriteInt32(imgInfo.CompressedSize);
+                if (imgInfo.storageType == storage.pccSto)
+                {
+                    buffer.WriteInt32((int)(imgInfo.Offset + pccExportDataOffset + dataOffset));
+                    buffer.Write(imageData, imgInfo.Offset, imgInfo.UncompressedSize);
+                }
+                else if (imgInfo.storageType == storage.pccCpr)
+                {
+                    buffer.WriteInt32((int)(imgInfo.Offset + pccExportDataOffset + dataOffset));
+                    buffer.Write(imageData, imgInfo.Offset, imgInfo.CompressedSize);
+                }
+                else
+                    buffer.WriteInt32(imgInfo.Offset);
+                if (imgInfo.ImageSize.Width < 4)
+                    buffer.WriteUInt32(4);
+                else
+                    buffer.WriteUInt32(imgInfo.ImageSize.Width);
+                if (imgInfo.ImageSize.Height < 4)
+                    buffer.WriteUInt32(4);
+                else
+                    buffer.WriteUInt32(imgInfo.ImageSize.Height);
+            }
+            buffer.WriteBytes(footerData);
+            return buffer.ToArray();
+        }
+
+        byte[] ME2_ToArray(uint pccExportDataOffset, PCCObject pcc)
+        {
+            MemoryStream buffer = new MemoryStream();
+            buffer.Write(headerData, 0, headerData.Length);
+
+            if (properties.ContainsKey("LODGroup"))
+            {
+                properties["LODGroup"].Value.StringValue = "TEXTUREGROUP_LightAndShadowMap";
+                properties["LODGroup"].Value.String2 = pcc.Names[0];
+            }
+            else
+            {
+                buffer.WriteInt64(pcc.AddName("LODGroup"));
+                buffer.WriteInt64(pcc.AddName("ByteProperty"));
+                buffer.WriteInt64(8);
+                buffer.WriteInt64(pcc.AddName("TEXTUREGROUP_LightAndShadowMap"));
+            }
+
+            foreach (KeyValuePair<string, SaltPropertyReader.Property> kvp in properties)
+            {
+                SaltPropertyReader.Property prop = kvp.Value;
+
+                if (prop.Name == "UnpackMin")
+                {
+                    for (int j = 0; j < UnpackNum; j++)
+                    {
+                        buffer.WriteInt64(pcc.AddName(prop.Name));
+                        buffer.WriteInt64(pcc.AddName(prop.TypeVal.ToString()));
+                        buffer.WriteInt32(prop.Size);
+                        buffer.WriteInt32(j);
+                        buffer.WriteFloat32(prop.Value.FloatValue);
+                    }
+                    continue;
+                }
+
+                buffer.WriteInt64(pcc.AddName(prop.Name));
+                if (prop.Name == "None")
+                {
+                    for (int j = 0; j < 12; j++)
+                        buffer.WriteByte(0);
+                }
+                else
+                {
+                    buffer.WriteInt64(pcc.AddName(prop.TypeVal.ToString()));
+                    buffer.WriteInt64(prop.Size);
+
+                    switch (prop.TypeVal)
+                    {
+                        case SaltPropertyReader.Type.IntProperty:
+                            buffer.WriteInt32(prop.Value.IntValue);
+                            break;
+                        case SaltPropertyReader.Type.BoolProperty:
+                            buffer.WriteInt32(prop.Value.IntValue);
+                            break;
+                        case SaltPropertyReader.Type.NameProperty:
+                            buffer.WriteInt64(pcc.AddName(prop.Value.StringValue));
+                            // Heff: Modified to handle name references.
+                            //var index = pcc.AddName(prop.Value.StringValue);
+                            //buffer.WriteInt32(index);
+                            //buffer.WriteInt32(prop.Value.NameValue.count);
+                            break;
+                        case SaltPropertyReader.Type.StrProperty:
+                            buffer.WriteInt32(prop.Value.StringValue.Length + 1);
+                            foreach (char c in prop.Value.StringValue)
+                                buffer.WriteByte((byte)c);
+                            buffer.WriteByte(0);
+                            break;
+                        case SaltPropertyReader.Type.StructProperty:
+                            string strVal = prop.Value.StringValue;
+                            if (prop.Name.ToLowerInvariant().Contains("guid"))
+                                strVal = "Guid";
+
+                            buffer.WriteInt64(pcc.AddName(strVal));
+                            foreach (SaltPropertyReader.PropertyValue value in prop.Value.Array)
+                                buffer.WriteInt32(value.IntValue);
+                            break;
+                        case SaltPropertyReader.Type.ByteProperty:
+                            buffer.WriteInt32(pcc.AddName(prop.Value.StringValue));
+                            buffer.WriteInt32(pcc.AddName(prop.Value.String2));
+                            break;
+                        case SaltPropertyReader.Type.FloatProperty:
+                            buffer.WriteFloat32(prop.Value.FloatValue);
+                            break;
+                        default:
+                            throw new FormatException("unknown property");
+                    }
+                }
+
+            }
+
+            buffer.WriteInt32((int)buffer.Position + (int)pccExportDataOffset);
+
+            //Remove empty textures
+            List<ImageInfo> tempList = new List<ImageInfo>();
+            foreach (ImageInfo imgInfo in ImageList)
+            {
+                if (imgInfo.storageType != storage.empty)
+                    tempList.Add(imgInfo);
+            }
+            ImageList = tempList;
+            numMipMaps = (uint)ImageList.Count;
+
+            buffer.WriteUInt32(numMipMaps);
+            foreach (ImageInfo imgInfo in ImageList)
+            {
+                buffer.WriteInt32((int)imgInfo.storageType);
+                buffer.WriteInt32(imgInfo.UncompressedSize);
+                buffer.WriteInt32(imgInfo.CompressedSize);
+                if (imgInfo.storageType == storage.pccSto)
+                {
+                    buffer.WriteInt32((int)(buffer.Position + pccExportDataOffset));
+                    buffer.Write(imageData, imgInfo.Offset, imgInfo.UncompressedSize);
+                }
+                else
+                    buffer.WriteInt32(imgInfo.Offset);
+                if (imgInfo.ImageSize.Width < 4)
+                    buffer.WriteUInt32(4);
+                else
+                    buffer.WriteUInt32(imgInfo.ImageSize.Width);
+                if (imgInfo.ImageSize.Height < 4)
+                    buffer.WriteUInt32(4);
+                else
+                    buffer.WriteUInt32(imgInfo.ImageSize.Height);
+            }
+            buffer.WriteBytes(footerData);
+            return buffer.ToArray();
+        }
+
+        byte[] ME3_ToArray(uint pccExportDataOffset, PCCObject pcc)
         {
             using (MemoryStream tempStream = new MemoryStream())
             {

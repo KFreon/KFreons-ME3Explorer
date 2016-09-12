@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WPF_ME3Explorer"
         mc:Ignorable="d"
-        Height="217.1" Width="514.61" Title="KFreon's ME3Explorer Extract" Closing="Window_Closing">
+        Height="217.1" Width="514.61" Title="KFreon's ME3Explorer Extract" Closing="Window_Closing" Icon="Resources/ME1Game.ico">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="160*"/>

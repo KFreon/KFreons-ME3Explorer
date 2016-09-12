@@ -61,6 +61,16 @@ namespace WPF_ME3Explorer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon bug_icon {
+            get {
+                object obj = ResourceManager.GetObject("bug_icon", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap ChangeTexture {
@@ -197,6 +207,16 @@ namespace WPF_ME3Explorer.Properties {
             get {
                 object obj = ResourceManager.GetObject("Mass_Effect_3", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon ME1Game {
+            get {
+                object obj = ResourceManager.GetObject("ME1Game", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
             }
         }
         

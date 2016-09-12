@@ -37,6 +37,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Resources\ME1Game.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="CSharpImageLibrary, Version=3.2.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -117,7 +120,6 @@
     <Compile Include="Settings.cs" />
     <Compile Include="Textures\AbstractTexInfo.cs" />
     <Compile Include="Textures\ImageSize.cs" />
-    <Compile Include="Textures\Misc.cs" />
     <Compile Include="Textures\Texture2D.cs" />
     <Compile Include="Textures\Thumbnail.cs" />
     <Compile Include="Textures\ThumbnailWriter.cs" />
@@ -264,6 +266,8 @@
     <Content Include="LZO\lzo2_64.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Resource Include="Resources\bug_icon.ico" />
+    <Resource Include="Resources\ME1Game.ico" />
     <Content Include="Resources\Progress Background.avi">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

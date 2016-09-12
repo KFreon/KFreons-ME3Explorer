@@ -390,60 +390,44 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             }
         }
 
-
         /// <summary>
-        /// Saves PCC to file or MemoryStream. CURRENTLY FILE ONLY.
+        /// Save PCC to file.
         /// </summary>
-        /// <param name="newFileName">File to save to. Null if saving to stream.</param>
-        /// <param name="WriteToMemoryStream">True = writes to stream instead.</param>
-        public void SaveToFile(string newFileName = null, bool WriteToMemoryStream = false)
+        /// <param name="path">Path to save to. Usually just its own name.</param>
+        public void SaveToFile(string path)
         {
-            //Refresh header and namelist
-            listsStream.Seek(expDataEndOffset, SeekOrigin.Begin);
-            NameOffset = (int)listsStream.Position;
-            NameCount = Names.Count;
-            foreach (string name in Names)
+            if (GameVersion != 1)
             {
-                listsStream.WriteInt32(-(name.Length + 1));
-                listsStream.WriteString(name + "\0");  // KFreon: Could be a problem. Original doubled length written by string for some reason.
+                //Refresh header and namelist
+                listsStream.Seek(expDataEndOffset, SeekOrigin.Begin);
+                NameOffset = (int)listsStream.Position;
+                NameCount = Names.Count;
+                foreach (string name in Names)
+                {
+                    if (name != null)
+                    {
+                        listsStream.WriteInt32((name.Length + 1) * (GameVersion == 3 ? -1 : 1));
+                        listsStream.WriteString(name + (GameVersion == 3 ? "\0" : ""));  // KFreon: Could be a problem. Original doubled length written by string for some reason.
+                    }
+                    else
+                        listsStream.WriteInt32(1);
+
+                    if (GameVersion == 2)
+                    {
+                        //listsStream.WriteByte(0);
+                        listsStream.WriteInt32(-14);
+                    }
+                }
             }
 
             listsStream.Seek(0, SeekOrigin.Begin);
             listsStream.WriteBytes(header);
 
-            // KFreon: If want to write to memorystream instead of to file, exit here
-            if (WriteToMemoryStream)
-                return;
-
             // Heff: try to remove any read-only attribute if we have permission to:
-            File.SetAttributes(newFileName, FileAttributes.Normal);
+            File.SetAttributes(path, FileAttributes.Normal);
 
-            while (true)
-            {
-                int tries = 0;
-                try
-                {
-                    using (FileStream fs = new FileStream(newFileName, FileMode.Create, FileAccess.Write))
-                        listsStream.WriteTo(fs);
-                    break;
-                }
-                catch (IOException)
-                {
-                    System.Threading.Thread.Sleep(50);
-                    tries++;
-                    if (tries > 5)
-                    {
-                        throw new IOException("The PCC can't be written to disk because of an IOException");
-                    }
-                }
-            }
-            listsStream.Dispose();
-            Exports.Clear();
-            Imports.Clear();
-            Names.Clear();
-            Exports = null;
-            Imports = null;
-            Names = null;
+            using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write))
+                listsStream.WriteTo(fs);
         }
 
         public string GetNameEntry(int index)

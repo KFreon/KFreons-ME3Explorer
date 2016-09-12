@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using UsefulThings;
 using WPF_ME3Explorer.Debugging;
 using WPF_ME3Explorer.PCCObjectsAndBits;
 using WPF_ME3Explorer.UI.ViewModels;
@@ -19,6 +20,22 @@ namespace WPF_ME3Explorer.Textures
     public static class ToolsetTextureEngine
     {
         public static bool TPFToolsModeEnabled = false;
+
+        public static ImageEngineFormat ParseFormat(string formatString)
+        {
+            if (String.IsNullOrEmpty(formatString))
+                return ImageEngineFormat.Unknown;
+
+            if (formatString.Contains("normal", StringComparison.OrdinalIgnoreCase))
+                return ImageEngineFormat.DDS_ATI2_3Dc;
+            else
+                return ImageFormats.FindFormatInString(formatString).SurfaceFormat;
+        }
+
+        public static string StringifyFormat(ImageEngineFormat format)
+        {
+            return format.ToString().Replace("DDS_", "").Replace("_3Dc", "");
+        }
 
         public static void ME1_SortTexturesPCCs(IEnumerable<TreeTexInfo> texes)
         {
@@ -51,6 +68,18 @@ namespace WPF_ME3Explorer.Textures
                 }
                 return ms.ToArray();
             }
+        }
+
+        /// <summary>
+        /// Removes DDS header from an image.
+        /// </summary>
+        /// <param name="imgData">DDS image with header.</param>
+        /// <returns>DDS Data without header.</returns>
+        public static byte[] RemoveDDSHeader(byte[] imgData)
+        {
+            byte[] noHeader = new byte[imgData.Length - 128];
+            Array.Copy(imgData, 128, noHeader, 0, noHeader.Length);
+            return noHeader;
         }
 
         /// <summary>
@@ -152,8 +181,15 @@ namespace WPF_ME3Explorer.Textures
             }
 
             // Update Texture2D
+            // Build mips if required.
             using (ImageEngineImage img = new ImageEngineImage(imgData))
+            {
+                if (tex2D.ImageList.Count > 1 && img.NumMipMaps == 1)  // If need mips, but don't have any, build them.
+                    img.BuildMipMaps();
+
                 tex2D.OneImageToRuleThemAll(img);
+            }
+                
 
             // Ensure tex2D is part of the TreeTexInfo for later use.
             tex.AssociatedTexture = tex2D;
