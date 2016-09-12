@@ -377,6 +377,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         internal void RegenerateThumbs(params TreeTexInfo[] textures)
         {
             Busy = true;
+            StartTime = Environment.TickCount;
             List<TreeTexInfo> texes = new List<TreeTexInfo>();
 
             // No args = regen everything
@@ -432,6 +433,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             if (texes.Count > 10)
                 ProgressCloser();
 
+            StartTime = 0;
             Busy = false;
         }
 
@@ -561,6 +563,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Remove any existing thumbnails
             if (File.Exists(GameDirecs.ThumbnailCachePath))
                 File.Delete(GameDirecs.ThumbnailCachePath);
+
+            // Wait until file properly deleted
+            while (File.Exists(GameDirecs.ThumbnailCachePath))
+                await Task.Delay(100); 
 
             StartTime = Environment.TickCount;
 
