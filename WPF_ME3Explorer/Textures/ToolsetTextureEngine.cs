@@ -19,6 +19,8 @@ namespace WPF_ME3Explorer.Textures
 {
     public static class ToolsetTextureEngine
     {
+        public const int ThumbnailSize = 128;
+
         public static bool TPFToolsModeEnabled = false;
 
         public static ImageEngineFormat ParseFormat(string formatString)
@@ -40,13 +42,20 @@ namespace WPF_ME3Explorer.Textures
         public static void ME1_SortTexturesPCCs(IEnumerable<TreeTexInfo> texes)
         {
             foreach (var tex in texes)
-            {
-                /*var ordered = tex.PCCS.OrderBy(pcc => pcc.Name.Length).ToList();   // For some reason, the longest paths represent the "proper" "pcc" to get details and stuff out of.
-                tex.PCCS.Clear();
-                tex.PCCS.AddRange(ordered);*/  // Not in place sorting
-
                 tex.PCCS.Sort((x, y) => y.Name.Length.CompareTo(x.Name.Length));
-            }
+        }
+
+        public static MemoryStream GetThumbFromTex2D(Texture2D tex2D)
+        {
+            byte[] imgData = null;
+            var size = tex2D.ImageList.Where(img => img.ImageSize.Width == ThumbnailSize && img.ImageSize.Height == ThumbnailSize);
+            if (size.Count() == 0)
+                imgData = tex2D.ExtractMaxImage(true);
+            else
+                imgData = tex2D.ExtractImage(size.First(), true);
+
+            using (MemoryStream ms = new MemoryStream(imgData))
+                return ImageEngine.GenerateThumbnailToStream(ms, ThumbnailSize, ThumbnailSize);
         }
 
         /// <summary>
@@ -301,12 +310,12 @@ namespace WPF_ME3Explorer.Textures
             tex2DSaver.LinkTo(pccFileSaver, new DataflowLinkOptions { PropagateCompletion = true });
 
             // Start producing
-            PCCSaveProducer(pccReadBuffer, texes, GameDirecs.GameVersion, cts);
+            PCCProducer(pccReadBuffer, texes, GameDirecs.GameVersion, cts);
 
             return pccFileSaver.Completion;
         }
 
-        static async Task PCCSaveProducer(BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccBuffer, AbstractTexInfo[] texes, int GameVersion, CancellationTokenSource cts)
+        static async Task PCCProducer(BufferBlock<Tuple<PCCObject, IGrouping<string, AbstractTexInfo>>> pccBuffer, AbstractTexInfo[] texes, int GameVersion, CancellationTokenSource cts)
         {
             // Gets all distinct pcc's being altered.
             var pccTexGroups =
@@ -314,7 +323,7 @@ namespace WPF_ME3Explorer.Textures
                 from pcc in tex.PCCS
                 group tex by pcc.Name;
 
-            // Loop over pcc's, changing all their textures before saving.  Stops disk thrashing.
+            // Send each unique PCC to get textures saved to it.
             foreach (var texGroup in pccTexGroups)
             {
                 if (cts.IsCancellationRequested)

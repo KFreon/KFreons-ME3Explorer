@@ -249,7 +249,7 @@ namespace WPF_ME3Explorer.UI
 
         private void RegenerateTopMenu_Click(object sender, RoutedEventArgs e)
         {
-            Task.Run(() => vm.RegenerateThumbs());
+            Task.Run(async () => await vm.RegenerateThumbs());
         }
 
         private void BackgroundMovie_MediaEnded(object sender, RoutedEventArgs e)

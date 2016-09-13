@@ -398,7 +398,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             TreeTexInfo.RegenerateThumbCommand = new CommandHandler(new Action<object>(async tex =>
             {
-                await Task.Run(() => RegenerateThumbs((TreeTexInfo)tex)).ConfigureAwait(false);
+                await Task.Run(async () => await RegenerateThumbs((TreeTexInfo)tex)).ConfigureAwait(false);
             }));
 
             TexplorerTextureFolder.RegenerateThumbsDelegate = RegenerateThumbs;
@@ -413,7 +413,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             BeginTreeLoading();
         }
 
-        internal void RegenerateThumbs(params TreeTexInfo[] textures)
+        internal async Task RegenerateThumbs(params TreeTexInfo[] textures)
         {
             Busy = true;
             StartTime = Environment.TickCount;
@@ -431,32 +431,43 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             DebugOutput.PrintLn($"Regenerating {texes.Count} thumbnails...");
 
-            ParallelOptions po = new ParallelOptions();
-            po.MaxDegreeOfParallelism = NumThreads / 2;
-            if (po.MaxDegreeOfParallelism < 1)
-                po.MaxDegreeOfParallelism = 1;
             MaxProgress = texes.Count;
             Progress = 0;
 
             ThumbnailWriter.BeginAdding();
             int errors = 0;
-            Parallel.ForEach(texes, po, (tex, state) =>
-            {
-                if (cts.IsCancellationRequested)
-                    state.Stop();
 
-                try
-                {
-                    Status = $"Regenerating Thumbnails: {Progress} of {MaxProgress}";
-                    tex.Thumb = ThumbnailWriter.ReplaceOrAdd(tex);
-                    Progress++;
-                }
-                catch (Exception e)
-                {
-                    errors++;
-                    DebugOutput.PrintLn($"Unable to regenerate thumbnail for {tex.TexName}. Reason: {e.ToString()}.");
-                }
+            #region Setup Regen Pipeline
+            // Get all PCCs - maybe same as saving? - only need first pcc of each texture
+            BufferBlock<Tuple<PCCObject, IGrouping<string, TreeTexInfo>>> pccBuffer = new BufferBlock<Tuple<PCCObject, IGrouping<string, TreeTexInfo>>>();
+            
+            // loop over textures getting a tex2D from each tex located in pcc
+            var tex2DMaker = new TransformBlock<Tuple<PCCObject, IGrouping<string, TreeTexInfo>>, Tuple<Thumbnail, Texture2D>>(obj =>
+            {
+                TreeTexInfo tex = obj.Item2.First();
+                Texture2D tex2D = new Texture2D(obj.Item1, tex.PCCS[0].ExpID, GameDirecs);
+                return new Tuple<Thumbnail, Texture2D>(tex.Thumb, tex2D);
             });
+
+            // Get thumb from each tex2D
+            var ThumbMaker = new TransformBlock<Tuple<Thumbnail, Texture2D>, Tuple<Thumbnail, MemoryStream>>(bits => 
+            {
+                return new Tuple<Thumbnail, MemoryStream>(bits.Item1, ToolsetTextureEngine.GetThumbFromTex2D(bits.Item2, 128));
+            }, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = NumThreads, BoundedCapacity = NumThreads });
+
+            // Write thumb to disk
+            var WriteThumbs = new ActionBlock<Tuple<Thumbnail, MemoryStream>>(bits => ThumbnailWriter.ReplaceOrAdd(bits.Item2, bits.Item1), new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = NumThreads, BoundedCapacity = NumThreads });
+
+            // Create pipeline
+            pccBuffer.LinkTo(tex2DMaker, new DataflowLinkOptions { PropagateCompletion = true });
+            tex2DMaker.LinkTo(ThumbMaker, new DataflowLinkOptions { PropagateCompletion = true });
+            ThumbMaker.LinkTo(WriteThumbs, new DataflowLinkOptions { PropagateCompletion = true });
+
+            // Start producer
+            PCCRegenProducer(pccBuffer, texes);
+            #endregion Setup Regen Pipeline
+
+            await WriteThumbs.Completion;  // Wait for pipeline to complete
 
             if (cts.IsCancellationRequested)
             {
@@ -476,6 +487,27 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             StartTime = 0;
             Busy = false;
+        }
+
+        async Task PCCRegenProducer(BufferBlock<Tuple<PCCObject, IGrouping<string, TreeTexInfo>>> pccBuffer, List<TreeTexInfo> texes)
+        {
+            // Gets all distinct pcc's being altered.
+            var pccTexGroups =
+                from tex in texes
+                group tex by tex.PCCS[0].Name;
+
+            // Send each unique PCC to get textures saved to it.
+            foreach (var texGroup in pccTexGroups)
+            {
+                if (cts.IsCancellationRequested)
+                    break;
+
+                string pcc = texGroup.Key;
+                PCCObject pccobj = new PCCObject(pcc, GameVersion);
+                await pccBuffer.SendAsync(new Tuple<PCCObject, IGrouping<string, TreeTexInfo>>(pccobj, texGroup));
+            }
+
+            pccBuffer.Complete();
         }
 
         async void BeginTreeLoading()
@@ -761,13 +793,13 @@ namespace WPF_ME3Explorer.UI.ViewModels
             pccScanner.LinkTo(texSorter, new DataflowLinkOptions { PropagateCompletion = true });
 
             // Begin producer
-            PCCScanProducer(PCCs, pccScanBuffer);
+            PCCProducer(PCCs, pccScanBuffer);
 
             // Return task to await for pipeline completion - only need to wait for last block as PropagateCompletion is set.
             return texSorter.Completion;
         }
 
-        async Task PCCScanProducer(IList<string> PCCs, BufferBlock<PCCObject> pccs)
+        async Task PCCProducer(IList<string> PCCs, BufferBlock<PCCObject> pccs)
         {
             for (int i = 0; i < PCCs.Count; i++)
             {
@@ -775,7 +807,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     break;
 
                 string file = PCCs[i];
-                DebugOutput.PrintLn($"Scanning: {file}");
                 PCCObject pcc = await PCCObject.CreateAsync(file, GameVersion);
 
                 await pccs.SendAsync(pcc);
@@ -787,6 +818,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
         List<TreeTexInfo> ScanSinglePCC(PCCObject pcc, Dictionary<string, MemoryStream> TFCs)
         {
             List<TreeTexInfo> texes = new List<TreeTexInfo>();
+            DebugOutput.PrintLn($"Scanning: {pcc.pccFileName}");
+
             try
             {
                 for (int i = 0; i < pcc.Exports.Count; i++)
@@ -934,6 +967,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
+        // This is going to change to pipeline TPL stuff when TPFTools comes along
         public void ChangeTexture(TreeTexInfo tex, string filename)
         {
             Busy = true;
@@ -951,7 +985,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 tex.PopulateDetails();
 
                 // Re-generate Thumbnail
-                var stream = tex.CreateThumbnail();
+                MemoryStream stream = null;
+                if (tex.HasChanged)
+                    stream = ToolsetTextureEngine.GetThumbFromTex2D(tex.AssociatedTexture);
+
+                using (PCCObject pcc = new PCCObject(tex.PCCS[0].Name, GameVersion))
+                    using (Texture2D tex2D = new Texture2D(pcc, tex.PCCS[0].ExpID, GameDirecs))
+                        stream = ToolsetTextureEngine.GetThumbFromTex2D(tex2D);
+
                 if (tex.Thumb == null) // Could happen
                     tex.Thumb = new Thumbnail();
 

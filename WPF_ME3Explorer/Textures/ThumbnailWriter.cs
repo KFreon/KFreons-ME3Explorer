@@ -75,13 +75,6 @@ namespace WPF_ME3Explorer.Textures
             FinishAdding();
         }
 
-        internal Thumbnail ReplaceOrAdd(TreeTexInfo tex)
-        {
-            // Generate new thumbnail
-            using (MemoryStream stream = tex.CreateThumbnail())
-                return ReplaceOrAdd(stream, tex.Thumb);
-        }
-
         internal Thumbnail ReplaceOrAdd(MemoryStream stream, Thumbnail old)
         {
             // Decide if new thumb can fit where old thumb was
