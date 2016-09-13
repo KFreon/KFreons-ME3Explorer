@@ -5,10 +5,23 @@ using System.Text;
 using System.Threading.Tasks;
 using UsefulThings.WPF;
 
-namespace WPF_ME3Explorer.Textures
+namespace WPF_ME3Explorer
 {
     public class PCCEntry : ViewModelBase
     {
+        bool isChecked = true;
+        public bool IsChecked
+        {
+            get
+            {
+                return isChecked;
+            }
+            set
+            {
+                SetProperty(ref isChecked, value);
+            }
+        }
+
 
         string name = null;
         public string Name

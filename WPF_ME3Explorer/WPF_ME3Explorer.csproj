@@ -104,7 +104,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Textures\PCCEntry.cs" />
+    <Compile Include="PCCEntry.cs" />
     <Compile Include="UI\GameInformation.xaml.cs">
       <DependentUpon>GameInformation.xaml</DependentUpon>
     </Compile>

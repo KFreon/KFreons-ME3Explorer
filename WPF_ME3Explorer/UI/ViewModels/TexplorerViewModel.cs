@@ -176,6 +176,29 @@ namespace WPF_ME3Explorer.UI.ViewModels
         }
         #endregion Commands
 
+        
+
+        #region UI Actions
+        public Action TreePanelCloser = null;
+        public Action ProgressOpener = null;
+        public Action TreePanelOpener = null;
+        public Action ProgressCloser = null;
+        #endregion UI Actions
+
+        #region Properties
+
+        List<DLCEntry> FTSDLCs { get; set; } = new List<DLCEntry>();
+        List<GameFileEntry> FTSGameFiles { get; set; } = new List<GameFileEntry>();
+        List<AbstractFileEntry> FTSExclusions { get; set; } = new List<AbstractFileEntry>();
+        public ICollectionView DLCItemsView { get; set; }
+        public ICollectionView ExclusionsItemsView { get; set; }
+        public ICollectionView FileItemsView { get; set; }
+        ThumbnailWriter ThumbnailWriter = null;
+        public MTRangedObservableCollection<string> Errors { get; set; } = new MTRangedObservableCollection<string>();
+        public MTRangedObservableCollection<TexplorerTextureFolder> TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+        public MTRangedObservableCollection<TexplorerTextureFolder> AllFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+        public MTRangedObservableCollection<TreeTexInfo> ChangedTextures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
+
         public bool TPFToolsModeEnabled
         {
             get
@@ -188,25 +211,26 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
-        #region UI Actions
-        public Action TreePanelCloser = null;
-        public Action ProgressOpener = null;
-        public Action TreePanelOpener = null;
-        public Action ProgressCloser = null;
-        #endregion UI Actions
+        public bool? PCCsCheckAll
+        {
+            get
+            {
+                if (SelectedTexture?.PCCS == null)
+                    return false;
 
-        #region Properties
-        List<DLCEntry> FTSDLCs { get; set; } = new List<DLCEntry>();
-        public MTRangedObservableCollection<GameFileEntry> FTSGameFiles { get; set; } = new MTRangedObservableCollection<GameFileEntry>();
-        List<AbstractFileEntry> FTSExclusions { get; set; } = new List<AbstractFileEntry>();
-        public ICollectionView DLCItemsView { get; set; }
-        public ICollectionView ExclusionsItemsView { get; set; }
-        public ICollectionView FileItemsView { get; set; }
-        ThumbnailWriter ThumbnailWriter = null;
-        public MTRangedObservableCollection<string> Errors { get; set; } = new MTRangedObservableCollection<string>();
-        public MTRangedObservableCollection<TexplorerTextureFolder> TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
-        public MTRangedObservableCollection<TexplorerTextureFolder> AllFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
-        public MTRangedObservableCollection<TreeTexInfo> ChangedTextures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
+                int num = SelectedTexture.PCCS.Where(pcc => pcc.IsChecked).Count();
+                if (num == 0)
+                    return false;
+                else if (num == SelectedTexture.PCCS.Count)
+                    return true;
+
+                return null;
+            }
+            set
+            {
+                SelectedTexture.PCCS.AsParallel().ForAll(pcc => pcc.IsChecked = value == true);
+            }
+        }
 
         TexplorerTextureFolder mySelected = null;
         public TexplorerTextureFolder SelectedFolder
@@ -231,6 +255,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             set
             {
                 SetProperty(ref selectedTexture, value);
+                OnPropertyChanged(nameof(PCCsCheckAll));
             }
         }
 
@@ -319,7 +344,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             DebugOutput.StartDebugger("Texplorer");
 
-            // Setup filtering on FTS views
+            #region FTS Filtering
             DLCItemsView = CollectionViewSource.GetDefaultView(FTSDLCs);
             DLCItemsView.Filter = item => !((DLCEntry)item).IsChecked;
 
@@ -340,9 +365,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     (String.IsNullOrEmpty(FTSExclusionsSearch) ? true : 
                     entry.Name.Contains(FTSExclusionsSearch, StringComparison.OrdinalIgnoreCase) || entry.FilePath?.Contains(FTSExclusionsSearch, StringComparison.OrdinalIgnoreCase) == true);
             };
+            #endregion FTS Filtering
 
-            GameDirecs.GameVersion = Properties.Settings.Default.TexplorerGameVersion;
-            OnPropertyChanged(nameof(GameVersion));
 
             #region Setup Texture UI Commands
             TreeTexInfo.ChangeCommand = new CommandHandler(new Action<object>(tex =>
@@ -381,6 +405,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             #endregion Setup UI Commands
 
+            GameDirecs.GameVersion = Properties.Settings.Default.TexplorerGameVersion;
+            OnPropertyChanged(nameof(GameVersion));
 
             // Setup thumbnail writer - not used unless tree scanning.
             ThumbnailWriter = new ThumbnailWriter(GameDirecs);
@@ -834,6 +860,15 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Add textures to base class list - mostly just for searching.
             Textures.Clear();
             Textures.AddRange(CurrentTree.Textures);
+
+            // Add checkbox listener for linking the check action of individual pccs to top level Check All
+            foreach (var tex in Textures)
+                foreach (var pccentry in tex.PCCS)
+                    pccentry.PropertyChanged += (source, args) =>
+                      {
+                          if (args.PropertyName == nameof(pccentry.IsChecked))
+                              OnPropertyChanged(nameof(PCCsCheckAll));
+                      };
 
             DebugOutput.PrintLn("Tree Constructed!");
             Busy = false;

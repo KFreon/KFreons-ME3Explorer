@@ -51,6 +51,21 @@
                     </StackPanel>
                 </StackPanel>
             </DataTemplate>
+
+            <DataTemplate x:Key="PCC-ExpID Displayer">
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox IsChecked="{Binding IsChecked, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,2,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="2,0"/>
+                    <Label Content="@"/>
+                    <TextBlock Text="{Binding ExpID}" VerticalAlignment="Center" Margin="2,0"/>
+                </StackPanel>
+            </DataTemplate>
+
+            <Style x:Key="CheckAllCheckBoxStyle" TargetType="CheckBox">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Margin" Value="2,0,0,0"/>
+                <Setter Property="IsThreeState" Value="True"/>
+            </Style>
         </Grid.Resources>
 
 
@@ -463,14 +478,35 @@
                 </ListBox.Style>
             </ListBox>
 
-
-            <Label Content="PCC's" Grid.Row="1" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Top" Height="36" Margin="135,0.333,134.333,0" Width="60"/>
-            <ListBox x:Name="PCCsListBox" Grid.Row="1" Margin="0,34.333,0.333,0" ItemsSource="{Binding ElementName=MainDisplayPanel, Path=SelectedItem.PCCS}"/>
+            <CheckBox x:Name="PCCsCheckAllChecker" IsChecked="{Binding PCCsCheckAll}" Style="{StaticResource CheckAllCheckBoxStyle}" Grid.Row="1" VerticalAlignment="Top" Margin="0,15"/>
+            <Label Content="PCC's" Grid.Row="1" VerticalAlignment="Top" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center"/>
+            <ListBox x:Name="PCCsListBox" Grid.Row="1" Margin="0,34.333,0.333,0" ItemsSource="{Binding ElementName=MainDisplayPanel, Path=SelectedItem.PCCS}" ItemTemplate="{StaticResource PCC-ExpID Displayer}"/>
         </Grid>
 
         <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="1" Grid.ColumnSpan="4" Margin="0,815.667,0,0.333" Grid.RowSpan="2"/>
+        <Expander Grid.Column="2" Grid.RowSpan="2">
+            <Expander.Style>
+                <Style TargetType="{x:Type Expander}">
+                    <Setter Property="Visibility" Value="Visible"/>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="4" x:Name="TreeScanBackground" Background="Black" d:IsHidden="True" Margin="0,0,0,0.333">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ChangedTextures.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Expander.Style>
+            <Expander.Header>
+                <TextBlock>
+                    <Run Text="Changed Textures: " FontWeight="Bold"/>
+                    <Run Text=" "/><Run Text=" "/>
+                    <Run Text=" "/><Run Text="{Binding ChangedTextures.Count, Mode=OneWay}"/>
+                </TextBlock>
+            </Expander.Header>
+            <ListBox ItemTemplate="{StaticResource SmallItemTemplate}" ItemsSource="{Binding ChangedTextures}"/>
+        </Expander>
+
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="4" x:Name="TreeScanBackground" Background="Black" Margin="0,0,0,0.333" d:IsHidden="True">
             <Grid.Resources>
                 <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
                     <DoubleAnimation.EasingFunction>
@@ -899,25 +935,5 @@
                 </ListBox.Style>
             </ListBox>
         </Grid>
-        <Expander Grid.Column="2" Grid.RowSpan="2">
-            <Expander.Style>
-                <Style TargetType="Expander">
-                    <Setter Property="Visibility" Value="Visible"/>
-
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding ChangedTextures.Count}" Value="0">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Expander.Style>
-            <Expander.Header>
-                <TextBlock><Run Text="Changed Textures: " FontWeight="Bold"/>
-                    <Run Text=" "/>
-                    <Run Text="{Binding ChangedTextures.Count}"/>
-                </TextBlock>
-            </Expander.Header>
-            <ListBox ItemTemplate="{StaticResource SmallItemTemplate}" ItemsSource="{Binding ChangedTextures}"/>
-        </Expander>
     </Grid>
 </Window>
