@@ -438,8 +438,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
             int errors = 0;
 
             #region Setup Regen Pipeline
+            int halfThreads = NumThreads / 2;
+            if (halfThreads < 1)
+                halfThreads = 1;
+
             // Get all PCCs - maybe same as saving? - only need first pcc of each texture
-            BufferBlock<Tuple<PCCObject, IGrouping<string, TreeTexInfo>>> pccBuffer = new BufferBlock<Tuple<PCCObject, IGrouping<string, TreeTexInfo>>>();
+            var pccBuffer = new BufferBlock<Tuple<PCCObject, IGrouping<string, TreeTexInfo>>>(new DataflowBlockOptions { BoundedCapacity = 1 });
             
             // loop over textures getting a tex2D from each tex located in pcc
             var tex2DMaker = new TransformBlock<Tuple<PCCObject, IGrouping<string, TreeTexInfo>>, Tuple<Thumbnail, Texture2D>>(obj =>
@@ -447,16 +451,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 TreeTexInfo tex = obj.Item2.First();
                 Texture2D tex2D = new Texture2D(obj.Item1, tex.PCCS[0].ExpID, GameDirecs);
                 return new Tuple<Thumbnail, Texture2D>(tex.Thumb, tex2D);
-            });
+            }, new ExecutionDataflowBlockOptions { BoundedCapacity = halfThreads });
 
             // Get thumb from each tex2D
             var ThumbMaker = new TransformBlock<Tuple<Thumbnail, Texture2D>, Tuple<Thumbnail, MemoryStream>>(bits => 
             {
-                return new Tuple<Thumbnail, MemoryStream>(bits.Item1, ToolsetTextureEngine.GetThumbFromTex2D(bits.Item2, 128));
-            }, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = NumThreads, BoundedCapacity = NumThreads });
+                return new Tuple<Thumbnail, MemoryStream>(bits.Item1, ToolsetTextureEngine.GetThumbFromTex2D(bits.Item2));
+            }, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = halfThreads, BoundedCapacity = halfThreads });
 
             // Write thumb to disk
-            var WriteThumbs = new ActionBlock<Tuple<Thumbnail, MemoryStream>>(bits => ThumbnailWriter.ReplaceOrAdd(bits.Item2, bits.Item1), new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = NumThreads, BoundedCapacity = NumThreads });
+            var WriteThumbs = new ActionBlock<Tuple<Thumbnail, MemoryStream>>(bits => ThumbnailWriter.ReplaceOrAdd(bits.Item2, bits.Item1), new ExecutionDataflowBlockOptions { BoundedCapacity = 2, MaxDegreeOfParallelism = 1 });  // 2 to make sure a queue is there so the thumb maker can keep working.
 
             // Create pipeline
             pccBuffer.LinkTo(tex2DMaker, new DataflowLinkOptions { PropagateCompletion = true });
