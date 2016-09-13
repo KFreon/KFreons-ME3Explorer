@@ -79,13 +79,16 @@ namespace WPF_ME3Explorer.Textures
         {
             // Generate new thumbnail
             using (MemoryStream stream = tex.CreateThumbnail())
-            {
-                // Decide if new thumb can fit where old thumb was
-                if (stream.Length <= tex.Thumb.Length)
-                    return Add(stream, tex.Thumb.Offset);
-                else
-                    return Add(stream);  // Append otherwise
-            }
+                return ReplaceOrAdd(stream, tex.Thumb);
+        }
+
+        internal Thumbnail ReplaceOrAdd(MemoryStream stream, Thumbnail old)
+        {
+            // Decide if new thumb can fit where old thumb was
+            if (stream.Length <= old.Length)
+                return Add(stream, old.Offset);
+            else
+                return Add(stream);  // Append otherwise
         }
     }
 }

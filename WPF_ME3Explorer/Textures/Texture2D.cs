@@ -1307,6 +1307,7 @@ namespace WPF_ME3Explorer.Textures
 
                         switch (img.storageType)
                         {
+                            case storage.ME3arcCpr:
                             case storage.arcCpr:
                                 byte[] buff = new byte[img.CompressedSize];
                                 oldCache.Seek(img.Offset, SeekOrigin.Begin);

@@ -305,6 +305,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Select new tree
             Trees[GameVersion - 1].IsSelected = true;
 
+            TextureSearch = null; // Clear search
             OnPropertyChanged(nameof(CurrentTree));
         }
     }

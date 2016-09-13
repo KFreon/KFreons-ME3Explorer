@@ -64,6 +64,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         // Show progress panel
                         if (texes.Length > 5)
                             ProgressOpener();
+                        else
+                            ProgressIndeterminate = true;
 
                         // Install changed textures
                         await ToolsetTextureEngine.InstallTextures(NumThreads, this, GameDirecs, cts, texes);
@@ -71,14 +73,25 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         MaxProgress = Progress;
                         Status = $"Saved all files!";
 
+
+                        ThumbnailWriter.BeginAdding();
+
                         // Clear ChangedTextures
                         foreach (var tex in ChangedTextures)
+                        {
                             tex.HasChanged = false;
+                            tex.Thumb = ThumbnailWriter.ReplaceOrAdd(tex.Thumb.ChangedThumb, tex.Thumb);
+                        }
                         ChangedTextures.Clear();
+
+                        // Update tree
+                        CurrentTree.SaveToFile();
 
                         // Close progress
                         if (texes.Length > 5)
                             ProgressCloser();
+                        else
+                            ProgressIndeterminate = false;
 
                         Busy = false;
                     }));
@@ -393,7 +406,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             DebugOutput.PrintLn($"Regenerating {texes.Count} thumbnails...");
 
             ParallelOptions po = new ParallelOptions();
-            po.MaxDegreeOfParallelism = NumThreads;
+            po.MaxDegreeOfParallelism = NumThreads / 2;
+            if (po.MaxDegreeOfParallelism < 1)
+                po.MaxDegreeOfParallelism = 1;
             MaxProgress = texes.Count;
             Progress = 0;
 
@@ -551,6 +566,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
         internal async Task BeginTreeScan()
         {
             Busy = true;
+
+            TextureSearch = null;
 
             DebugOutput.PrintLn($"Beginning Tree scan for ME{GameVersion}.");
 
@@ -886,6 +903,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             Busy = true;
             Status = $"Changing Texture: {tex.TexName}...";
+            ProgressIndeterminate = true;
 
             bool success = ToolsetTextureEngine.ChangeTexture(tex, filename);
             if (success)
@@ -905,6 +923,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 tex.SetChangedThumb(stream);
             }
 
+            ProgressIndeterminate = false;
             Status = $"Texture: {tex.TexName} changed!";
             Busy = false;
         }

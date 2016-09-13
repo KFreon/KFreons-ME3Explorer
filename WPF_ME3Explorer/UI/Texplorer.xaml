@@ -23,7 +23,8 @@
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="331"/>
-            <ColumnDefinition Width="569*"/>
+            <ColumnDefinition Width="739*"/>
+            <ColumnDefinition Width="344*"/>
             <ColumnDefinition Width="329"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
@@ -32,9 +33,29 @@
             <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
 
+        <Grid.Resources>
+            <DataTemplate x:Key="SmallItemTemplate">
+                <StackPanel x:Name="SearchResultsItem" Orientation="Horizontal" MouseDown="SearchResultsItem_MouseDown" Background="Transparent">
+                    <Image Source="{Binding Thumb, Converter={StaticResource ThumbnailConverter}, ConverterParameter={StaticResource DefaultTexture}}" Height="64" Width="64"/>
+                    <TextBlock Text="{Binding TexName}" Margin="5,0,10,0" VerticalAlignment="Center"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel.Resources>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="FontSize" Value="9"/>
+                                <Setter Property="Foreground" Value="Gray"/>
+                            </Style>
+                        </StackPanel.Resources>
+
+                        <TextBlock Text="{Binding Format, Converter={StaticResource ImageEngineFormatConverter}}"/>
+                        <TextBlock Text="{Binding Hash, Converter={StaticResource HashStringConverter}}"/>
+                    </StackPanel>
+                </StackPanel>
+            </DataTemplate>
+        </Grid.Resources>
 
 
-        <Menu x:Name="MainMenuBar" Background="White" Grid.ColumnSpan="2" Margin="0,0,0,0.333">
+
+        <Menu x:Name="MainMenuBar" Background="White" Grid.ColumnSpan="2">
             <Menu.Resources>
                 <Style TargetType="MenuItem" x:Key="BaseMenuItemStyle">
                     <Setter Property="Height" Value="25"/>
@@ -70,7 +91,7 @@
             <MenuItem x:Name="StopTPFToolsMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Stop TPFTools Mode" Command="{Binding StopTPFToolsModeCommand}" Visibility="{Binding TPFToolsModeEnabled, Converter={StaticResource BoolToVisConverter}}"/>
         </Menu>
 
-        <StackPanel x:Name="GameAndTreeIndicators" Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right" Margin="0,0,-0.333,0.333">
+        <StackPanel x:Name="GameAndTreeIndicators" Orientation="Horizontal" Grid.Column="3" HorizontalAlignment="Right" Margin="0,0,0,0.333">
             <ContentControl x:Name="GameIndicatorPanel" Template="{StaticResource GameIndicators}"/>
             <ContentControl x:Name="TreeIndicatorPanel" Template="{StaticResource TreeIndicators}"/>
             <Button x:Name="SettingsButton" Content="Settings" Style="{StaticResource MainButtonStyle}" Focusable="False">
@@ -105,7 +126,7 @@
             </Button>
         </StackPanel>
 
-        <TreeView x:Name="MainTreeView" Grid.Row="1" ItemsSource="{Binding TextureFolders}" VirtualizingPanel.IsVirtualizing="True" KeyDown="MainTreeView_KeyDown">
+        <TreeView x:Name="MainTreeView" ItemsSource="{Binding TextureFolders}" VirtualizingPanel.IsVirtualizing="True" KeyDown="MainTreeView_KeyDown" Grid.ColumnSpan="2" Margin="0,25,738.167,0.333" Grid.RowSpan="2">
             <i:Interaction.Behaviors>
                 <usefulUIElements:TreeViewNodeSelectionBehaviour SelectedItem="{Binding SelectedFolder}"/>
             </i:Interaction.Behaviors>
@@ -179,8 +200,8 @@
             </TreeView.ItemTemplate>
         </TreeView>
 
-        <ListBox x:Name="MainDisplayPanel" Grid.Column="1" Grid.Row="1" ItemsSource="{Binding ElementName=MainTreeView, Path=SelectedItem.Textures}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
-                 SelectedItem="{Binding SelectedTexture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+        <ListBox x:Name="MainDisplayPanel" Grid.Column="1" ItemsSource="{Binding ElementName=MainTreeView, Path=SelectedItem.Textures}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
+                 SelectedItem="{Binding SelectedTexture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.ColumnSpan="3" Margin="0.333,25,329,0.333" Grid.RowSpan="2">
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
                     <usefulUIElements:VirtualizingWrapPanel x:Name="VirtualWrapper"/>
@@ -247,7 +268,7 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <Grid x:Name="PreviewPanel" Grid.Column="1" Grid.Row="1" MouseDown="PreviewPanel_MouseDown">
+        <Grid x:Name="PreviewPanel" Grid.Column="1" MouseDown="PreviewPanel_MouseDown" Grid.ColumnSpan="3" Margin="0.333,25,329,0.333" Grid.RowSpan="2">
             <Grid.Style>
                 <Style TargetType="Grid">
                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -292,7 +313,7 @@
             </Grid.Style>
             <Image HorizontalAlignment="Center" VerticalAlignment="Center" Source="{Binding PreviewImage, IsAsync=True}"/>
         </Grid>
-        <Grid x:Name="DetailsArea" Grid.Row="1" Grid.Column="2">
+        <Grid x:Name="DetailsArea" Grid.Column="3" Margin="0.333,25,0,0.333" Grid.RowSpan="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="427*"/>
                 <RowDefinition Height="389*"/>
@@ -389,7 +410,7 @@
                     </StackPanel>
                 </Grid>
             </DockPanel>
-            <ListBox x:Name="SearchResultsBox" Margin="0,22,0.333,4.667" ItemsSource="{Binding TextureSearchResults}" Background="White">
+            <ListBox x:Name="SearchResultsBox" Margin="0,22,0.333,4.667" ItemsSource="{Binding TextureSearchResults}" Background="White" ItemTemplate="{StaticResource SmallItemTemplate}">
                 <ListBox.Style>
                     <Style TargetType="{x:Type ListBox}">
                         <Setter Property="Opacity" Value="0"/>
@@ -440,26 +461,6 @@
                         </Style.Triggers>
                     </Style>
                 </ListBox.Style>
-
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel x:Name="SearchResultsItem" Orientation="Horizontal" MouseDown="SearchResultsItem_MouseDown">
-                            <Image Source="{Binding Thumb, Converter={StaticResource ThumbnailConverter}}" Height="64" Width="64"/>
-                            <TextBlock Text="{Binding TexName}" Margin="5,0,10,0" VerticalAlignment="Center"/>
-                            <StackPanel VerticalAlignment="Center">
-                                <StackPanel.Resources>
-                                    <Style TargetType="{x:Type TextBlock}">
-                                        <Setter Property="FontSize" Value="9"/>
-                                        <Setter Property="Foreground" Value="Gray"/>
-                                    </Style>
-                                </StackPanel.Resources>
-
-                                <TextBlock Text="{Binding Format, Converter={StaticResource ImageEngineFormatConverter}}"/>
-                                <TextBlock Text="{Binding Hash, Converter={StaticResource HashStringConverter}}"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
             </ListBox>
 
 
@@ -467,9 +468,9 @@
             <ListBox x:Name="PCCsListBox" Grid.Row="1" Margin="0,34.333,0.333,0" ItemsSource="{Binding ElementName=MainDisplayPanel, Path=SelectedItem.PCCS}"/>
         </Grid>
 
-        <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="2" Grid.ColumnSpan="3"/>
+        <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="1" Grid.ColumnSpan="4" Margin="0,815.667,0,0.333" Grid.RowSpan="2"/>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="3" x:Name="TreeScanBackground" Background="Black" d:IsHidden="True">
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="4" x:Name="TreeScanBackground" Background="Black" d:IsHidden="True" Margin="0,0,0,0.333">
             <Grid.Resources>
                 <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
                     <DoubleAnimation.EasingFunction>
@@ -778,7 +779,7 @@
             </Grid>
         </Grid>
 
-        <Grid x:Name="ProgressPanel" Background="#CC000000" Visibility="Collapsed" Grid.RowSpan="3" Grid.ColumnSpan="3">
+        <Grid x:Name="ProgressPanel" Background="#CC000000" Visibility="Collapsed" Grid.RowSpan="3" Grid.ColumnSpan="4" Margin="0,0,0,0.333">
             <Grid.Resources>
                 <Style TargetType="TextBlock">
                     <Setter Property="Foreground" Value="White"/>
@@ -834,7 +835,7 @@
                         <Setter Property="TextAlignment" Value="Center"/>
                     </Style>
                 </DockPanel.Resources>
-                
+
                 <TextBlock x:Name="CPUUsage">
                     <Run Text="CPU Usage" FontWeight="Bold"/>
                     <LineBreak/>
@@ -865,7 +866,7 @@
                     <Run Text="{Binding MemoryUsage}"/>
                 </TextBlock>
             </DockPanel>
-            
+
             <ProgressBar x:Name="ProgressBar" Margin="100,11,120,10" Style="{StaticResource ProgressBarStyle}" Foreground="#B206B025" Background="#B2E6E6E6"/>
             <Control Template="{StaticResource CancelButtonTemplate}" VerticalAlignment="Top" HorizontalAlignment="Right" Background="Transparent" Grid.Row="1"/>
             <Border x:Name="StatusBorder" HorizontalAlignment="Center">
@@ -898,5 +899,25 @@
                 </ListBox.Style>
             </ListBox>
         </Grid>
+        <Expander Grid.Column="2" Grid.RowSpan="2">
+            <Expander.Style>
+                <Style TargetType="Expander">
+                    <Setter Property="Visibility" Value="Visible"/>
+
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ChangedTextures.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Expander.Style>
+            <Expander.Header>
+                <TextBlock><Run Text="Changed Textures: " FontWeight="Bold"/>
+                    <Run Text=" "/>
+                    <Run Text="{Binding ChangedTextures.Count}"/>
+                </TextBlock>
+            </Expander.Header>
+            <ListBox ItemTemplate="{StaticResource SmallItemTemplate}" ItemsSource="{Binding ChangedTextures}"/>
+        </Expander>
     </Grid>
 </Window>

@@ -407,7 +407,14 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
                     if (name != null)
                     {
                         listsStream.WriteInt32((name.Length + 1) * (GameVersion == 3 ? -1 : 1));
-                        listsStream.WriteString(name + (GameVersion == 3 ? "\0" : ""));  // KFreon: Could be a problem. Original doubled length written by string for some reason.
+                        byte[] text = Encoding.ASCII.GetBytes(name);
+                        if (GameVersion == 3)
+                        {
+                            text = Encoding.Unicode.GetBytes(name + "\0");
+                            Array.Resize(ref text, (name.Length + 1) * 2);
+                        }
+
+                        listsStream.Write(text, 0, text.Length);
                     }
                     else
                         listsStream.WriteInt32(1);
