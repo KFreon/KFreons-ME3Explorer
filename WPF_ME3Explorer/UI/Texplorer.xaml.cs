@@ -33,18 +33,22 @@ namespace WPF_ME3Explorer.UI
         DragDropHandler<TreeTexInfo> TextureDragDropper = null;
         DragDropHandler<TexplorerTextureFolder> FolderDragDropper = null;
 
+        Action<System.Windows.Shell.TaskbarItemProgressState> TaskBarUpdater = null;
+
         public Texplorer()
         {
             InitializeComponent();
             vm = new TexplorerViewModel();
 
+            TaskBarUpdater = new Action<System.Windows.Shell.TaskbarItemProgressState>(state => TaskBarProgress.Dispatcher.Invoke(new Action(() => TaskBarProgress.ProgressState = state)));
+
             vm.PropertyChanged += (sender, args) =>
             {
                 // Change toolbar progress state when required.
                 if (args.PropertyName == nameof(vm.Progress))
-                    TaskBarProgress.ProgressState = vm.Progress == 0 ? System.Windows.Shell.TaskbarItemProgressState.None : System.Windows.Shell.TaskbarItemProgressState.Normal;
+                    TaskBarUpdater(vm.Progress == 0 ? System.Windows.Shell.TaskbarItemProgressState.None : System.Windows.Shell.TaskbarItemProgressState.Normal);
                 else if (args.PropertyName == nameof(vm.ProgressIndeterminate))
-                    TaskbarItemInfo.ProgressState = vm.ProgressIndeterminate ? System.Windows.Shell.TaskbarItemProgressState.Indeterminate : TaskBarProgress.ProgressState;
+                    TaskBarUpdater(vm.ProgressIndeterminate ? System.Windows.Shell.TaskbarItemProgressState.Indeterminate : TaskBarProgress.ProgressState);
             };
 
             vm.ProgressCloser = new Action(() =>
