@@ -19,7 +19,12 @@
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
-
+    
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo x:Name="TaskBarProgress" Description="Texplorer" ProgressValue="{Binding Progress}"/>
+    </Window.TaskbarItemInfo>
+    
+    
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="331"/>

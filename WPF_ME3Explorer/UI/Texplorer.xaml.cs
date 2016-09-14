@@ -38,6 +38,15 @@ namespace WPF_ME3Explorer.UI
             InitializeComponent();
             vm = new TexplorerViewModel();
 
+            vm.PropertyChanged += (sender, args) =>
+            {
+                // Change toolbar progress state when required.
+                if (args.PropertyName == nameof(vm.Progress))
+                    TaskBarProgress.ProgressState = vm.Progress == 0 ? System.Windows.Shell.TaskbarItemProgressState.None : System.Windows.Shell.TaskbarItemProgressState.Normal;
+                else if (args.PropertyName == nameof(vm.ProgressIndeterminate))
+                    TaskbarItemInfo.ProgressState = vm.ProgressIndeterminate ? System.Windows.Shell.TaskbarItemProgressState.Indeterminate : TaskBarProgress.ProgressState;
+            };
+
             vm.ProgressCloser = new Action(() =>
             {
                 HiderButton.Dispatcher.Invoke(() =>   // Not sure if this is necessary, but things aren't working otherwise.
