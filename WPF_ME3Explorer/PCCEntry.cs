@@ -33,6 +33,7 @@ namespace WPF_ME3Explorer
             set
             {
                 SetProperty(ref name, value);
+                OnPropertyChanged(nameof(DisplayName));
             }
         }
 
@@ -58,6 +59,14 @@ namespace WPF_ME3Explorer
         public override string ToString()
         {
             return $"{Name.Remove(0, MEDirectories.MEDirectories.BasePathLength)} @ {ExpID}";
+        }
+
+        public string DisplayName
+        {
+            get
+            {
+                return Name.Remove(0, MEDirectories.MEDirectories.BasePathLength);
+            }
         }
     }
 }

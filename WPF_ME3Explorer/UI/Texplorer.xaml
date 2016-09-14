@@ -55,13 +55,23 @@
             <DataTemplate x:Key="PCC-ExpID Displayer">
                 <StackPanel Orientation="Horizontal">
                     <CheckBox IsChecked="{Binding IsChecked, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,2,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="2,0"/>
-                    <Label Content="@"/>
+                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" Margin="2,0"/>
+                    <TextBlock Text="@" Foreground="Blue" Margin="2,0"/>
                     <TextBlock Text="{Binding ExpID}" VerticalAlignment="Center" Margin="2,0"/>
                 </StackPanel>
             </DataTemplate>
 
-            <Style x:Key="CheckAllCheckBoxStyle" TargetType="CheckBox">
+            <Style x:Key="PCCListOptionsStyle" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Visible"/>
+
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding SelectedTexture}" Value="{x:Null}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="CheckAllCheckBoxStyle" TargetType="CheckBox" BasedOn="{StaticResource PCCListOptionsStyle}">
                 <Setter Property="VerticalAlignment" Value="Center"/>
                 <Setter Property="Margin" Value="2,0,0,0"/>
                 <Setter Property="IsThreeState" Value="True"/>
@@ -224,61 +234,70 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <DockPanel x:Name="MainListView" MouseDown="MainListView_MouseDown" AllowDrop="True" Drop="MainDisplayPanel_Drop" MouseMove="MainListView_MouseMove" DragOver="MainListView_DragOver">
-                        <DockPanel.Style>
-                            <Style TargetType="DockPanel">
-                                <Setter Property="Background" Value="Transparent"/>
+                    <Border x:Name="MainListView" MouseDown="MainListView_MouseDown" AllowDrop="True" Drop="MainDisplayPanel_Drop" MouseMove="MainListView_MouseMove" DragOver="MainListView_DragOver" 
+                            BorderBrush="Transparent" BorderThickness="2" DragEnter="MainListView_DragEnter" DragLeave="MainListView_DragLeave">
+                        <DockPanel>
+                            <DockPanel.Style>
+                                <Style TargetType="DockPanel">
+                                    <Setter Property="Background" Value="Transparent"/>
 
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasChanged}" Value="true">
-                                        <Setter Property="Background" Value="#2FFF0000"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DockPanel.Style>
-                        <DockPanel.ContextMenu>
-                            <ContextMenu>
-                                <ContextMenu.Resources>
-                                    <Style x:Key="ME1_ItemsStyle" TargetType="MenuItem">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding GameVersion}" Value="1">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ContextMenu.Resources>
-                                <MenuItem Header="Change" Command="{Binding ChangeCommand}" CommandParameter="{Binding}">
-                                    <MenuItem.Icon>
-                                        <Image Source="/WPF_ME3Explorer;component/Resources/ChangeTexture.png"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <MenuItem Header="Extract" Command="{Binding ExtractCommand}" CommandParameter="{Binding}">
-                                    <MenuItem.Icon>
-                                        <Image Source="/WPF_ME3Explorer;component/Resources/ExtractTexture.png"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <MenuItem Header="Regenerate Thumbnail" Command="{Binding RegenerateThumbCommand}" CommandParameter="{Binding}">
-                                    <MenuItem.Icon>
-                                        <Image Source="/WPF_ME3Explorer;component/Resources/RegenerateSingle.png"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <MenuItem Header="Try Low Res Fix" Style="{StaticResource ME1_ItemsStyle}" Command="{Binding LowResFixCommand}" CommandParameter="{Binding}">
-                                    <MenuItem.Icon>
-                                        <Image Source="/WPF_ME3Explorer;component/Resources/LowResFix.png"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasChanged}" Value="true">
+                                            <Setter Property="Background" Value="#2FFF0000"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DockPanel.Style>
+                            <DockPanel.ContextMenu>
+                                <ContextMenu>
+                                    <ContextMenu.Resources>
+                                        <Style x:Key="ME1_ItemsStyle" TargetType="MenuItem">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding GameVersion}" Value="1">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContextMenu.Resources>
+                                    <MenuItem Header="Change" Command="{Binding ChangeCommand}" CommandParameter="{Binding}">
+                                        <MenuItem.Icon>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/ChangeTexture.png"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Extract" Command="{Binding ExtractCommand}" CommandParameter="{Binding}">
+                                        <MenuItem.Icon>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/ExtractTexture.png"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Regenerate Thumbnail" Command="{Binding RegenerateThumbCommand}" CommandParameter="{Binding}">
+                                        <MenuItem.Icon>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/RegenerateSingle.png"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Export Tex and Info" Command="{Binding ExportTexAndInfoCommand}" CommandParameter="{Binding}">
+                                        <MenuItem.Icon>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/ExportTexandInfo.png"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
 
-                                <MenuItem Header="Restore Original" Visibility="{Binding HasChanged, Converter={StaticResource BoolToVisConverter}}" Command="{Binding RestoreOriginalCommand}">
-                                    <MenuItem.Icon>
-                                        <Image Source="/WPF_ME3Explorer;component/Resources/UndoChanges.png"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                            </ContextMenu>
-                        </DockPanel.ContextMenu>
-                        <Image Source="{Binding Thumb, Converter={StaticResource ThumbnailConverter}, ConverterParameter={StaticResource DefaultTexture}}" Width="128" Height="128" DockPanel.Dock="Top" Margin="5,0"/>
-                        <TextBlock Text="{Binding TexName}" HorizontalAlignment="Center" VerticalAlignment="Bottom" DockPanel.Dock="Bottom" Margin="0,2,0,5"/>
-                    </DockPanel>
+                                    <MenuItem Header="Try Low Res Fix" Style="{StaticResource ME1_ItemsStyle}" Command="{Binding LowResFixCommand}" CommandParameter="{Binding}">
+                                        <MenuItem.Icon>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/LowResFix.png"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+
+                                    <MenuItem Header="Restore Original" Visibility="{Binding HasChanged, Converter={StaticResource BoolToVisConverter}}" Command="{Binding RestoreOriginalCommand}">
+                                        <MenuItem.Icon>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/UndoChanges.png"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </DockPanel.ContextMenu>
+                            <Image Source="{Binding Thumb, Converter={StaticResource ThumbnailConverter}, ConverterParameter={StaticResource DefaultTexture}}" Width="128" Height="128" DockPanel.Dock="Top" Margin="5,0"/>
+                            <TextBlock Text="{Binding TexName}" HorizontalAlignment="Center" VerticalAlignment="Bottom" DockPanel.Dock="Bottom" Margin="0,2,0,5"/>
+                        </DockPanel>
+                    </Border>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
@@ -478,12 +497,13 @@
                 </ListBox.Style>
             </ListBox>
 
-            <CheckBox x:Name="PCCsCheckAllChecker" IsChecked="{Binding PCCsCheckAll}" Style="{StaticResource CheckAllCheckBoxStyle}" Grid.Row="1" VerticalAlignment="Top" Margin="0,15"/>
+            <CheckBox x:Name="PCCsCheckAllChecker" IsChecked="{Binding PCCsCheckAll}" Style="{StaticResource CheckAllCheckBoxStyle}" HorizontalAlignment="Left" Grid.Row="1" VerticalAlignment="Top" Margin="5,15"/>
+            <Button x:Name="SavePCCsListButton" Content="Save List" VerticalAlignment="Top" HorizontalAlignment="Right" Grid.Row="1" Style="{StaticResource PCCListOptionsStyle}" Background="White" Margin="5,10" Padding="10,2" Click="SavePCCsListButton_Click"/>
             <Label Content="PCC's" Grid.Row="1" VerticalAlignment="Top" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center"/>
             <ListBox x:Name="PCCsListBox" Grid.Row="1" Margin="0,34.333,0.333,0" ItemsSource="{Binding ElementName=MainDisplayPanel, Path=SelectedItem.PCCS}" ItemTemplate="{StaticResource PCC-ExpID Displayer}"/>
         </Grid>
 
-        <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="1" Grid.ColumnSpan="4" Margin="0,815.667,0,0.333" Grid.RowSpan="2"/>
+        <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="2" Grid.ColumnSpan="4"/>
         <Expander Grid.Column="2" Grid.RowSpan="2">
             <Expander.Style>
                 <Style TargetType="{x:Type Expander}">

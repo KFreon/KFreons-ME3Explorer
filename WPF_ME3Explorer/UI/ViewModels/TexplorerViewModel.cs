@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -68,7 +69,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                             ProgressIndeterminate = true;
 
                         // Install changed textures
-                        await ToolsetTextureEngine.InstallTextures(NumThreads, this, GameDirecs, cts, texes);
+                        await Task.Run(async () => await ToolsetTextureEngine.InstallTextures(NumThreads, this, GameDirecs, cts, texes));
 
                         MaxProgress = Progress;
                         Status = $"Saved all files!";
@@ -76,13 +77,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                         ThumbnailWriter.BeginAdding();
 
-                        // Clear ChangedTextures
+                        // Update thumbnails
                         foreach (var tex in ChangedTextures)
-                        {
-                            tex.HasChanged = false;
                             tex.Thumb = ThumbnailWriter.ReplaceOrAdd(tex.Thumb.ChangedThumb, tex.Thumb);
-                        }
+
+                        ThumbnailWriter.FinishAdding();
+
+                        // Refresh thumbnail display
+                        foreach (var tex in ChangedTextures)
+                            tex.HasChanged = false;
+
+
                         ChangedTextures.Clear();
+
 
                         // Update tree
                         CurrentTree.SaveToFile();
@@ -120,6 +127,52 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     }));
 
                 return changeTree;
+            }
+        }
+
+        CommandHandler exportTexAndInfoCommand = null;
+        public CommandHandler ExportTexAndInfoCommand
+        {
+            get
+            {
+                if (exportTexAndInfoCommand ==null)
+                    exportTexAndInfoCommand = new CommandHandler(new Action<object>(param =>
+                    {
+                        var tex = (TreeTexInfo)param;
+
+                        SaveFileDialog sfd = new SaveFileDialog();
+                        sfd.FileName = Path.GetFileNameWithoutExtension(tex.DefaultSaveName) + ".zip";
+                        sfd.Filter = "Compressed Files|*.zip";
+                        if (sfd.ShowDialog() != true)
+                            return;
+
+                        using (FileStream fs = new FileStream(sfd.FileName, FileMode.Create))
+                        {
+                            using (ZipArchive zipper = new ZipArchive(fs, ZipArchiveMode.Update)) // Just a container
+                            {
+                                // Extract texture itself.
+                                var imgData = ToolsetTextureEngine.ExtractTexture(tex);
+
+                                // Put texture into zip archive
+                                var img = zipper.CreateEntry(tex.DefaultSaveName);
+                                using (Stream sw = img.Open())
+                                    sw.Write(imgData, 0, imgData.Length);
+
+                                // Create details csv
+                                string details = BuildTexDetailsForCSV(tex);
+
+                                // Put details into zip archive
+                                var csv = zipper.CreateEntry($"{Path.GetFileNameWithoutExtension(tex.DefaultSaveName)}_details.csv");
+                                using (Stream sw = csv.Open())
+                                {
+                                    var arr = Encoding.Default.GetBytes(details);
+                                    sw.Write(arr, 0, arr.Length);
+                                }
+                            }
+                        }
+                    }));
+
+                return exportTexAndInfoCommand;
             }
         }
 
@@ -413,6 +466,51 @@ namespace WPF_ME3Explorer.UI.ViewModels
             BeginTreeLoading();
         }
 
+        string BuildTexDetailsForCSV(TreeTexInfo tex)
+        {
+            StringBuilder texDetails = new StringBuilder();
+            texDetails.AppendLine($"Texture details for:, {tex.TexName}, with hash, {ToolsetTextureEngine.FormatTexmodHashAsString(tex.Hash)}");
+            texDetails.AppendLine();
+
+            // Details
+            texDetails.AppendLine($"Game Version, {tex.GameVersion}");
+            texDetails.AppendLine($"Format, {ToolsetTextureEngine.StringifyFormat(tex.Format)}");
+            texDetails.AppendLine($"Number of Mips, {tex.Mips}");
+            texDetails.AppendLine($"Package, {tex.FullPackage}");
+            texDetails.AppendLine($"Dimensions (Width x Height), {tex.Width}x{tex.Height}");
+            texDetails.AppendLine($"LODGroup (if available), {tex.LODGroup}");
+            texDetails.AppendLine($"Storage Type (if available), {tex.StorageType}");
+            texDetails.AppendLine($"Texture Cache (if available), {tex.TextureCache}");
+
+            texDetails.AppendLine();
+            texDetails.AppendLine();
+            texDetails.AppendLine();
+
+            //////// PCCS ////////
+            // Column Headers
+            texDetails.AppendLine("Is Checked, Name, Export ID");
+
+            // PCC details
+            foreach (PCCEntry pcc in tex.PCCS)
+                texDetails.AppendLine($"{pcc.IsChecked}, {pcc.Name}, {pcc.ExpID}");
+
+            return texDetails.ToString();
+        }
+
+        internal void ExportSelectedTexturePCCList(string fileName)
+        {
+            Busy = true;
+            Status = $"Exporting PCC list for: {SelectedTexture.TexName}";
+            Progress = 0;
+
+            using (StreamWriter writer = new StreamWriter(fileName))
+                writer.Write(BuildTexDetailsForCSV(SelectedTexture));
+
+            Status = $"PCCs exported to: {fileName}";
+            Progress = MaxProgress;
+            Busy = false;
+        }
+
         internal async Task RegenerateThumbs(params TreeTexInfo[] textures)
         {
             Busy = true;
@@ -428,6 +526,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Open Progress Panel if worth it.
             if (texes.Count > 10)
                 ProgressOpener();
+            else
+                ProgressIndeterminate = true;
 
             DebugOutput.PrintLn($"Regenerating {texes.Count} thumbnails...");
 
@@ -488,6 +588,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Close Progress Panel if previously opened.
             if (texes.Count > 10)
                 ProgressCloser();
+            else
+                ProgressIndeterminate = false;
 
             StartTime = 0;
             Busy = false;
@@ -668,6 +770,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 Busy = false;
                 return;
             }
+
+            CurrentTree.IsSelected = true;  // TODO: Need to call LoadFTSandTree? 
 
             DebugOutput.PrintLn("Saving tree to disk...");
             await Task.Run(() => CurrentTree.SaveToFile()).ConfigureAwait(false);
@@ -871,7 +975,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
 
             Progress++;
-            Status = $"Scanning PCC's to build tree: {Progress} / {MaxProgress}";
+            Status = $"Scanning PCC's to build ME{GameVersion} tree: {Progress} / {MaxProgress}";
 
             return texes;       
         }
@@ -991,7 +1095,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 // Re-generate Thumbnail
                 MemoryStream stream = null;
                 if (tex.HasChanged)
-                    stream = ToolsetTextureEngine.GetThumbFromTex2D(tex.AssociatedTexture);
+                    stream = ToolsetTextureEngine.GetThumbFromTex2D(tex.ChangedAssociatedTexture);
 
                 using (PCCObject pcc = new PCCObject(tex.PCCS[0].Name, GameVersion))
                     using (Texture2D tex2D = new Texture2D(pcc, tex.PCCS[0].ExpID, GameDirecs))
@@ -1004,6 +1108,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
 
             ProgressIndeterminate = false;
+            Progress = MaxProgress;
             Status = $"Texture: {tex.TexName} changed!";
             Busy = false;
         }
@@ -1012,6 +1117,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             Busy = true;
             Status = $"Extracting Texture: {tex.TexName}...";
+            ProgressIndeterminate = true;
 
             string error = null;
             try
@@ -1024,7 +1130,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 DebugOutput.PrintLn($"Extracting image {tex.TexName} failed. Reason: {e.ToString()}");
             }
 
-
+            ProgressIndeterminate = false;
+            Progress = MaxProgress;
             Busy = false;
             Status = $"Texture: {tex.TexName} " + (error == null ? $"extracted to {filename}!" : $"failed to extract. Reason: {error}.");
         }

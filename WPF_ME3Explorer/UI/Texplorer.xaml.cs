@@ -165,8 +165,7 @@ namespace WPF_ME3Explorer.UI
 
             // Select item
             vm.SelectedTexture = tex;
-
-            return;
+            Task.Run(() => tex.PopulateDetails());
         }
 
 
@@ -280,12 +279,13 @@ namespace WPF_ME3Explorer.UI
 
         private void MainDisplayPanel_Drop(object sender, DragEventArgs e)
         {
-            TextureDragDropper.Drop<DockPanel>(sender, e);
+            MainListView_DragLeave(sender, null);
+            TextureDragDropper.Drop(sender, e);
         }
 
         private void MainListView_MouseMove(object sender, MouseEventArgs e)
         {
-            TextureDragDropper.MouseMove<DockPanel>(sender, e);
+            TextureDragDropper.MouseMove(sender, e);
         }
 
         private void MainListView_DragOver(object sender, DragEventArgs e)
@@ -295,7 +295,30 @@ namespace WPF_ME3Explorer.UI
 
         private void MainTreeView_MouseMove(object sender, MouseEventArgs e)
         {
-            FolderDragDropper.MouseMove<StackPanel>(sender, e);
+            FolderDragDropper.MouseMove(sender, e);
+        }
+
+        private void SavePCCsListButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.FileName = $"{Path.GetFileNameWithoutExtension(vm.SelectedTexture.DefaultSaveName)}_PCCs-ExpIDs.csv";
+            sfd.Filter = "Comma Separated|*.csv";
+            if (sfd.ShowDialog() == true)
+                vm.ExportSelectedTexturePCCList(sfd.FileName);
+        }
+
+        private void MainListView_DragEnter(object sender, DragEventArgs e)
+        {
+            // Show border when dragging into tile.
+            var border = sender as Border;
+            border.BorderBrush = new SolidColorBrush(Colors.Red);
+        }
+
+        private void MainListView_DragLeave(object sender, DragEventArgs e)
+        {
+            // Remove border when leaving tile.
+            var border = sender as Border;
+            border.BorderBrush = new SolidColorBrush(Colors.Transparent);
         }
     }
 }

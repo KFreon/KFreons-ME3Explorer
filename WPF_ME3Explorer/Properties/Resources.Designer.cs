@@ -133,6 +133,16 @@ namespace WPF_ME3Explorer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap ExportTexandInfo {
+            get {
+                object obj = ResourceManager.GetObject("ExportTexandInfo", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap ExtractTexture {
             get {
                 object obj = ResourceManager.GetObject("ExtractTexture", resourceCulture);

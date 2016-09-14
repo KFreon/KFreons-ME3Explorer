@@ -201,7 +201,7 @@ namespace WPF_ME3Explorer.Textures
                 
 
             // Ensure tex2D is part of the TreeTexInfo for later use.
-            tex.AssociatedTexture = tex2D;
+            tex.ChangedAssociatedTexture = tex2D;
             tex.HasChanged = true;
 
             return true;
@@ -222,8 +222,8 @@ namespace WPF_ME3Explorer.Textures
             int expID = tex.PCCS[0].ExpID;
 
             // Texture object has already been created - likely due to texture being updated previously in current session
-            if (tex.AssociatedTexture != null)
-                tex2D = tex.AssociatedTexture;
+            if (tex.ChangedAssociatedTexture != null)
+                tex2D = tex.ChangedAssociatedTexture;
             else
             {
                 PCCObject pcc = null;
@@ -259,7 +259,7 @@ namespace WPF_ME3Explorer.Textures
             tex2D.ExtractMaxImage(filename);
 
             // Cleanup if required
-            if (tex.AssociatedTexture != tex2D)
+            if (tex.ChangedAssociatedTexture != tex2D)
                 tex2D.Dispose();
         }
 
@@ -272,7 +272,7 @@ namespace WPF_ME3Explorer.Textures
             byte[] data = tex2D.ExtractMaxImage(true);
 
             // Cleanup if required
-            if (tex.AssociatedTexture != tex2D)
+            if (tex.ChangedAssociatedTexture != tex2D)
                 tex2D.Dispose();
 
             return data;
@@ -287,7 +287,7 @@ namespace WPF_ME3Explorer.Textures
             tex2D.LowResFix();
 
             // Cleanup if required
-            if (tex.AssociatedTexture != tex2D)
+            if (tex.ChangedAssociatedTexture != tex2D)
                 tex2D.Dispose();
         }
 
@@ -321,6 +321,7 @@ namespace WPF_ME3Explorer.Textures
             var pccTexGroups =
                 from tex in texes
                 from pcc in tex.PCCS
+                where pcc.IsChecked
                 group tex by pcc.Name;
 
             // Send each unique PCC to get textures saved to it.
@@ -348,7 +349,7 @@ namespace WPF_ME3Explorer.Textures
                 Texture2D newTex2D = null;
                 var texType = tex as TreeTexInfo;
                 if (texType != null)
-                    newTex2D = texType.AssociatedTexture;
+                    newTex2D = texType.ChangedAssociatedTexture;
                 else
                     newTex2D = new Texture2D(pcc, 0, GameDirecs); // TODO TPFTools
 

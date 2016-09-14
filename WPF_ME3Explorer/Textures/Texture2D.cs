@@ -313,6 +313,9 @@ namespace WPF_ME3Explorer.Textures
                     throw new FormatException("Unsupported texture storage type");
             }
 
+            if (imgBuffer == null)
+                Debugger.Break();
+
             if (RequireHeader)
                 return ToolsetTextureEngine.AddDDSHeader(imgBuffer, imgInfo, texFormat);
             else

@@ -31,7 +31,7 @@ namespace WPF_ME3Explorer.Textures
                     restoreOriginalCommand = new CommandHandler(() =>
                     {
                         HasChanged = false;
-                        AssociatedTexture = null;
+                        ChangedAssociatedTexture = null;
                     });
                 }
 
@@ -42,7 +42,7 @@ namespace WPF_ME3Explorer.Textures
         #region Properties
         public Action GenerateThumbnail = null;
 
-        public Texture2D AssociatedTexture { get; set; }
+        public Texture2D ChangedAssociatedTexture { get; set; }
 
         public string DefaultSaveName
         {
@@ -150,6 +150,7 @@ namespace WPF_ME3Explorer.Textures
                 if (!value)
                 {
                     Thumb.ChangedThumb = null;
+                    ChangedAssociatedTexture = null;
                     OnPropertyChanged(nameof(Thumb));
                 }
                 
@@ -261,7 +262,7 @@ namespace WPF_ME3Explorer.Textures
 
         public void ReorderME2Files()
         {
-            if (GameVersion == 2 && (!String.IsNullOrEmpty(AssociatedTexture.arcName) && AssociatedTexture.arcName != "None"))
+            if (GameVersion == 2 && (!String.IsNullOrEmpty(ChangedAssociatedTexture.arcName) && ChangedAssociatedTexture.arcName != "None"))
             {
                 for (int i = 0; i < PCCS.Count; i++)
                 {
@@ -346,7 +347,7 @@ namespace WPF_ME3Explorer.Textures
         internal void PopulateDetails()
         {
             if (HasChanged)
-                PopulateDetails(AssociatedTexture);
+                PopulateDetails(ChangedAssociatedTexture);
             else
                 using (PCCObject pcc = new PCCObject(PCCS[0].Name, GameVersion))
                     using (Texture2D tex2D = new Texture2D(pcc, PCCS[0].ExpID, GameDirecs))
