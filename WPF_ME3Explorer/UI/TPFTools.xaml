@@ -7,7 +7,7 @@
         xmlns:VM="clr-namespace:WPF_ME3Explorer.UI.ViewModels"
         x:Class="WPF_ME3Explorer.UI.TPFTools"
         mc:Ignorable="d"
-        Title="TPFTools" Height="882.469" Width="1507.27" AllowDrop="True" Drop="Window_Drop" DragOver="Window_DragOver" Closing="Window_Closing" d:DataContext="{d:DesignInstance Type=dVM:DESIGN_TPFToolsVM, IsDesignTimeCreatable=True}">
+        Title="TPFTools" Height="882.469" Width="1507.27" AllowDrop="True" Drop="Window_Drop" DragOver="Window_DragOver" Closing="Window_Closing">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -18,241 +18,42 @@
     </Window.Resources>
 
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="642*"/>
-            <ColumnDefinition Width="325*"/>
-        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="28"/>
-            <RowDefinition Height="153*"/>
-            <RowDefinition Height="179*"/>
-            <RowDefinition Height="53.333"/>
-            <RowDefinition Height="31"/>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="391*"/>
+            <RowDefinition Height="304*"/>
+            <RowDefinition Height="60*"/>
+            <RowDefinition Height="30*"/>
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="989*"/>
+            <ColumnDefinition Width="512*"/>
+        </Grid.ColumnDefinitions>
 
-        <Menu Background="White">
-            <MenuItem x:Name="LoadButton" Header="Load" Click="LoadButton_Click" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}"/>
-            <MenuItem x:Name="ClearAllButton" Header="Clear All Textures" Click="ClearAllButton_Click">
-                <MenuItem.Style>
-                    <Style TargetType="{x:Type MenuItem}">
-                        <Setter Property="IsEnabled" Value="false"/>
-
-                        <Style.Triggers>
-                            <MultiDataTrigger>
-                                <MultiDataTrigger.Conditions>
-                                    <Condition Binding="{Binding Busy}" Value="false"/>
-                                    <Condition Binding="{Binding IsLoaded}" Value="true"/>
-                                </MultiDataTrigger.Conditions>
-                                <Setter Property="IsEnabled" Value="True"/>
-                            </MultiDataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </MenuItem.Style>
-            </MenuItem>
-            <MenuItem x:Name="AutofixAllButton" Header="Autofix All Invalids">
-                <MenuItem.Style>
-                    <Style TargetType="{x:Type MenuItem}">
-                        <Setter Property="IsEnabled" Value="False"/>
-                        <Style.Triggers>
-                            <MultiDataTrigger>
-                                <MultiDataTrigger.Conditions>
-                                    <Condition Binding="{Binding Busy}" Value="false"/>
-                                    <Condition Binding="{Binding IsLoaded}" Value="true"/>
-                                </MultiDataTrigger.Conditions>
-
-                                <Setter Property="IsEnabled" Value="True"/>
-                            </MultiDataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </MenuItem.Style>
-            </MenuItem>
+        <Menu Grid.ColumnSpan="2" Margin="0,0,511.667,0.333" Background="White">
+            <MenuItem Header="Load" Style="{StaticResource BaseMenuItemStyle}"/>
         </Menu>
 
-        <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
-            <ContentControl x:Name="GameIndicatorPanel" Template="{StaticResource GameIndicators}"/>
-            <ContentControl x:Name="TreeIndicatorPanel" Template="{StaticResource TreeIndicators}"/>
+        <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Margin="0,0,-0.333,0">
+            <ContentControl Template="{StaticResource GameIndicators}"/>
+            <ContentControl Template="{StaticResource TreeIndicators}" />
         </StackPanel>
 
-        <DockPanel Grid.RowSpan="2" Grid.Row="1">
-            <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Template="{StaticResource SearchBoxTemplate}" Tag="Search for filenames, texture names, PCC's, ExpID's, and Hashes..."/>
-            <ListBox x:Name="MainListBox" ItemsSource="{Binding ItemsView}" ItemContainerStyle="{StaticResource ListBoxContainerStyle}" Focusable="False" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <Grid x:Name="ItemGrid" Background="Transparent">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="14*"/>
-                                <RowDefinition Height="71*"/>
-                            </Grid.RowDefinitions>
+        <StatusBar Template="{StaticResource StatusBarTemplate}" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Grid.Row="4" Margin="0,0,-0.333,0.334"/>
 
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="64*"/>
-                                <ColumnDefinition Width="34*"/>
-                                <ColumnDefinition Width="33*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <StackPanel Orientation="Horizontal">
-                                <Image x:Name="ThumbnailPreview" Width="64" Height="64" HorizontalAlignment="Left">
-                                    <Image.Style>
-                                        <Style TargetType="{x:Type Image}">
-                                            <Setter Property="Source" Value="{Binding Thumbnail, Mode=OneWay}"/>
-
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
-                                                    <Setter Property="Source" Value="{StaticResource DefaultTexture}"/>
-                                                </DataTrigger>
-
-                                                <DataTrigger Binding="{Binding IsDef}" Value="true">
-                                                    <Setter Property="Source" Value="{StaticResource DefaultText}"/>
-                                                </DataTrigger>
-
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Image.Style>
-                                </Image>
-
-                                <StackPanel x:Name="NameAndButtons" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding EntryName}" VerticalAlignment="Center" Margin="5,0"/>
-                                    <StackPanel Grid.Column="1" x:Name="ButtonsPanel" Orientation="Horizontal">
-                                        <StackPanel.Style>
-                                            <Style TargetType="{x:Type StackPanel}">
-                                                <Setter Property="Visibility" Value="Hidden"/>
-
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </StackPanel.Style>
-                                        <Button Content="Install" Style="{StaticResource MainButtonStyle}" Visibility="{Binding Analysed, Converter={StaticResource BoolToVisConverter}}"/>
-                                        <Button Content="Replace" Style="{StaticResource MainButtonStyle}"/>
-                                        <Button Content="Extract" Style="{StaticResource MainButtonStyle}"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </StackPanel>
-
-
-
-                            <Grid Grid.Column="2" x:Name="DetailsGrid">
-
-                                <Grid.Resources>
-                                    <Style TargetType="{x:Type StackPanel}">
-                                        <Setter Property="Orientation" Value="Horizontal"/>
-                                        <Setter Property="Margin" Value="8,0,0,0"/>
-                                    </Style>
-
-                                    <Style TargetType="{x:Type TextBlock}">
-                                        <Setter Property="Foreground" Value="Gray"/>
-                                        <Setter Property="VerticalAlignment" Value="Center"/>
-                                        <Setter Property="FontWeight" Value="Bold"/>
-                                    </Style>
-
-                                    <Style TargetType="{x:Type Label}">
-                                        <Setter Property="Foreground" Value="Gray"/>
-                                    </Style>
-                                </Grid.Resources>
-
-                                <Grid.Visibility>
-                                    <Binding ConverterParameter="{StaticResource True}" Converter="{StaticResource BoolToVisConverter}" Path="IsDef"/>
-                                </Grid.Visibility>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="21*"/>
-                                    <RowDefinition Height="20*"/>
-                                    <RowDefinition Height="23*"/>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="23*"/>
-                                    <ColumnDefinition Width="10*"/>
-                                    <ColumnDefinition Width="14*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <Label Content="Details" Grid.ColumnSpan="3" HorizontalContentAlignment="Center"/>
-                                <StackPanel x:Name="HashDetails" Grid.Row="1">
-                                    <Label Content="Hash: "/>
-                                    <TextBox Text="{Binding Hash, Converter={StaticResource HashStringConverter}}" Padding="2,0" VerticalContentAlignment="Center"/>
-                                    <Button Content="Reset" HorizontalAlignment="Right" Background="White" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding IsHashChanged, Converter={StaticResource BoolToVisConverter}}"/>
-                                </StackPanel>
-
-                                <StackPanel x:Name="WidthAndHeight" Grid.Row="2">
-                                    <Label Content="Width: "/>
-                                    <TextBlock Text="{Binding Width}"/>
-                                    <Label Content="Height: " Margin="5,0,0,0"/>
-                                    <TextBlock Text="{Binding Height}"/>
-                                </StackPanel>
-
-                                <StackPanel x:Name="ImageFormatDetails" Grid.Column="1" Grid.Row="1">
-                                    <Label Content="Image Format: "/>
-                                    <TextBlock Text="{Binding Format}"/>
-                                </StackPanel>
-
-                                <StackPanel x:Name="ExpectedFormatDetails" Grid.Column="1" Grid.Row="2" Visibility="{Binding Analysed, Converter={StaticResource BoolToVisConverter}}">
-                                    <Label Content="Expected Format: "/>
-                                    <TextBlock Text="{Binding ExpectedFormat}"/>
-                                </StackPanel>
-
-                                <StackPanel x:Name="ImageMipsDetails" Grid.Column="2" Grid.Row="1">
-                                    <Label Content="Image Mips: "/>
-                                    <TextBlock Text="{Binding NumMips}"/>
-                                </StackPanel>
-
-                                <StackPanel x:Name="ExpectedMipsDetails" Grid.Column="2" Grid.Row="2" Visibility="{Binding Analysed, Converter={StaticResource BoolToVisConverter}}">
-                                    <Label Content="Expected Mips: "/>
-                                    <TextBlock Text="{Binding ExpectedMips}"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <Expander x:Name="PCCsExpander" Grid.Row="2" Visibility="{Binding Analysed, Converter={StaticResource BoolToVisConverter}}">
-                                <Expander.Header>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="PCCs"/>
-                                        <StackPanel Orientation="Horizontal">
-                                            <StackPanel.Resources>
-                                                <Style TargetType="{x:Type Button}" BasedOn="{StaticResource MainButtonStyle}"/>
-                                            </StackPanel.Resources>
-                                            <StackPanel.Style>
-                                                <Style TargetType="{x:Type StackPanel}">
-                                                    <Setter Property="Visibility" Value="Hidden"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsExpanded, ElementName=PCCsExpander}" Value="true">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </StackPanel.Style>
-                                            <Button Content="Save List"/>
-                                            <Button Content="Select All"/>
-                                            <Button Content="De-select All"/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Expander.Header>
-
-                                <ListBox x:Name="PCCsListBox" MaxHeight="50" ItemsSource="{Binding PCCs}"/>
-                            </Expander>
-                        </Grid>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+        <DockPanel Grid.Row="1" Grid.RowSpan="2">
+            <TextBox x:Name="SearchBox" Height="22" BorderBrush="{x:Null}" Tag="Search..." DockPanel.Dock="Top" Template="{StaticResource SearchBoxTemplate}"/>
+            <ListBox x:Name="MainView"/>
+        </DockPanel>
+        <Image x:Name="PreviewImage" Grid.Column="1" Margin="0.333,25,-0.333,304.094" Grid.RowSpan="3"/>
+        <DockPanel Grid.Column="1" Grid.Row="2" Margin="0.333,0.333,-0.333,0.334" Grid.RowSpan="2">
+            <Label Content="PCCs" DockPanel.Dock="Top"/>
+            <ListBox x:Name="PCCsDisplay"/>
         </DockPanel>
 
-        <StackPanel Grid.Column="1" Grid.Row="1">
-            <TextBlock Text="TPF Details" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold"/>
-            <TextBlock x:Name="TPFDetailsText" Text="{Binding SelectedItem.SourceInfo, ElementName=MainListBox}" TextWrapping="Wrap" Margin="5,0"/>
-        </StackPanel>
-
-        <Image x:Name="SmallPreviewImage" Grid.Column="1" Grid.Row="2" Grid.RowSpan="2" Source="{Binding SelectedItem.Preview, ElementName=MainListBox, IsAsync=True}" Visibility="{Binding SelectedItem.IsDef, ConverterParameter={StaticResource True}, Converter={StaticResource BoolToVisConverter}, ElementName=MainListBox}"/>
-
-        <TextBlock x:Name="DefPreview" Margin="10" Grid.Column="1" Grid.Row="2" Grid.RowSpan="2" Text="{Binding SelectedItem.DefPreview, ElementName=MainListBox}" TextWrapping="Wrap" Visibility="{Binding SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}, ElementName=MainListBox}"/>
-
-        <StackPanel x:Name="MainButtons" Orientation="Horizontal" Grid.Row="3" Margin="0,0.667,0,30.333" Grid.RowSpan="2">
-            <Border x:Name="InstallButton" Background="White" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" BorderBrush="#FFC1C1C1" BorderThickness="1" Margin="3">
-                <StackPanel VerticalAlignment="Center">
-                    <Button Content="Install Textures" Style="{StaticResource MainButtonStyle}" FontSize="20" BorderBrush="White"/>
-                    <Button Content="Attempt to fix first" FontSize="10" Style="{StaticResource MainButtonStyle}" HorizontalAlignment="Center" BorderBrush="#FFE8E8E8"/>
-                </StackPanel>
-            </Border>
-            <Button x:Name="AnalyseButton" Content="Analyse with Texplorer" Style="{StaticResource MainButtonStyle}" VerticalAlignment="Center" Margin="10,0,0,0"/>
-        </StackPanel>
-
-        <StatusBar Template="{StaticResource StatusBarTemplate}" Grid.Row="4" Grid.ColumnSpan="2" Margin="0,0.333,0.333,0.333"/>
+        <DockPanel Grid.Row="3" LastChildFill="False">
+            <Button Content="Install Textures" Style="{StaticResource MainButtonStyle}" FontSize="25" Margin="3" Padding="20,0"/>
+            <Button Content="Analyse with Texplorer" Style="{StaticResource MainButtonStyle}" VerticalAlignment="Center" Padding="10,3"/>
+        </DockPanel>
     </Grid>
 </Window>

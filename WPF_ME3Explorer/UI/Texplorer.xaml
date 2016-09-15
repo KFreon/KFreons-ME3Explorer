@@ -86,23 +86,6 @@
 
 
         <Menu x:Name="MainMenuBar" Background="White" Grid.ColumnSpan="2">
-            <Menu.Resources>
-                <Style TargetType="MenuItem" x:Key="BaseMenuItemStyle">
-                    <Setter Property="Height" Value="25"/>
-                    <Setter Property="Foreground" Value="Black"/>
-                </Style>
-            </Menu.Resources>
-            <Menu.Style>
-                <Style TargetType="Menu">
-                    <Setter Property="IsEnabled" Value="True"/>
-
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Busy}" Value="true">
-                            <Setter Property="IsEnabled" Value="False"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Menu.Style>
             <MenuItem x:Name="SaveChangesButton" Header="Save Changes" Command="{Binding SaveChangesCommand}">
                 <MenuItem.Style>
                     <Style TargetType="MenuItem" BasedOn="{StaticResource BaseMenuItemStyle}">
