@@ -40,15 +40,15 @@ namespace WPF_ME3Explorer.UI
             InitializeComponent();
             vm = new TexplorerViewModel();
 
-            TaskBarUpdater = new Action<System.Windows.Shell.TaskbarItemProgressState>(state => TaskBarProgress.Dispatcher.Invoke(new Action(() => TaskBarProgress.ProgressState = state)));
+            TaskBarUpdater = new Action<System.Windows.Shell.TaskbarItemProgressState>(state => TaskBarProgressMeter.Dispatcher.Invoke(new Action(() => TaskBarProgressMeter.ProgressState = state)));
 
             vm.PropertyChanged += (sender, args) =>
             {
                 // Change toolbar progress state when required.
                 if (args.PropertyName == nameof(vm.Progress))
-                    TaskBarUpdater(vm.Progress == 0 ? System.Windows.Shell.TaskbarItemProgressState.None : System.Windows.Shell.TaskbarItemProgressState.Normal);
+                    TaskBarUpdater(vm.Progress == 0 || vm.Progress == vm.MaxProgress ? System.Windows.Shell.TaskbarItemProgressState.None : System.Windows.Shell.TaskbarItemProgressState.Normal);
                 else if (args.PropertyName == nameof(vm.ProgressIndeterminate))
-                    TaskBarUpdater(vm.ProgressIndeterminate ? System.Windows.Shell.TaskbarItemProgressState.Indeterminate : TaskBarProgress.ProgressState);
+                    TaskBarUpdater(vm.ProgressIndeterminate ? System.Windows.Shell.TaskbarItemProgressState.Indeterminate : TaskBarProgressMeter.ProgressState);
             };
 
             vm.ProgressCloser = new Action(() =>

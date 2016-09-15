@@ -21,7 +21,7 @@
     </Window.Resources>
     
     <Window.TaskbarItemInfo>
-        <TaskbarItemInfo x:Name="TaskBarProgress" Description="Texplorer" ProgressValue="{Binding Progress}"/>
+        <TaskbarItemInfo x:Name="TaskBarProgressMeter" Description="Texplorer" ProgressValue="{Binding TaskBarProgress, Mode=OneWay}"/>
     </Window.TaskbarItemInfo>
     
     
@@ -117,8 +117,10 @@
                 </MenuItem.Style>
             </MenuItem>
             <MenuItem x:Name="RegenerateTopMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Regenerate All Thumbnails" Click="RegenerateTopMenu_Click"/>
-            <MenuItem x:Name="StartTPFToolsMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Start TPFTools Mode" Command="{Binding StartTPFToolsModeCommand}" Visibility="{Binding TPFToolsModeEnabled, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
-            <MenuItem x:Name="StopTPFToolsMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Stop TPFTools Mode" Command="{Binding StopTPFToolsModeCommand}" Visibility="{Binding TPFToolsModeEnabled, Converter={StaticResource BoolToVisConverter}}"/>
+            <MenuItem x:Name="StartTPFToolsMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Start TPFTools Mode" 
+                      Command="{Binding StartTPFToolsModeCommand}" Visibility="{Binding TPFToolsModeEnabled, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
+            <MenuItem x:Name="StopTPFToolsMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Stop TPFTools Mode" 
+                      Command="{Binding StopTPFToolsModeCommand}" Visibility="{Binding TPFToolsModeEnabled, Converter={StaticResource BoolToVisConverter}}"/>
         </Menu>
 
         <StackPanel x:Name="GameAndTreeIndicators" Orientation="Horizontal" Grid.Column="3" HorizontalAlignment="Right" Margin="0,0,0,0.333">
@@ -836,7 +838,8 @@
                     </StackPanel>
                 </StackPanel>
 
-                <Label Content="Please wait..." Grid.ColumnSpan="2" Grid.RowSpan="2" Background="#B2808080" Foreground="White" FontSize="200" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Visibility="{Binding FTSReady, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}" d:IsHidden="True"/>
+                <Label Content="Please wait..." Grid.ColumnSpan="2" Grid.RowSpan="2" Background="#B2808080" Foreground="White" FontSize="200" VerticalContentAlignment="Center" 
+                       HorizontalContentAlignment="Center" Visibility="{Binding FTSReady, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}" d:IsHidden="True"/>
             </Grid>
         </Grid>
 

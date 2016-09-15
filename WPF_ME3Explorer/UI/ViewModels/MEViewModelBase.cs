@@ -86,6 +86,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
+        public double TaskBarProgress
+        {
+            get
+            {
+                return Progress / MaxProgress;
+            }
+        }
+
         int progress = 0;
         public int Progress
         {
@@ -97,7 +105,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 Interlocked.Exchange(ref progress, value);
                 OnPropertyChanged(nameof(Progress));
-             //   SetProperty(ref progress, value);
+                OnPropertyChanged(nameof(TaskBarProgress));
+                //   SetProperty(ref progress, value);
             }
         }
 
