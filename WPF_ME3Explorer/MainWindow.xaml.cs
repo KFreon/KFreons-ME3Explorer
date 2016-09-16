@@ -25,6 +25,11 @@ namespace WPF_ME3Explorer
         {
             InitializeComponent();
             DebugOutput.StartDebugger("The Toolset");
+
+            // Load all tools
+            /*var tex = ToolsetInfo.TexplorerInstance;
+            var tpf = ToolsetInfo.TPFToolsInstance;
+            var mod = ToolsetInfo.ModmakerInstance;*/
         }
 
         private void TPFToolsButton_MouseDown(object sender, MouseButtonEventArgs e)
@@ -44,9 +49,10 @@ namespace WPF_ME3Explorer
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            ToolsetInfo.TPFToolsInstance.Close();
-            ToolsetInfo.TexplorerInstance.Close();
-            ToolsetInfo.ModmakerInstance.Close();
+            ToolsetInfo.Closing = true;
+            ToolsetInfo.TPFToolsInstance?.Close();
+            ToolsetInfo.TexplorerInstance?.Close();
+            ToolsetInfo.ModmakerInstance?.Close();
             DebugOutput.Close();
         }
     }

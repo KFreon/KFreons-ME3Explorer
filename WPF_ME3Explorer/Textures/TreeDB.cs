@@ -166,7 +166,7 @@ namespace WPF_ME3Explorer.Textures
                                 {
                                     string userAgnosticPath = ScannedPCCs[bin.ReadInt32()];
                                     int ExpID = bin.ReadInt32();
-                                    tex.PCCS.Add(new PCCEntry(Path.Combine(GameDirecs.BasePath, userAgnosticPath), ExpID));
+                                    tex.PCCs.Add(new PCCEntry(Path.Combine(GameDirecs.BasePath, userAgnosticPath), ExpID));
                                 }
 
                                 Textures.Add(tex);
@@ -225,8 +225,8 @@ namespace WPF_ME3Explorer.Textures
                             bw.Write((int)tex.Format);
                             bw.Write(tex.Thumb.Offset);
                             bw.Write(tex.Thumb.Length);
-                            bw.Write(tex.PCCS.Count);
-                            foreach (PCCEntry pcc in tex.PCCS)
+                            bw.Write(tex.PCCs.Count);
+                            foreach (PCCEntry pcc in tex.PCCs)
                             {
                                 bw.Write(ScannedPCCs.IndexOf(pcc.Name));
                                 bw.Write(pcc.ExpID);
@@ -250,14 +250,14 @@ namespace WPF_ME3Explorer.Textures
                 string line = $"{tex.TexName}, {tex.Format}, {ToolsetTextureEngine.FormatTexmodHashAsString(tex.Hash)}, {tex.FullPackage}";
 
                 // KFreon: Make sure the lists have stuff in them - ? stops a null list from breaking when calling count. i.e. list.count when null = exception, but list?.count = null/false.
-                if (ShowFilesExpIDs && tex.PCCS?.Count > 0)
+                if (ShowFilesExpIDs && tex.PCCs?.Count > 0)
                 {
-                    line += $", {tex.PCCS[0].Name}, {tex.PCCS[0].ExpID}";  // First line
+                    line += $", {tex.PCCs[0].Name}, {tex.PCCs[0].ExpID}";  // First line
                     sb.AppendLine(line);
 
-                    if (tex.PCCS.Count > 1)
-                        for (int j = 1; j < tex.PCCS.Count; j++)
-                            sb.AppendLine($",,,,{tex.PCCS[j].Name}, {tex.PCCS[j].ExpID}");  // KFreon: ,,,'s are blank columns so these file/expid combos are in line with the others
+                    if (tex.PCCs.Count > 1)
+                        for (int j = 1; j < tex.PCCs.Count; j++)
+                            sb.AppendLine($",,,,{tex.PCCs[j].Name}, {tex.PCCs[j].ExpID}");  // KFreon: ,,,'s are blank columns so these file/expid combos are in line with the others
                 }
                 else
                     sb.AppendLine(line);

@@ -107,6 +107,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="PCCEntry.cs" />
+    <Compile Include="Textures\TPFTexInfo.cs" />
     <Compile Include="UI\GameInformation.xaml.cs">
       <DependentUpon>GameInformation.xaml</DependentUpon>
     </Compile>

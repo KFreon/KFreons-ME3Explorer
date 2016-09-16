@@ -44,14 +44,6 @@ namespace WPF_ME3Explorer.Textures
 
         public Texture2D ChangedAssociatedTexture { get; set; }
 
-        public string DefaultSaveName
-        {
-            get
-            {
-                return $"{TexName}_{ToolsetTextureEngine.FormatTexmodHashAsString(Hash)}.dds";
-            }
-        }
-
         string fullPackage = null;
         public string FullPackage
         {
@@ -93,48 +85,6 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        int height = 0;
-        public override int Height
-        {
-            get
-            {
-                return height;
-            }
-
-            set
-            {
-                SetProperty(ref height, value);
-            }
-        }
-
-        int width = 0;
-        public override int Width
-        {
-            get
-            {
-                return width;
-            }
-
-            set
-            {
-                SetProperty(ref width, value);
-            }
-        }
-
-        int mips = 0;
-        public override int Mips
-        {
-            get
-            {
-                return mips;
-            }
-
-            set
-            {
-                SetProperty(ref mips, value);
-            }
-        }
-
         bool hasChanged = false;
         public bool HasChanged
         {
@@ -149,7 +99,7 @@ namespace WPF_ME3Explorer.Textures
                 // Reset things when they need to be
                 if (!value)
                 {
-                    Thumb.ChangedThumb = null;
+                    Thumb.StreamThumb = null;
                     ChangedAssociatedTexture = null;
                     OnPropertyChanged(nameof(Thumb));
                 }
@@ -218,11 +168,11 @@ namespace WPF_ME3Explorer.Textures
             GenerateThumbnail = new Action(() => CreateThumbnail(ToolsetTextureEngine.AddDDSHeader(imgData, info, tex2D.texFormat), tex2D, ThumbWriter, info, TFCs, Errors));
 
             for (int i = 0; i < tex2D.allPccs.Count; i++)
-                PCCS.Add(new PCCEntry(tex2D.allPccs[i], tex2D.expIDs[i]));
+                PCCs.Add(new PCCEntry(tex2D.allPccs[i], tex2D.expIDs[i]));
 
             // KFreon: ME2 only?
             if (export.PackageFullName == "Base Package")
-                FullPackage = Path.GetFileNameWithoutExtension(PCCS[0].Name).ToUpperInvariant();   // Maybe not right?
+                FullPackage = Path.GetFileNameWithoutExtension(PCCs[0].Name).ToUpperInvariant();   // Maybe not right?
             else
                 FullPackage = export.PackageFullName.ToUpperInvariant();
         }
@@ -264,19 +214,19 @@ namespace WPF_ME3Explorer.Textures
         {
             if (GameVersion == 2 && (!String.IsNullOrEmpty(ChangedAssociatedTexture.arcName) && ChangedAssociatedTexture.arcName != "None"))
             {
-                for (int i = 0; i < PCCS.Count; i++)
+                for (int i = 0; i < PCCs.Count; i++)
                 {
-                    using (PCCObject pcc = new PCCObject(PCCS[i].Name, GameVersion))
+                    using (PCCObject pcc = new PCCObject(PCCs[i].Name, GameVersion))
                     {
-                        using (Texture2D tex = new Texture2D(pcc, PCCS[i].ExpID, GameDirecs))
+                        using (Texture2D tex = new Texture2D(pcc, PCCs[i].ExpID, GameDirecs))
                         {
                             string arc = tex.arcName;
                             if (i == 0 && (arc != "None" && !String.IsNullOrEmpty(arc)))
                                 break;
                             else if (arc != "None" && !String.IsNullOrEmpty(arc))
                             {
-                                PCCEntry file = PCCS.Pop(i);  // Removes and returns
-                                PCCS.Insert(0, file);
+                                PCCEntry file = PCCs.Pop(i);  // Removes and returns
+                                PCCs.Insert(0, file);
                                 break;
                             }
                         }
@@ -288,15 +238,15 @@ namespace WPF_ME3Explorer.Textures
         public void Update(TreeTexInfo tex)
         {
             // Add different PCCs and corresponding expIDs
-            for (int i = 0; i < tex.PCCS.Count; i++)
+            for (int i = 0; i < tex.PCCs.Count; i++)
             {
-                if (PCCS.Contains(tex.PCCS[i]))
+                if (PCCs.Contains(tex.PCCs[i]))
                 {
                     bool duplicateDetected = false;
-                    for (int j = 0; j < PCCS.Count; j++)
+                    for (int j = 0; j < PCCs.Count; j++)
                     {
                         // To be a "duplicate", both pcc and expid must be the same.
-                        if (PCCS[j] == tex.PCCS[i])
+                        if (PCCs[j] == tex.PCCs[i])
                         {
                             duplicateDetected = true;
                             break;
@@ -308,7 +258,7 @@ namespace WPF_ME3Explorer.Textures
                         continue;
                 }
 
-                PCCS.Add(tex.PCCS[i]);
+                PCCs.Add(tex.PCCs[i]);
             }
 
             if (Hash == 0)
@@ -349,8 +299,8 @@ namespace WPF_ME3Explorer.Textures
             if (HasChanged)
                 PopulateDetails(ChangedAssociatedTexture);
             else
-                using (PCCObject pcc = new PCCObject(PCCS[0].Name, GameVersion))
-                    using (Texture2D tex2D = new Texture2D(pcc, PCCS[0].ExpID, GameDirecs))
+                using (PCCObject pcc = new PCCObject(PCCs[0].Name, GameVersion))
+                    using (Texture2D tex2D = new Texture2D(pcc, PCCs[0].ExpID, GameDirecs))
                         PopulateDetails(tex2D);   
         }
 
@@ -367,7 +317,7 @@ namespace WPF_ME3Explorer.Textures
 
         internal void SetChangedThumb(MemoryStream stream)
         {
-            Thumb.ChangedThumb = stream;
+            Thumb.StreamThumb = stream;
             OnPropertyChanged(nameof(Thumb));
         }
     }

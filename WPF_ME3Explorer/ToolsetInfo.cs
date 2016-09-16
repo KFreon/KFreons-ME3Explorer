@@ -13,12 +13,15 @@ namespace WPF_ME3Explorer
 {
     public static class ToolsetInfo
     {
+        public static bool Closing { get; internal set; }
+
+
         static TPFTools tpfToolsInstance = null;
         public static TPFTools TPFToolsInstance
         {
             get
             {
-                if (tpfToolsInstance?.IsClosed != false) // So if it's null or true, it resets the instance
+                if (!Closing && tpfToolsInstance?.IsClosed != false) // So if it's null or true, it resets the instance
                     tpfToolsInstance = new TPFTools();
 
                 return tpfToolsInstance;
@@ -30,7 +33,7 @@ namespace WPF_ME3Explorer
         {
             get
             {
-                if (texplorerInstance?.IsClosed != false) // So if it's null or true, it resets the instance
+                if (!Closing && texplorerInstance?.IsClosed != false) // So if it's null or true, it resets the instance
                     texplorerInstance = new Texplorer();
 
                 return texplorerInstance;
@@ -42,7 +45,7 @@ namespace WPF_ME3Explorer
         {
             get
             {
-                if (modmakerInstance?.IsClosed != false) // So if it's null or true, it resets the instance
+                if (!Closing && modmakerInstance?.IsClosed != false) // So if it's null or true, it resets the instance
                     modmakerInstance = new Modmaker();
 
                 return modmakerInstance;
@@ -136,5 +139,6 @@ namespace WPF_ME3Explorer
                 return UsefulThings.General.GetFileSizeAsString(DiskTransferCounter.NextValue());
             }
         }
+
     }
 }

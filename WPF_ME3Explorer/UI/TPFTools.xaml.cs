@@ -21,9 +21,9 @@ namespace WPF_ME3Explorer.UI
     /// </summary>
     public partial class TPFTools : Window
     {
-        //TPFToolsViewModel vm = null;
-        string[] AcceptedFiles = { "DirectX Images", "JPEG Images", "Bitmap Images", "PNG Images" , "Texmod Archives", "ME3Explorer Archives" };
-        string[] AcceptedExtensions = { ".dds", ".jpg", ".bmp", ".png", ".tpf", ".metpf" };
+        TPFToolsViewModel vm = null;
+        string[] AcceptedFiles = { "DirectX Images", "JPEG Images", "JPEG Images", "Bitmap Images", "PNG Images", "Targa Images", "Texmod Archives", "ME3Explorer Archives" };
+        string[] AcceptedExtensions = { ".dds", ".jpg", ".jpeg", ".bmp", ".png", ".tga", ".tpf", ".metpf" };
 
         public bool IsClosed { get; private set; }
 
@@ -31,11 +31,26 @@ namespace WPF_ME3Explorer.UI
         {
             InitializeComponent();
 
-            //vm = new TPFToolsViewModel();
-            //DataContext = vm;
+            vm = new TPFToolsViewModel();
+            DataContext = vm;
         }
 
-        private void LoadButton_Click(object sender, RoutedEventArgs e)
+        private void Window_Drop(object sender, DragEventArgs e)
+        {
+            
+        }
+
+        private void Window_DragOver(object sender, DragEventArgs e)
+        {
+            
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            IsClosed = true;
+        }
+
+        private void LoadMenuItem_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Title = "Select TPFs/images to load";
@@ -43,51 +58,18 @@ namespace WPF_ME3Explorer.UI
             ofd.Filter = filter;
             ofd.Multiselect = true;
 
-            //if (ofd.ShowDialog() == true)
-                //vm.LoadFiles(ofd.FileNames);
+            if (ofd.ShowDialog() == true)
+                vm.LoadFiles(ofd.FileNames);
         }
 
-        private void ClearAllButton_Click(object sender, RoutedEventArgs e)
+        private void SavePCCsListButton_Click(object sender, RoutedEventArgs e)
         {
-            //vm.ClearAll();
-        }
+            SaveFileDialog sfd = new SaveFileDialog();
 
-
-        private void Window_Drop(object sender, DragEventArgs e)
-        {
-            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-
-            //if (files?.Length != 0)
-                //vm.LoadFiles(files);
-        }
-
-        private void Window_DragOver(object sender, DragEventArgs e)
-        {
-            string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
-            bool enabled = true;
-            if (files?.Length != 0)
-            {
-                foreach (string file in files)
-                {
-                    string ext = Path.GetExtension(file);
-                    if (!AcceptedExtensions.Contains(ext))
-                    {
-                        enabled = false;
-                        break;
-                    }
-                }
-            }
-            else
-                enabled = false;
-
-            e.Handled = true;
-            e.Effects = enabled ? DragDropEffects.All : DragDropEffects.None;
-        }
-
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            IsClosed = true;
-            //vm.Shutdown();
+            sfd.FileName = $"{Path.GetFileNameWithoutExtension(vm.SelectedTexture.DefaultSaveName)}_PCCs-ExpIDs.csv";
+            sfd.Filter = "Comma Separated|*.csv";
+            if (sfd.ShowDialog() == true)
+                vm.ExportSelectedTexturePCCList(sfd.FileName);
         }
     }
 }

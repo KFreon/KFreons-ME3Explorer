@@ -232,7 +232,13 @@ namespace SaltTPF
         public List<ZipEntryFull> Entries;
         public String _filename;
         public EOFRecord EOFStrct;
-		public string Description;
+		public string Description
+        {
+            get
+            {
+                return $"TPF Details\n\nFilename:  \n{_filename}\n\nComment:  {EOFStrct.Comment}\nNumber of stored files:  {Entries?.Count}";
+            }
+        }
         public bool Scanned;
 
         /* Private members */

@@ -15,7 +15,7 @@ namespace WPF_ME3Explorer.Textures
         public long Offset { get; set; }
         public int Length { get; set; }
         string cachePath = null;
-        internal MemoryStream ChangedThumb = null;  // Used when texture is changed.
+        internal MemoryStream StreamThumb = null;  // Used when texture is changed for Texplorer.
 
         public Thumbnail() { }  
 
@@ -24,14 +24,14 @@ namespace WPF_ME3Explorer.Textures
             cachePath = cache;
         }
 
-        public Thumbnail(byte[] data, string cache) : this(cache)
+        public Thumbnail(byte[] data) : this()
         {
-
+            StreamThumb = new MemoryStream(data);
         }
 
-        public Thumbnail(ImageEngineImage img, string cache) : this(cache)
+        public Thumbnail(MemoryStream ms) : this()
         {
-
+            StreamThumb = ms;
         }
 
         public Thumbnail(int offset, int length, string cache) : this(cache)
@@ -43,7 +43,7 @@ namespace WPF_ME3Explorer.Textures
         public BitmapSource GetImage()
         {
             MemoryStream ms = new MemoryStream();
-            if (ChangedThumb == null)
+            if (StreamThumb == null)
             {
                 if (!File.Exists(cachePath))
                     return null;
@@ -55,9 +55,9 @@ namespace WPF_ME3Explorer.Textures
                 }
             }
             else
-                ms = ChangedThumb;
+                ms = StreamThumb;
 
-            return UsefulThings.WPF.Images.CreateWPFBitmap(ms, DisposeStream: ChangedThumb == null);  // Dispose of stream only if it's not the ChangedThumb being used
+            return UsefulThings.WPF.Images.CreateWPFBitmap(ms, DisposeStream: StreamThumb == null);  // Dispose of stream only if it's not the ChangedThumb being used
         }
     }
 }

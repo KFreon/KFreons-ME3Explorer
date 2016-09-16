@@ -32,24 +32,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
     public class TexplorerViewModel : MEViewModelBase<TreeTexInfo>
     {
         #region Commands
-        CommandHandler showGameInfo = null;
-        public CommandHandler ShowGameInfoCommand
-        {
-            get
-            {
-                if (showGameInfo == null)
-                    showGameInfo = new CommandHandler(new Action<object>(param =>
-                        {
-                            int version = int.Parse((string)param);
-                            GameInformation info = new GameInformation(version);
-                            info.Closed += (unused1, unused2) => GameDirecs.RefreshListeners();  // Refresh all game directory related info once window is closed. 
-                            info.Show();
-                        }));
-
-                return showGameInfo;
-            }
-        }
-
         CommandHandler saveChangesCommand = null;
         public CommandHandler SaveChangesCommand
         {
@@ -79,7 +61,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                         // Update thumbnails
                         foreach (var tex in ChangedTextures)
-                            tex.Thumb = ThumbnailWriter.ReplaceOrAdd(tex.Thumb.ChangedThumb, tex.Thumb);
+                            tex.Thumb = ThumbnailWriter.ReplaceOrAdd(tex.Thumb.StreamThumb, tex.Thumb);
 
                         ThumbnailWriter.FinishAdding();
 
@@ -107,8 +89,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
-        CommandHandler changeTree = null;
-        public CommandHandler ChangeTreeCommand
+        public override CommandHandler ChangeTreeCommand
         {
             get
             {
@@ -239,7 +220,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         #endregion UI Actions
 
         #region Properties
-
+        public MTRangedObservableCollection<TreeTexInfo> TextureSearchResults { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
         List<DLCEntry> FTSDLCs { get; set; } = new List<DLCEntry>();
         List<GameFileEntry> FTSGameFiles { get; set; } = new List<GameFileEntry>();
         List<AbstractFileEntry> FTSExclusions { get; set; } = new List<AbstractFileEntry>();
@@ -264,27 +245,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
-        public bool? PCCsCheckAll
-        {
-            get
-            {
-                if (SelectedTexture?.PCCS == null)
-                    return false;
-
-                int num = SelectedTexture.PCCS.Where(pcc => pcc.IsChecked).Count();
-                if (num == 0)
-                    return false;
-                else if (num == SelectedTexture.PCCS.Count)
-                    return true;
-
-                return null;
-            }
-            set
-            {
-                SelectedTexture.PCCS.AsParallel().ForAll(pcc => pcc.IsChecked = value == true);
-            }
-        }
-
         TexplorerTextureFolder mySelected = null;
         public TexplorerTextureFolder SelectedFolder
         {
@@ -295,20 +255,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             set
             {
                 SetProperty(ref mySelected, value);
-            }
-        }
-
-        TreeTexInfo selectedTexture = null;
-        public TreeTexInfo SelectedTexture
-        {
-            get
-            {
-                return selectedTexture;
-            }
-            set
-            {
-                SetProperty(ref selectedTexture, value);
-                OnPropertyChanged(nameof(PCCsCheckAll));
             }
         }
 
@@ -420,6 +366,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             };
             #endregion FTS Filtering
 
+            AbstractFileEntry.Updater = new Action(() => UpdateFTS());
 
             #region Setup Texture UI Commands
             TreeTexInfo.ChangeCommand = new CommandHandler(new Action<object>(tex =>
@@ -466,51 +413,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             BeginTreeLoading();
         }
 
-        string BuildTexDetailsForCSV(TreeTexInfo tex)
-        {
-            StringBuilder texDetails = new StringBuilder();
-            texDetails.AppendLine($"Texture details for:, {tex.TexName}, with hash, {ToolsetTextureEngine.FormatTexmodHashAsString(tex.Hash)}");
-            texDetails.AppendLine();
-
-            // Details
-            texDetails.AppendLine($"Game Version, {tex.GameVersion}");
-            texDetails.AppendLine($"Format, {ToolsetTextureEngine.StringifyFormat(tex.Format)}");
-            texDetails.AppendLine($"Number of Mips, {tex.Mips}");
-            texDetails.AppendLine($"Package, {tex.FullPackage}");
-            texDetails.AppendLine($"Dimensions (Width x Height), {tex.Width}x{tex.Height}");
-            texDetails.AppendLine($"LODGroup (if available), {tex.LODGroup}");
-            texDetails.AppendLine($"Storage Type (if available), {tex.StorageType}");
-            texDetails.AppendLine($"Texture Cache (if available), {tex.TextureCache}");
-
-            texDetails.AppendLine();
-            texDetails.AppendLine();
-            texDetails.AppendLine();
-
-            //////// PCCS ////////
-            // Column Headers
-            texDetails.AppendLine("Is Checked, Name, Export ID");
-
-            // PCC details
-            foreach (PCCEntry pcc in tex.PCCS)
-                texDetails.AppendLine($"{pcc.IsChecked}, {pcc.Name}, {pcc.ExpID}");
-
-            return texDetails.ToString();
-        }
-
-        internal void ExportSelectedTexturePCCList(string fileName)
-        {
-            Busy = true;
-            Status = $"Exporting PCC list for: {SelectedTexture.TexName}";
-            Progress = 0;
-
-            using (StreamWriter writer = new StreamWriter(fileName))
-                writer.Write(BuildTexDetailsForCSV(SelectedTexture));
-
-            Status = $"PCCs exported to: {fileName}";
-            Progress = MaxProgress;
-            Busy = false;
-        }
-
         internal async Task RegenerateThumbs(params TreeTexInfo[] textures)
         {
             Busy = true;
@@ -549,7 +451,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             var tex2DMaker = new TransformBlock<Tuple<PCCObject, IGrouping<string, TreeTexInfo>>, Tuple<Thumbnail, Texture2D>>(obj =>
             {
                 TreeTexInfo tex = obj.Item2.First();
-                Texture2D tex2D = new Texture2D(obj.Item1, tex.PCCS[0].ExpID, GameDirecs);
+                Texture2D tex2D = new Texture2D(obj.Item1, tex.PCCs[0].ExpID, GameDirecs);
                 return new Tuple<Thumbnail, Texture2D>(tex.Thumb, tex2D);
             }, new ExecutionDataflowBlockOptions { BoundedCapacity = halfThreads });
 
@@ -600,7 +502,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Gets all distinct pcc's being altered.
             var pccTexGroups =
                 from tex in texes
-                group tex by tex.PCCS[0].Name;
+                group tex by tex.PCCs[0].Name;
 
             // Send each unique PCC to get textures saved to it.
             foreach (var texGroup in pccTexGroups)
@@ -616,35 +518,13 @@ namespace WPF_ME3Explorer.UI.ViewModels
             pccBuffer.Complete();
         }
 
-        async void BeginTreeLoading()
+        /// <summary>
+        /// For tree setup during startup.
+        /// </summary>
+        /// <returns></returns>
+        protected override Task LoadTreeAndExtra()
         {
-            Busy = true;
-            Status = "Loading Trees...";
-
-            AbstractFileEntry.Updater = new Action(() => UpdateFTS());
-
-            await Task.Run(() =>
-            {
-                // Load all three trees
-                base.LoadTrees();
-
-                /// Can take a long time if disk is busy
-                // KFreon: Populate game files info with tree info
-                if (GameDirecs.Files?.Count <= 0)
-                {
-                    DebugOutput.PrintLn($"Game files not found for ME{GameDirecs.GameVersion} at {GameDirecs.PathBIOGame}");
-                    Status = "Game Files not found!";
-                    Busy = false;
-                    return;
-                }
-            });
-
-            await LoadFTSandTree();
-
-            ToolsetInfo.SetupDiskCounters(Path.GetPathRoot(GameDirecs.BasePath).TrimEnd('\\'));
-
-            Status = CurrentTree.Valid ? "Ready!" : Status; 
-            Busy = false;
+            return LoadFTSandTree();
         }
 
         async Task LoadFTSandTree(bool panelAlreadyOpen = false)
@@ -1002,14 +882,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Textures.Clear();
             Textures.AddRange(CurrentTree.Textures);
 
-            // Add checkbox listener for linking the check action of individual pccs to top level Check All
-            foreach (var tex in Textures)
-                foreach (var pccentry in tex.PCCS)
-                    pccentry.PropertyChanged += (source, args) =>
-                      {
-                          if (args.PropertyName == nameof(pccentry.IsChecked))
-                              OnPropertyChanged(nameof(PCCsCheckAll));
-                      };
+            SetupPCCCheckBoxLinking();
 
             DebugOutput.PrintLn("Tree Constructed!");
             Busy = false;
@@ -1062,9 +935,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         internal void LoadPreview(TreeTexInfo texInfo)
         {
-            using (PCCObject pcc = new PCCObject(texInfo.PCCS[0].Name, GameVersion))
+            using (PCCObject pcc = new PCCObject(texInfo.PCCs[0].Name, GameVersion))
             {
-                using (Texture2D tex2D = new Texture2D(pcc, texInfo.PCCS[0].ExpID, GameDirecs))
+                using (Texture2D tex2D = new Texture2D(pcc, texInfo.PCCs[0].ExpID, GameDirecs))
                 {
                     byte[] img = tex2D.ExtractMaxImage(true);
                     using (ImageEngineImage jpg = new ImageEngineImage(img))
@@ -1097,8 +970,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 if (tex.HasChanged)
                     stream = ToolsetTextureEngine.GetThumbFromTex2D(tex.ChangedAssociatedTexture);
 
-                using (PCCObject pcc = new PCCObject(tex.PCCS[0].Name, GameVersion))
-                    using (Texture2D tex2D = new Texture2D(pcc, tex.PCCS[0].ExpID, GameDirecs))
+                using (PCCObject pcc = new PCCObject(tex.PCCs[0].Name, GameVersion))
+                    using (Texture2D tex2D = new Texture2D(pcc, tex.PCCs[0].ExpID, GameDirecs))
                         stream = ToolsetTextureEngine.GetThumbFromTex2D(tex2D);
 
                 if (tex.Thumb == null) // Could happen
@@ -1181,6 +1054,21 @@ namespace WPF_ME3Explorer.UI.ViewModels
             RefreshTreeRelatedProperties();
 
             LoadFTSandTree(true);
+        }
+
+        public override void Search(string searchText)
+        {
+            TextureSearchResults.Clear();
+            ConcurrentBag<TreeTexInfo> tempResults = new ConcurrentBag<TreeTexInfo>();
+
+            Parallel.ForEach(Textures, texture =>
+            {
+                bool found = texture.Searchables.Any(searchable => searchable.Contains(searchText, StringComparison.OrdinalIgnoreCase));
+                if (found)
+                    tempResults.Add(texture);
+            });
+
+            TextureSearchResults.AddRange(tempResults);
         }
     }
 }

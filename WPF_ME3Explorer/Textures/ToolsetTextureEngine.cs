@@ -42,7 +42,7 @@ namespace WPF_ME3Explorer.Textures
         public static void ME1_SortTexturesPCCs(IEnumerable<TreeTexInfo> texes)
         {
             foreach (var tex in texes)
-                tex.PCCS.Sort((x, y) => y.Name.Length.CompareTo(x.Name.Length));
+                tex.PCCs.Sort((x, y) => y.Name.Length.CompareTo(x.Name.Length));
         }
 
         public static MemoryStream GetThumbFromTex2D(Texture2D tex2D)
@@ -209,7 +209,7 @@ namespace WPF_ME3Explorer.Textures
 
         static Texture2D GetTexture2D(TreeTexInfo tex)
         {
-            if (tex.PCCS?.Count < 1)
+            if (tex.PCCs?.Count < 1)
                 throw new IndexOutOfRangeException($"Tex: {tex.TexName} has no PCC's.");
 
             if (tex.GameVersion < 1 || tex.GameVersion > 3)
@@ -218,8 +218,8 @@ namespace WPF_ME3Explorer.Textures
             // Read new texture file
             Texture2D tex2D = null;
 
-            string pccPath = tex.PCCS[0].Name;
-            int expID = tex.PCCS[0].ExpID;
+            string pccPath = tex.PCCs[0].Name;
+            int expID = tex.PCCs[0].ExpID;
 
             // Texture object has already been created - likely due to texture being updated previously in current session
             if (tex.ChangedAssociatedTexture != null)
@@ -232,7 +232,7 @@ namespace WPF_ME3Explorer.Textures
                 if (!File.Exists(pccPath))
                     throw new FileNotFoundException($"PCC not found at: {pccPath}.");
 
-                pcc = new PCCObject(tex.PCCS[0].Name, tex.GameVersion);
+                pcc = new PCCObject(tex.PCCs[0].Name, tex.GameVersion);
 
                 if (expID >= pcc.Exports.Count)
                     throw new IndexOutOfRangeException($"Given export ID ({expID}) is out of range. PCC Export Count: {pcc.Exports.Count}.");
@@ -320,7 +320,7 @@ namespace WPF_ME3Explorer.Textures
             // Gets all distinct pcc's being altered.
             var pccTexGroups =
                 from tex in texes
-                from pcc in tex.PCCS
+                from pcc in tex.PCCs
                 where pcc.IsChecked
                 group tex by pcc.Name;
 
@@ -354,7 +354,7 @@ namespace WPF_ME3Explorer.Textures
                     newTex2D = new Texture2D(pcc, 0, GameDirecs); // TODO TPFTools
 
                 // Loop over texture's pcc entries to install desired ones.
-                foreach (var entry in tex.PCCS.Where(p => p.Name == pcc.pccFileName))
+                foreach (var entry in tex.PCCs.Where(p => p.Name == pcc.pccFileName))
                 {
                     // TODO Get old tex2D  WHYYYY
                     Texture2D oldTex2D = new Texture2D(pcc, entry.ExpID, GameDirecs);

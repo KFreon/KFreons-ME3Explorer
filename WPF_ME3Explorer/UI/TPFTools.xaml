@@ -31,7 +31,7 @@
         </Grid.ColumnDefinitions>
 
         <Menu Grid.ColumnSpan="2" Margin="0,0,511.667,0.333" Background="White">
-            <MenuItem Header="Load" Style="{StaticResource BaseMenuItemStyle}"/>
+            <MenuItem x:Name="LoadMenuItem" Header="Load" Style="{StaticResource BaseMenuItemStyle}" Click="LoadMenuItem_Click"/>
         </Menu>
 
         <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Margin="0,0,-0.333,0">
@@ -43,17 +43,125 @@
 
         <DockPanel Grid.Row="1" Grid.RowSpan="2">
             <TextBox x:Name="SearchBox" Height="22" BorderBrush="{x:Null}" Tag="Search..." DockPanel.Dock="Top" Template="{StaticResource SearchBoxTemplate}"/>
-            <ListBox x:Name="MainView"/>
+            <ListBox x:Name="MainView" ItemsSource="{Binding MainDisplayView}" SelectedItem="{Binding SelectedTexture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel>
+                            <Image x:Name="ItemThumb" Width="64" Height="64">
+                                <Image.Style>
+                                    <Style TargetType="Image">
+                                        <Setter Property="Source" Value="{Binding Thumb, Converter={StaticResource ThumbnailConverter}, ConverterParameter={StaticResource DefaultTexture}}"/>
+
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDef}" Value="true">
+                                                <Setter Property="Source" Value="{StaticResource DefaultText}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Image.Style>
+                            </Image>
+                            <TextBlock x:Name="NameDisplay" Text="{Binding Name, Mode=OneWay}" VerticalAlignment="Center" Margin="5"/>
+                            <Grid x:Name="TexDetailsPanel">
+                                <Grid.Resources>
+                                    <Style TargetType="Label">
+                                        <Setter Property="Foreground" Value="Gray"/>
+                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Margin" Value="2,0"/>
+                                        <Setter Property="Opacity" Value=".6"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDef}" Value="true">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="Gray"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="Margin" Value="2,0,8,0"/>
+                                        <Setter Property="Opacity" Value=".6"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDef}" Value="true">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+
+                                    <Style TargetType="Label" BasedOn="{StaticResource {x:Type Label}}" x:Key="TreeDependentLabel">
+                                        <Setter Property="Visibility" Value="{Binding HashChanged, Converter={StaticResource BoolToVisConverter}}"/>
+                                    </Style>
+
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}" x:Key="TreeDependentTextBlock">
+                                        <Setter Property="Visibility" Value="{Binding HashChanged, Converter={StaticResource BoolToVisConverter}}"/>
+                                    </Style>
+                                </Grid.Resources>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20*"/>
+                                    <ColumnDefinition Width="20*"/>
+                                    <ColumnDefinition Width="20*"/>
+                                    <ColumnDefinition Width="20*"/>
+                                    <ColumnDefinition Width="20*"/>
+                                    <ColumnDefinition Width="20*"/>
+                                    <ColumnDefinition Width="20*"/>
+                                    <ColumnDefinition Width="20*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="20*"/>
+                                    <RowDefinition Height="20*"/>
+                                </Grid.RowDefinitions>
+
+                                <Label Content="Width:"/>
+                                <TextBlock Text="{Binding Width}" Grid.Column="1"/>
+
+                                <Label Content="Height:" Grid.Row="1"/>
+                                <TextBlock Text="{Binding Height}" Grid.Column="1" Grid.Row="1"/>
+
+                                <Label Content="Hash:" Grid.Column="2"/>
+                                <TextBox Text="{Binding Hash, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HashStringConverter}}" Opacity=".6" 
+                                         Grid.Column="3" Margin="0,0,7,0" VerticalContentAlignment="Center" VerticalAlignment="Center" Padding="7,3" Visibility="{Binding IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
+                                <Button Content="Reset Hash" Grid.Column="2" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Opacity=".6" Padding="6,2" Grid.ColumnSpan="2" Style="{StaticResource MainButtonStyle}" Visibility="{Binding HashChanged, Converter={StaticResource BoolToVisConverter}}"/>
+
+                                <Label Content="Format:" Grid.Column="4"/>
+                                <TextBlock Text="{Binding Format, Converter={StaticResource ImageEngineFormatConverter}}" Grid.Column="5"/>
+
+                                <Label Content="Tree Format:" Grid.Column="6" Style="{StaticResource TreeDependentLabel}"/>
+                                <TextBlock Text="{Binding TreeFormat, Converter={StaticResource ImageEngineFormatConverter}}" Grid.Column="7" Style="{StaticResource TreeDependentTextBlock}"/>
+
+                                <Label Content="Mips:" Grid.Column="4" Grid.Row="1"/>
+                                <TextBlock Text="{Binding Mips}" Grid.Column="5" Grid.Row="1"/>
+
+                                <Label Content="Tree Mips:" Grid.Column="6" Grid.Row="1" Style="{StaticResource TreeDependentLabel}"/>
+                                <TextBlock Text="{Binding TreeMips}" Grid.Column="7" Grid.Row="1" Style="{StaticResource TreeDependentTextBlock}"/>
+                            </Grid>
+                        </DockPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </DockPanel>
-        <Image x:Name="PreviewImage" Grid.Column="1" Margin="0.333,25,-0.333,304.094" Grid.RowSpan="3"/>
-        <DockPanel Grid.Column="1" Grid.Row="2" Margin="0.333,0.333,-0.333,0.334" Grid.RowSpan="2">
-            <Label Content="PCCs" DockPanel.Dock="Top"/>
-            <ListBox x:Name="PCCsDisplay"/>
-        </DockPanel>
+        <Image x:Name="PreviewImage" Grid.Column="1" Grid.Row="1" Source="{Binding ElementName=MainView, Path=SelectedItem.Preview, IsAsync=True}"/>
+        <Grid Grid.Column="1" Grid.Row="2" Margin="0.333,0.333,-0.333,0.334" Grid.RowSpan="2">
+            <CheckBox x:Name="PCCsCheckAllChecker" IsChecked="{Binding PCCsCheckAll}" Style="{StaticResource CheckAllCheckBoxStyle}" HorizontalAlignment="Left" Grid.Row="1" VerticalAlignment="Top" Margin="5,15"/>
+            <Button x:Name="SavePCCsListButton" Content="Save List" VerticalAlignment="Top" HorizontalAlignment="Right" Style="{StaticResource PCCListOptionsStyle}" Background="White" Margin="5,10" Padding="10,2" Click="SavePCCsListButton_Click"/>
+            <Label Content="PCC's" Grid.Row="1" VerticalAlignment="Top" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" DockPanel.Dock="Top"/>
+            <ListBox x:Name="PCCsListBox" ItemsSource="{Binding ElementName=MainView, Path=SelectedItem.PCCs}" ItemTemplate="{StaticResource PCC-ExpID Displayer}" Margin="0,42,0,0.333"/>
+        </Grid>
 
         <DockPanel Grid.Row="3" LastChildFill="False">
-            <Button Content="Install Textures" Style="{StaticResource MainButtonStyle}" FontSize="25" Margin="3" Padding="20,0"/>
-            <Button Content="Analyse with Texplorer" Style="{StaticResource MainButtonStyle}" VerticalAlignment="Center" Padding="10,3"/>
+            <Button Content="Install Textures" Style="{StaticResource MainButtonStyle}" FontSize="25" Margin="3" Padding="20,0" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}"/>
+            <Button VerticalAlignment="Center" Padding="10,3" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}">
+                <Button.Style>
+                    <Style BasedOn="{StaticResource MainButtonStyle}" TargetType="Button">
+                        <Setter Property="Content" Value="Analyse with Texplorer"/>
+                        
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Analysed}" Value="True">
+                                <Setter Property="Content" Value="De-Analyse"/>
+                            </DataTrigger>    
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
         </DockPanel>
     </Grid>
 </Window>
