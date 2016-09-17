@@ -164,6 +164,7 @@ namespace WPF_ME3Explorer.Textures
                 searchables.Add(ToolsetTextureEngine.FormatTexmodHashAsString(Hash));
                 searchables.Add(Format.ToString());
 
+                searchables.RemoveAll(t => t == null);  // Remove empty items
                 return searchables;
             }
         }

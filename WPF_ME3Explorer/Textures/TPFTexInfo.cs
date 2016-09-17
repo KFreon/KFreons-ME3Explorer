@@ -20,7 +20,8 @@ namespace WPF_ME3Explorer.Textures
             get
             {
                 string ext = Path.GetExtension(FileName);
-                return $"{Name.Replace(ext, "")}_{ToolsetTextureEngine.FormatTexmodHashAsString(Hash)}.{ext}.";
+                var hash = ToolsetTextureEngine.FormatTexmodHashAsString(Hash);
+                return $"{Name.Replace(ext, "")}_{hash}{ext}";
             }
         }
 
@@ -167,7 +168,7 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        private byte[] Extract()
+        internal byte[] Extract()
         {
             byte[] data = null;
             if (IsExternal)
@@ -181,6 +182,27 @@ namespace WPF_ME3Explorer.Textures
         private void Extract(string destFilePath)
         {
             File.WriteAllBytes(destFilePath, Extract());
+        }
+
+        public override List<string> Searchables
+        {
+            get
+            {
+                if (IsDef)
+                    return new List<string>();  // Blank so as not to be included in search
+
+                var baseSearchables = base.Searchables;
+
+                // TPFTools specific ones
+                baseSearchables.Add(TreeFormat.ToString());
+                baseSearchables.Add(FilePath);
+                baseSearchables.Add(FileName);
+                baseSearchables.Add(ZipEntry.Filename);
+
+                baseSearchables.RemoveAll(t => t == null); // Remove any nulls again.
+
+                return baseSearchables.Distinct().ToList();  // Remove any duplicates
+            }
         }
     }
 }

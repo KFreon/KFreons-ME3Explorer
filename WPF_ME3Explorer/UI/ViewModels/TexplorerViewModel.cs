@@ -32,6 +32,18 @@ namespace WPF_ME3Explorer.UI.ViewModels
     public class TexplorerViewModel : MEViewModelBase<TreeTexInfo>
     {
         #region Commands
+        CommandHandler ftsDLCsUnCheckAll = null;
+        public CommandHandler FTSDLCsUnCheckAll
+        {
+            get
+            {
+                if (ftsDLCsUnCheckAll == null)
+                    ftsDLCsUnCheckAll = new CommandHandler(() => FTSDLCs?.ForEach(dlc => dlc.IsChecked = false));
+
+                return ftsDLCsUnCheckAll;
+            }
+        }
+
         CommandHandler saveChangesCommand = null;
         public CommandHandler SaveChangesCommand
         {
@@ -232,6 +244,23 @@ namespace WPF_ME3Explorer.UI.ViewModels
         public MTRangedObservableCollection<TexplorerTextureFolder> TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
         public MTRangedObservableCollection<TexplorerTextureFolder> AllFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
         public MTRangedObservableCollection<TreeTexInfo> ChangedTextures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
+
+        public override string TextureSearch
+        {
+            get
+            {
+                return base.TextureSearch;
+            }
+
+            set
+            {
+                base.TextureSearch = value;
+
+                // Clear results if no search performed.
+                if (String.IsNullOrEmpty(value))
+                    TextureSearchResults.Clear();
+            }
+        }
 
         public bool TPFToolsModeEnabled
         {

@@ -120,7 +120,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         }
 
         string textureSearch = null;
-        public string TextureSearch
+        public virtual string TextureSearch
         {
             get
             {
@@ -129,16 +129,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             set
             {
                 SetProperty(ref textureSearch, value);
-
-                // Clear results if empty string or search.
-                if (String.IsNullOrEmpty(value))
-                    TextureSearchResults.Clear();
-                else
-                    Search(value);
+                Search(value);
             }
         }
-
-        public MTRangedObservableCollection<T> TextureSearchResults { get; protected set; } = new MTRangedObservableCollection<T>();
 
         public MTRangedObservableCollection<T> Textures { get; protected set; } = new MTRangedObservableCollection<T>();
         public TreeDB[] Trees { get; private set; } = new TreeDB[3];
@@ -353,10 +346,13 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         public virtual void Search(string searchText)
         {
+            if (String.IsNullOrEmpty(searchText))
+                return;
+
             Parallel.ForEach(Textures, texture =>
             {
                 bool found = texture.Searchables.Any(searchable => searchable.Contains(searchText, StringComparison.OrdinalIgnoreCase));
-                texture.IsHidden = found;
+                texture.IsHidden = !found;
             });
         }
 

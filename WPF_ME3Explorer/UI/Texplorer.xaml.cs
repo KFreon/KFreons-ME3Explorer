@@ -303,7 +303,7 @@ namespace WPF_ME3Explorer.UI
 
         private void MainListView_DragOver(object sender, DragEventArgs e)
         {
-            TextureDragDropper.DragEnter_Over(e);
+            TextureDragDropper.DragOver(e);
         }
 
         private void MainTreeView_MouseMove(object sender, MouseEventArgs e)

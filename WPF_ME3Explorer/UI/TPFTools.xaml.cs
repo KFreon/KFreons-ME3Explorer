@@ -13,6 +13,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using WPF_ME3Explorer.UI.ViewModels;
+using UsefulThings.WPF;
+using WPF_ME3Explorer.Textures;
 
 namespace WPF_ME3Explorer.UI
 {
@@ -25,24 +27,23 @@ namespace WPF_ME3Explorer.UI
         string[] AcceptedFiles = { "DirectX Images", "JPEG Images", "JPEG Images", "Bitmap Images", "PNG Images", "Targa Images", "Texmod Archives", "ME3Explorer Archives" };
         string[] AcceptedExtensions = { ".dds", ".jpg", ".jpeg", ".bmp", ".png", ".tga", ".tpf", ".metpf" };
 
+        DragDropHandler<TPFTexInfo> DropHelper = null;
+
         public bool IsClosed { get; private set; }
 
         public TPFTools()
         {
             InitializeComponent();
 
+            // Setup drag/drop handling
+            var dropAction = new Action<TPFTexInfo, string[]>((tex, droppedFiles) => vm.LoadFiles(droppedFiles)); // Don't need the TPFTexInfo - it'll be null anyway.
+            Predicate<string[]> dropValidator = new Predicate<string[]>(files => files.All(file => AcceptedExtensions.Contains(Path.GetExtension(file).ToLowerInvariant())));
+            Func<TPFTexInfo, Dictionary<string, Func<byte[]>>> dataGetter = tex => new Dictionary<string, Func<byte[]>> { { tex.DefaultSaveName, () => tex.Extract() } };
+
+            DropHelper = new DragDropHandler<TPFTexInfo>(this, dropAction, dropValidator, dataGetter);
+
             vm = new TPFToolsViewModel();
             DataContext = vm;
-        }
-
-        private void Window_Drop(object sender, DragEventArgs e)
-        {
-            
-        }
-
-        private void Window_DragOver(object sender, DragEventArgs e)
-        {
-            
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -70,6 +71,31 @@ namespace WPF_ME3Explorer.UI
             sfd.Filter = "Comma Separated|*.csv";
             if (sfd.ShowDialog() == true)
                 vm.ExportSelectedTexturePCCList(sfd.FileName);
+        }
+
+        private void MainView_Drop(object sender, DragEventArgs e)
+        {
+            DropHelper.Drop(sender, e);
+        }
+
+        private void MainView_DragEnter(object sender, DragEventArgs e)
+        {
+            // Visual effect - None?
+        }
+
+        private void MainView_DragOver(object sender, DragEventArgs e)
+        {
+            DropHelper.DragOver(e);
+        }
+
+        private void MainView_DragLeave(object sender, DragEventArgs e)
+        {
+            // Undo visual effect - none?
+        }
+
+        private void MainViewItem_MouseMove(object sender, MouseEventArgs e)
+        {
+            DropHelper.MouseMove(sender, e);
         }
     }
 }

@@ -7,7 +7,7 @@
         xmlns:VM="clr-namespace:WPF_ME3Explorer.UI.ViewModels"
         x:Class="WPF_ME3Explorer.UI.TPFTools"
         mc:Ignorable="d"
-        Title="TPFTools" Height="882.469" Width="1507.27" AllowDrop="True" Drop="Window_Drop" DragOver="Window_DragOver" Closing="Window_Closing">
+        Title="TPFTools" Height="882.469" Width="1507.27" Closing="Window_Closing">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -42,11 +42,21 @@
         <StatusBar Template="{StaticResource StatusBarTemplate}" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Grid.Row="4" Margin="0,0,-0.333,0.334"/>
 
         <DockPanel Grid.Row="1" Grid.RowSpan="2">
-            <TextBox x:Name="SearchBox" Height="22" BorderBrush="{x:Null}" Tag="Search..." DockPanel.Dock="Top" Template="{StaticResource SearchBoxTemplate}"/>
-            <ListBox x:Name="MainView" ItemsSource="{Binding MainDisplayView}" SelectedItem="{Binding SelectedTexture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+            <TextBox x:Name="SearchBox" Height="22" BorderBrush="{x:Null}" Tag="Search..." DockPanel.Dock="Top" Template="{StaticResource SearchBoxTemplate}"
+                     Text="{Binding TextureSearch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            <ListBox x:Name="MainView" ItemsSource="{Binding MainDisplayView}" SelectedItem="{Binding SelectedTexture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Drop="MainView_Drop" 
+                     AllowDrop="True" DragEnter="MainView_DragEnter" DragOver="MainView_DragOver" DragLeave="MainView_DragLeave">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <DockPanel>
+                        <DockPanel x:Name="MainViewItem" MouseMove="MainViewItem_MouseMove">
+                            <DockPanel.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Install"/>
+                                    <MenuItem Header="Replace"/>
+                                    <MenuItem Header="Extract"/>
+                                    <MenuItem Header="Autofix"/>
+                                </ContextMenu>
+                            </DockPanel.ContextMenu>
                             <Image x:Name="ItemThumb" Width="64" Height="64">
                                 <Image.Style>
                                     <Style TargetType="Image">

@@ -30,7 +30,30 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 SetProperty(ref analysed, value);
             }
         }
-        
+
+        public override void Search(string searchText)
+        {
+            base.Search(searchText);
+
+            if (String.IsNullOrEmpty(searchText))
+                foreach (var tex in Textures)
+                    tex.IsHidden = false;
+        }
+
+        public override string TextureSearch
+        {
+            get
+            {
+                return base.TextureSearch;
+            }
+
+            set
+            {
+                base.TextureSearch = value;
+                MainDisplayView.Refresh();
+            }
+        }
+
         List<ZipReader> Zippys = new List<ZipReader>();
         public ICollectionView MainDisplayView { get; set; }
 
