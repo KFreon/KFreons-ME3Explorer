@@ -73,6 +73,35 @@ namespace WPF_ME3Explorer.UI.ViewModels
         public ICollectionView MainDisplayView { get; set; }
 
         #region Commands
+        CommandHandler installCommand = null;
+        public CommandHandler InstallCommand
+        {
+            get
+            {
+                if (installCommand == null)
+                    installCommand = new CommandHandler(async param =>
+                    {
+                        Busy = true;
+                        Status = "Installing textures...";
+
+                        TPFTexInfo[] texes = null;
+                        if (param == null)
+                            texes = Textures.ToArray();
+                        else if (param is IEnumerable<TPFTexInfo>)
+                            texes = ((IEnumerable<TPFTexInfo>)(param)).ToArray();
+                        else
+                            texes = new TPFTexInfo[] { (TPFTexInfo)(param) };
+                        
+                        await Task.Run(async () => await ToolsetTextureEngine.InstallTextures(NumThreads, this, GameDirecs, cts, texes));
+
+                        Status = "All textures installed!";
+                        Busy = false;
+                    });
+
+                return installCommand;
+            }
+        }
+
         CommandHandler clearAllCommand = null;
         public CommandHandler ClearAllCommand
         {
@@ -141,7 +170,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
             var thumbBuilder = new ActionBlock<Tuple<TPFTexInfo, byte[]>>(tuple =>
             {
                 tuple.Item1.GetDetails(tuple.Item2);
-                Textures.Add(tuple.Item1);
+
+
+                // Check for duplicates in loaded files.
+                var dup = Textures.FirstOrDefault(t => t.FileHash == tuple.Item1.FileHash);
+                if (dup == null)
+                    Textures.Add(tuple.Item1);
+                else
+                    dup.FileDuplicates.Add(tuple.Item1);
                 Progress++;
             }, new ExecutionDataflowBlockOptions { BoundedCapacity = NumThreads, MaxDegreeOfParallelism = NumThreads });
 
@@ -229,15 +265,52 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 if (tex.IsDef)
                     continue;
 
-                var treeTex = CurrentTree.Textures.FirstOrDefault(tmptreeTex => tmptreeTex.Hash == tex.Hash);
-                if (treeTex == null)
-                    continue;  // Not found in tree
+                var treeTexs = CurrentTree.Textures.Where(tmptreeTex => tmptreeTex.Hash == tex.Hash);
+                TreeTexInfo treeTex = null;
+
+                if (treeTexs?.Count() == 0)
+                    continue; // Not found in tree
+
+                // Look at tree duplicates
+                if (treeTexs.Count() == 1)
+                {
+                    treeTex = treeTexs.First();
+                    
+                    // Create entries and link to original
+                    foreach (var treet in treeTexs)
+                    {
+                        // Only need texname for display - can't selected in any other way, link PCCs for installation too.
+                        TPFTexInfo dup = new TPFTexInfo(GameDirecs);
+                        dup.TexName = treet.TexName;
+                        dup.PCCs.AddRange(treet.PCCs);
+
+                        // Get thumb
+                        dup.Thumb = treet.Thumb;
+                    }
+                }
 
                 tex.TreeFormat = treeTex.Format;
                 tex.TreeMips = treeTex.Mips;
                 tex.TexName = treeTex.TexName;
                 tex.PCCs = treeTex.PCCs;
             }
+
+            // Look for file duplicates - File could still occur here as previously it was data based, but here it's TREE HASH based (i.e. not actual hash of current data)
+            var groups = Textures.GroupBy(t => t.Hash);
+            foreach (var group in groups)
+            {
+                var first = group.First();
+
+                foreach (var tex in group)
+                {
+                    if (tex == first)  // Skip first - Should be the only thing that happens as duplicates at this stage should be rare as a redheads' soul.
+                        continue;
+
+                    first.HashDuplicates.Add(tex);
+                    Textures.Remove(tex);  // Remove from original list
+                }
+            }
+
             OnPropertyChanged(nameof(AllAnalysed));
             PreviouslyAnalysed = true;
 
@@ -252,6 +325,17 @@ namespace WPF_ME3Explorer.UI.ViewModels
             else
                 texes.AddRange(given);
 
+            // Get hash duplicates that were originally files back out.
+            // All other kinds of duplicates weren't originally loaded files.
+            texes.ForEach(tex =>
+            {
+                var dups = tex.HashDuplicates.Where(t => t.FileHash != 0);
+                Textures.AddRange(dups);
+
+                // Add to working list too
+                texes.AddRange(dups);
+            });
+
             foreach (var tex in texes)
             {
                 if (!tex.FoundInTree || tex.IsDef)
@@ -262,6 +346,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 tex.TexName = null;
                 tex.PCCs.Clear();
                 tex.Analysed = false;
+
+                tex.HashDuplicates.Clear();
             }
 
             OnPropertyChanged(nameof(AllAnalysed));

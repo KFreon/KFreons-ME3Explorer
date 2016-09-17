@@ -43,6 +43,7 @@
                     </Style>
                 </MenuItem.Style>
             </MenuItem>
+            <MenuItem Header="Save to TPF" Style="{StaticResource BaseMenuItemStyle}"/>
         </Menu>
 
         <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Margin="0,0,-0.333,0">
@@ -56,7 +57,7 @@
             <TextBox x:Name="SearchBox" Height="22" BorderBrush="{x:Null}" Tag="Search..." DockPanel.Dock="Top" Template="{StaticResource SearchBoxTemplate}"
                      Text="{Binding TextureSearch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
             <ListBox x:Name="MainView" ItemsSource="{Binding MainDisplayView}" SelectedItem="{Binding SelectedTexture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Drop="MainView_Drop" 
-                     AllowDrop="True" DragEnter="MainView_DragEnter" DragOver="MainView_DragOver" DragLeave="MainView_DragLeave" HorizontalContentAlignment="Stretch">
+                     AllowDrop="True" DragEnter="MainView_DragEnter" DragOver="MainView_DragOver" DragLeave="MainView_DragLeave" HorizontalContentAlignment="Stretch" SelectionMode="Multiple">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <DockPanel x:Name="MainViewItem" MouseMove="MainViewItem_MouseMove" LastChildFill="False">
@@ -80,10 +81,26 @@
                             </DockPanel.Style>
                             <DockPanel.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Header="Install"/>
-                                    <MenuItem Header="Replace"/>
-                                    <MenuItem Header="Extract"/>
-                                    <MenuItem Header="Autofix"/>
+                                    <MenuItem Header="Install">
+                                        <MenuItem.Icon>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Replace">
+                                        <MenuItem.Icon>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Extract">
+                                        <MenuItem.Icon>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Autofix">
+                                        <MenuItem.Icon>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
                                 </ContextMenu>
                             </DockPanel.ContextMenu>
                             <Image x:Name="ItemThumb" Width="64" Height="64">
@@ -202,7 +219,7 @@
         </Grid>
 
         <DockPanel Grid.Row="3" LastChildFill="False">
-            <Button Content="Install Textures" Style="{StaticResource MainButtonStyle}" FontSize="25" Margin="3" Padding="20,0" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}"/>
+            <Button Content="Install Textures" Style="{StaticResource MainButtonStyle}" FontSize="25" Margin="3" Padding="20,0" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Command="{Binding InstallCommand}"/>
             <Button VerticalAlignment="Center" Padding="10,3" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Command="{Binding AnalyseCommand}">
                 <Button.Style>
                     <Style BasedOn="{StaticResource MainButtonStyle}" TargetType="Button">

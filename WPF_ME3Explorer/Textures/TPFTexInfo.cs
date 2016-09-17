@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using UsefulThings;
+using UsefulThings.WPF;
 using WPF_ME3Explorer.Debugging;
 
 namespace WPF_ME3Explorer.Textures
@@ -15,6 +16,22 @@ namespace WPF_ME3Explorer.Textures
     public class TPFTexInfo : AbstractTexInfo
     {
         ZipReader.ZipEntryFull ZipEntry = null;
+        public MTRangedObservableCollection<TPFTexInfo> FileDuplicates { get; set; }
+        public MTRangedObservableCollection<TPFTexInfo> HashDuplicates { get; set; }
+        static CRC32 crc = new CRC32();
+
+        uint fileHash = 0;
+        public uint FileHash
+        {
+            get
+            {
+                return fileHash;
+            }
+            set
+            {
+                SetProperty(ref fileHash, value);
+            }
+        }
 
         bool analysed = false;
         public bool Analysed
@@ -198,6 +215,10 @@ namespace WPF_ME3Explorer.Textures
 
             try
             {
+                // Hash data for duplicate checking purposes
+                FileHash = crc.BlockChecksum(imgData);
+
+                // Get image details and build thumbnail.
                 DDSGeneral.DDS_HEADER header = null;
                 using (MemoryStream ms = new MemoryStream(imgData))
                 {
@@ -265,5 +286,6 @@ namespace WPF_ME3Explorer.Textures
                 return baseSearchables.Distinct().ToList();  // Remove any duplicates
             }
         }
+
     }
 }

@@ -85,7 +85,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         ChangedTextures.Clear();
 
 
-                        // Update tree
+                        // Update tree - thumb change only
                         CurrentTree.SaveToFile();
 
                         // Close progress
