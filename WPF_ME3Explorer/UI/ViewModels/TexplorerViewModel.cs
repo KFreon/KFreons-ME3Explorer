@@ -553,7 +553,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
         /// <returns></returns>
         protected override Task LoadTreeAndExtra()
         {
-            return LoadFTSandTree();
+            var task = LoadFTSandTree();
+            return task.ContinueWith(t =>
+            {
+                if (!CurrentTree.Valid)
+                    Status = "Tree invalid/non-existent. Begin Tree Scan by clicking 'Settings'";
+            });
         }
 
         async Task LoadFTSandTree(bool panelAlreadyOpen = false)

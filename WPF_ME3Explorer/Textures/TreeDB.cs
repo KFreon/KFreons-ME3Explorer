@@ -161,6 +161,8 @@ namespace WPF_ME3Explorer.Textures
                                 thumb.Length = bin.ReadInt32();
                                 tex.Thumb = thumb;
 
+                                tex.Mips = bin.ReadInt32();
+
                                 int numPccs = bin.ReadInt32();
                                 for (int j = 0; j < numPccs; j++)
                                 {
@@ -225,6 +227,7 @@ namespace WPF_ME3Explorer.Textures
                             bw.Write((int)tex.Format);
                             bw.Write(tex.Thumb.Offset);
                             bw.Write(tex.Thumb.Length);
+                            bw.Write(tex.Mips);
                             bw.Write(tex.PCCs.Count);
                             foreach (PCCEntry pcc in tex.PCCs)
                             {

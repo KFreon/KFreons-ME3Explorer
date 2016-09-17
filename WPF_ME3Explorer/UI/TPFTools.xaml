@@ -7,7 +7,7 @@
         xmlns:VM="clr-namespace:WPF_ME3Explorer.UI.ViewModels"
         x:Class="WPF_ME3Explorer.UI.TPFTools"
         mc:Ignorable="d"
-        Title="TPFTools" Height="882.469" Width="1507.27" Closing="Window_Closing">
+        Title="TPFTools" Height="882.469" Width="1507.27" Closing="Window_Closing" KeyDown="Window_KeyDown">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -32,6 +32,17 @@
 
         <Menu Grid.ColumnSpan="2" Margin="0,0,511.667,0.333" Background="White">
             <MenuItem x:Name="LoadMenuItem" Header="Load" Style="{StaticResource BaseMenuItemStyle}" Click="LoadMenuItem_Click"/>
+            <MenuItem x:Name="ClearAllMenuItem" Header="Clear" Command="{Binding ClearAllCommand}">
+                <MenuItem.Style>
+                    <Style TargetType="MenuItem" BasedOn="{StaticResource BaseMenuItemStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Textures.Count}" Value="0">
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </MenuItem.Style>
+            </MenuItem>
         </Menu>
 
         <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Margin="0,0,-0.333,0">
@@ -45,10 +56,28 @@
             <TextBox x:Name="SearchBox" Height="22" BorderBrush="{x:Null}" Tag="Search..." DockPanel.Dock="Top" Template="{StaticResource SearchBoxTemplate}"
                      Text="{Binding TextureSearch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
             <ListBox x:Name="MainView" ItemsSource="{Binding MainDisplayView}" SelectedItem="{Binding SelectedTexture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Drop="MainView_Drop" 
-                     AllowDrop="True" DragEnter="MainView_DragEnter" DragOver="MainView_DragOver" DragLeave="MainView_DragLeave">
+                     AllowDrop="True" DragEnter="MainView_DragEnter" DragOver="MainView_DragOver" DragLeave="MainView_DragLeave" HorizontalContentAlignment="Stretch">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <DockPanel x:Name="MainViewItem" MouseMove="MainViewItem_MouseMove">
+                        <DockPanel x:Name="MainViewItem" MouseMove="MainViewItem_MouseMove" LastChildFill="False">
+                            <DockPanel.Style>
+                                <Style TargetType="DockPanel">
+                                    <Setter Property="Background" Value="Transparent"/>
+
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding Analysed}" Value="true"/>
+                                                <Condition Binding="{Binding FoundInTree}" Value="false"/>
+                                            </MultiDataTrigger.Conditions>
+
+                                            <MultiDataTrigger.Setters>
+                                                <Setter Property="Background" Value="Pink"/>
+                                            </MultiDataTrigger.Setters>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DockPanel.Style>
                             <DockPanel.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="Install"/>
@@ -71,7 +100,22 @@
                                 </Image.Style>
                             </Image>
                             <TextBlock x:Name="NameDisplay" Text="{Binding Name, Mode=OneWay}" VerticalAlignment="Center" Margin="5"/>
-                            <Grid x:Name="TexDetailsPanel">
+                            <TextBlock x:Name="FilenameDisplay"  VerticalAlignment="Center" Margin="5" DockPanel.Dock="Right" Foreground="Gray">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding FoundInTree}" Value="true">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                                <Run Text="Filename: " FontWeight="Bold"/>
+                                <Run Text="{Binding FileName, Mode=OneWay}"/>
+                            </TextBlock>
+                            <Grid x:Name="TexDetailsPanel" DockPanel.Dock="Right">
                                 <Grid.Resources>
                                     <Style TargetType="Label">
                                         <Setter Property="Foreground" Value="Gray"/>
@@ -99,11 +143,11 @@
                                     </Style>
 
                                     <Style TargetType="Label" BasedOn="{StaticResource {x:Type Label}}" x:Key="TreeDependentLabel">
-                                        <Setter Property="Visibility" Value="{Binding HashChanged, Converter={StaticResource BoolToVisConverter}}"/>
+                                        <Setter Property="Visibility" Value="{Binding Analysed, Converter={StaticResource BoolToVisConverter}}"/>
                                     </Style>
 
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}" x:Key="TreeDependentTextBlock">
-                                        <Setter Property="Visibility" Value="{Binding HashChanged, Converter={StaticResource BoolToVisConverter}}"/>
+                                        <Setter Property="Visibility" Value="{Binding Analysed, Converter={StaticResource BoolToVisConverter}}"/>
                                     </Style>
                                 </Grid.Resources>
                                 <Grid.ColumnDefinitions>
@@ -159,13 +203,13 @@
 
         <DockPanel Grid.Row="3" LastChildFill="False">
             <Button Content="Install Textures" Style="{StaticResource MainButtonStyle}" FontSize="25" Margin="3" Padding="20,0" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}"/>
-            <Button VerticalAlignment="Center" Padding="10,3" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}">
+            <Button VerticalAlignment="Center" Padding="10,3" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Command="{Binding AnalyseCommand}">
                 <Button.Style>
                     <Style BasedOn="{StaticResource MainButtonStyle}" TargetType="Button">
                         <Setter Property="Content" Value="Analyse with Texplorer"/>
                         
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding Analysed}" Value="True">
+                            <DataTrigger Binding="{Binding AllAnalysed}" Value="True">
                                 <Setter Property="Content" Value="De-Analyse"/>
                             </DataTrigger>    
                         </Style.Triggers>

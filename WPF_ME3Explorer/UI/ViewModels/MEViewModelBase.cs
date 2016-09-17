@@ -170,7 +170,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 Interlocked.Exchange(ref progress, value);
                 OnPropertyChanged(nameof(Progress));
                 OnPropertyChanged(nameof(TaskBarProgress));
-                //   SetProperty(ref progress, value);
             }
         }
 
@@ -183,7 +182,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
             set
             {
-                SetProperty(ref maxprogress, value);
+                Interlocked.Exchange(ref maxprogress, value);
+                OnPropertyChanged(nameof(MaxProgress));
+                OnPropertyChanged(nameof(TaskBarProgress));
             }
         }
 
@@ -342,6 +343,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Trees[0].ReadFromFile();
             Trees[1].ReadFromFile();
             Trees[2].ReadFromFile();
+
+            Trees[GameDirecs.GameVersion - 1].IsSelected = true;
         }
 
         public virtual void Search(string searchText)
@@ -361,7 +364,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // If already selected, do nothing.
             if (GameVersion == game)
                 return;
-
 
             GameVersion = game;
 
@@ -410,8 +412,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             if (CurrentTree.Valid)
                 SetupPCCCheckBoxLinking();
-            else
-                Status = "Tree invalid/non-existent. Begin Tree Scan by clicking 'Settings'";
         }
 
         protected void SetupPCCCheckBoxLinking()

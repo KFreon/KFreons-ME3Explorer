@@ -25,7 +25,6 @@ namespace WPF_ME3Explorer.UI
     {
         TPFToolsViewModel vm = null;
         string[] AcceptedFiles = { "DirectX Images", "JPEG Images", "JPEG Images", "Bitmap Images", "PNG Images", "Targa Images", "Texmod Archives", "ME3Explorer Archives" };
-        string[] AcceptedExtensions = { ".dds", ".jpg", ".jpeg", ".bmp", ".png", ".tga", ".tpf", ".metpf" };
 
         DragDropHandler<TPFTexInfo> DropHelper = null;
 
@@ -36,8 +35,8 @@ namespace WPF_ME3Explorer.UI
             InitializeComponent();
 
             // Setup drag/drop handling
-            var dropAction = new Action<TPFTexInfo, string[]>((tex, droppedFiles) => vm.LoadFiles(droppedFiles)); // Don't need the TPFTexInfo - it'll be null anyway.
-            Predicate<string[]> dropValidator = new Predicate<string[]>(files => files.All(file => AcceptedExtensions.Contains(Path.GetExtension(file).ToLowerInvariant())));
+            var dropAction = new Action<TPFTexInfo, string[]>(async (tex, droppedFiles) => await Task.Run(() => vm.LoadFiles(droppedFiles))); // Don't need the TPFTexInfo - it'll be null anyway.
+            Predicate<string[]> dropValidator = new Predicate<string[]>(files => files.All(file => TPFToolsViewModel.AcceptedExtensions.Contains(Path.GetExtension(file).ToLowerInvariant())));
             Func<TPFTexInfo, Dictionary<string, Func<byte[]>>> dataGetter = tex => new Dictionary<string, Func<byte[]>> { { tex.DefaultSaveName, () => tex.Extract() } };
 
             DropHelper = new DragDropHandler<TPFTexInfo>(this, dropAction, dropValidator, dataGetter);
@@ -55,12 +54,12 @@ namespace WPF_ME3Explorer.UI
         {
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Title = "Select TPFs/images to load";
-            string filter = "All Accepted files|" + String.Join("", AcceptedExtensions.Select(t => "*" + t + ";")).TrimEnd(';') + "|" + String.Join("|", AcceptedFiles.Zip(AcceptedExtensions, (file, ext) => file + "|*" + ext));
+            string filter = "All Accepted files|" + String.Join("", TPFToolsViewModel.AcceptedExtensions.Select(t => "*" + t + ";")).TrimEnd(';') + "|" + String.Join("|", AcceptedFiles.Zip(TPFToolsViewModel.AcceptedExtensions, (file, ext) => file + "|*" + ext));
             ofd.Filter = filter;
             ofd.Multiselect = true;
 
             if (ofd.ShowDialog() == true)
-                vm.LoadFiles(ofd.FileNames);
+                Task.Run(() => vm.LoadFiles(ofd.FileNames));
         }
 
         private void SavePCCsListButton_Click(object sender, RoutedEventArgs e)
@@ -96,6 +95,16 @@ namespace WPF_ME3Explorer.UI
         private void MainViewItem_MouseMove(object sender, MouseEventArgs e)
         {
             DropHelper.MouseMove(sender, e);
+        }
+
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)   // Catch Ctrl + F
+            {
+                SearchBox.Focus();
+                Keyboard.Focus(SearchBox);
+                e.Handled = true;
+            }
         }
     }
 }

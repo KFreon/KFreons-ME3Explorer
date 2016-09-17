@@ -14,7 +14,7 @@ namespace WPF_ME3Explorer.Textures
     public abstract class AbstractTexInfo : ViewModelBase
     {
         string texName = null;
-        public string TexName
+        public virtual string TexName
         {
             get
             {

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
+using UsefulThings;
 using WPF_ME3Explorer.Debugging;
 
 namespace WPF_ME3Explorer.Textures
@@ -14,6 +15,35 @@ namespace WPF_ME3Explorer.Textures
     public class TPFTexInfo : AbstractTexInfo
     {
         ZipReader.ZipEntryFull ZipEntry = null;
+
+        bool analysed = false;
+        public bool Analysed
+        {
+            get
+            {
+                return analysed;
+            }
+            set
+            {
+                SetProperty(ref analysed, value);
+            }
+        }
+
+        public override string TexName
+        {
+            get
+            {
+                return base.TexName;
+            }
+
+            set
+            {
+                base.TexName = value;
+                OnPropertyChanged(nameof(FoundInTree));
+                Analysed = true;
+                OnPropertyChanged(nameof(Name));
+            }
+        }
 
         public override string DefaultSaveName
         {
@@ -35,6 +65,14 @@ namespace WPF_ME3Explorer.Textures
                 byte[] data = Extract();
                 using (ImageEngineImage img = new ImageEngineImage(data))
                     return img.GetWPFBitmap();
+            }
+        }
+
+        public bool FoundInTree
+        {
+            get
+            {
+                return TexName != null;
             }
         }
 
@@ -142,32 +180,6 @@ namespace WPF_ME3Explorer.Textures
                 FileName = file;
         }
 
-        internal void GetDetails()
-        {                    
-            byte[] imgData = Extract();
-            if (imgData == null)
-                return;
-
-            try
-            {
-                using (ImageEngineImage image = new ImageEngineImage(imgData))
-                {
-                    Width = image.Width;
-                    Height = image.Height;
-                    Mips = image.NumMipMaps;
-                    Format = image.Format.SurfaceFormat;
-
-                    // Thumbnail
-                    Thumb.StreamThumb = new MemoryStream();
-                    image.Save(Thumb.StreamThumb, ImageEngineFormat.JPG, MipHandling.Default, 64);
-                }
-            }
-            catch (Exception e)
-            {
-                DebugOutput.PrintLn($"Failed to get image information for: {Name}. Reason: {e.ToString()}.");
-            }
-        }
-
         internal byte[] Extract()
         {
             byte[] data = null;
@@ -177,6 +189,55 @@ namespace WPF_ME3Explorer.Textures
                 data = ZipEntry.Extract(true);
 
             return data;
+        }
+
+        internal void GetDetails(byte[] imgData)
+        {
+            if (IsDef)
+                return;
+
+            try
+            {
+                DDSGeneral.DDS_HEADER header = null;
+                using (MemoryStream ms = new MemoryStream(imgData))
+                {
+                    Format = ImageFormats.ParseFormat(ms, null, ref header).SurfaceFormat;
+                    ImageEngineImage image = null;
+
+                    if (header != null)
+                    {
+                        Width = header.dwWidth;
+                        Height = header.dwWidth;
+                        Mips = header.dwMipMapCount;
+                        image = new ImageEngineImage(ms, null, 64, true);
+                    }
+                    else
+                    {
+                        image = new ImageEngineImage(ms);
+                        Width = image.Width;
+                        Height = image.Height;
+                        Mips = image.NumMipMaps;
+                    }
+
+                    // Often the header of DDS' are not set properly resulting in Mips = 0
+                    if (Mips == 0 && header != null)
+                    {
+                        int tempMips = 0;
+                        DDSGeneral.EnsureMipInImage(ms.Length, Width, Height, 4, new CSharpImageLibrary.Format(Format), out tempMips);
+                        Mips = tempMips;
+                    }
+
+                    // Thumbnail
+                    Thumb.StreamThumb = new MemoryStream();
+                    image.Save(Thumb.StreamThumb, ImageEngineFormat.JPG, MipHandling.Default, 64);
+
+                    image.Dispose();
+                }
+            }
+            catch (Exception e)
+            {
+                DebugOutput.PrintLn($"Failed to get image information for: {Name}. Reason: {e.ToString()}.");
+            }
         }
 
         private void Extract(string destFilePath)
