@@ -68,7 +68,7 @@ namespace WPF_ME3Explorer.Textures
             {
                 string ext = Path.GetExtension(FileName);
                 var hash = ToolsetTextureEngine.FormatTexmodHashAsString(Hash);
-                return $"{Name.Replace(ext, "")}_{hash}{ext}";
+                return $"{Name.Replace(ext, "")}_{(Name.Contains(hash) ? "" : hash)}{ext}";
             }
         }
 
@@ -208,6 +208,12 @@ namespace WPF_ME3Explorer.Textures
             return data;
         }
 
+        internal void GetDetails()
+        {
+            byte[] data = Extract();
+            GetDetails(data);
+        }
+
         internal void GetDetails(byte[] imgData)
         {
             if (IsDef)
@@ -261,7 +267,7 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        private void Extract(string destFilePath)
+        internal void Extract(string destFilePath)
         {
             File.WriteAllBytes(destFilePath, Extract());
         }

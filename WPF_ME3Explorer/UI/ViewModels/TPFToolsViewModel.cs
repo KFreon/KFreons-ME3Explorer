@@ -14,6 +14,7 @@ using WPF_ME3Explorer.Textures;
 using CSharpImageLibrary;
 using System.ComponentModel;
 using System.Threading.Tasks.Dataflow;
+using Microsoft.Win32;
 
 namespace WPF_ME3Explorer.UI.ViewModels
 {
@@ -94,11 +95,81 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         
                         await Task.Run(async () => await ToolsetTextureEngine.InstallTextures(NumThreads, this, GameDirecs, cts, texes));
 
+                        Progress = MaxProgress;
                         Status = "All textures installed!";
                         Busy = false;
                     });
 
                 return installCommand;
+            }
+        }
+
+        CommandHandler extractCommand = null;
+        public CommandHandler ExtractCommand
+        {
+            get
+            {
+                if (extractCommand == null)
+                    extractCommand = new CommandHandler(param =>
+                    {
+                        var tex = param as TPFTexInfo;
+                        if (tex == null)
+                            return;
+
+                        SaveFileDialog sfd = new SaveFileDialog();
+                        sfd.Filter = Path.GetExtension(tex.DefaultSaveName);   // TODO: All supported
+                        sfd.FileName = tex.DefaultSaveName;
+                        if (sfd.ShowDialog() != true)
+                            return;
+
+
+                        Busy = true;
+                        ProgressIndeterminate = true;
+                        Status = $"Extracting {tex.Name}";
+
+                        tex.Extract(sfd.FileName);
+
+                        Status = $"Extracted {tex.Name}!";
+                        ProgressIndeterminate = false;
+                        Busy = false;
+                    });
+
+                return extractCommand;
+            }
+        }
+
+        CommandHandler replaceCommand = null;
+        public CommandHandler ReplaceCommand
+        {
+            get
+            {
+                if (replaceCommand == null)
+                    replaceCommand = new CommandHandler(async param =>
+                    {
+                        var tex = param as TPFTexInfo;
+
+                        OpenFileDialog ofd = new OpenFileDialog();
+                        ofd.Filter = Path.GetExtension(tex.DefaultSaveName);
+                        if (ofd.ShowDialog() != true)
+                            return;
+
+                        Busy = true;
+                        ProgressIndeterminate = true;
+                        Status = $"Replacing {tex.Name}";
+
+                        tex.FileName = Path.GetFileName(ofd.FileName);
+                        tex.FilePath = Path.GetDirectoryName(ofd.FileName);
+                        if (tex.Hash == 0)
+                            tex.Hash = FindHashInString(tex.FileName, "0x");
+
+                        await Task.Run(() => tex.GetDetails());
+
+                        ProgressIndeterminate = false;
+                        Status = $"Replaced texture with {tex.Name}";
+                        Busy = false;
+                    });
+
+                return replaceCommand;
             }
         }
 
@@ -352,6 +423,50 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             OnPropertyChanged(nameof(AllAnalysed));
             PreviouslyAnalysed = false;
+        }
+
+        void SaveToTPF(string filename, params TPFTexInfo[] textures)
+        {
+            List<TPFTexInfo> texes = new List<TPFTexInfo>();
+            if (textures?.Count() == 0)
+                texes.AddRange(Textures.Where(t => !t.IsDef && t.Hash != 0));  // Valid game textures only
+            else
+                texes.AddRange(textures.Where(t => !t.IsDef && t.Hash != 0));
+
+            Busy = true;
+            Progress = 0;
+            MaxProgress = texes.Count;
+            Status = $"Saving {MaxProgress} textures to TPF at {filename}";
+
+            BuildTPF(filename, texes.DistinctBy(t => t.Hash));  // Don't want duplicate hashes - Won't be any if analysed, but can build TPF's without tree analysis.
+
+            Busy = false;
+            Progress = MaxProgress;
+            Status = $"Saved {filename}!";
+        }
+
+        void BuildTPF(string destination, IEnumerable<TPFTexInfo> texes)
+        {
+            List<Tuple<string, Func<byte[]>>> texInfos = new List<Tuple<string, Func<byte[]>>>();  // Func<byte[]> delays data fetch until required, so don't have huge data in memory at once.
+            foreach (var tex in texes)
+                texInfos.Add(new Tuple<string, Func<byte[]>>(tex.DefaultSaveName, tex.Extract));
+
+            // Build log
+            Func<byte[]> logData = () =>
+            {
+                List<byte> data = new List<byte>();
+
+                foreach(var tex in texes)
+                {
+                    string hash = ToolsetTextureEngine.FormatTexmodHashAsString(tex.Hash);
+                    data.AddRange(Encoding.ASCII.GetBytes($"{hash}|{tex.DefaultSaveName}{Environment.NewLine}"));
+                }
+
+                return data.ToArray();
+            };
+            texInfos.Add(new Tuple<string, Func<byte[]>>("texmod.def", logData));
+
+            ZipWriter.Repack(destination, texInfos);
         }
     }
 }

@@ -81,22 +81,17 @@
                             </DockPanel.Style>
                             <DockPanel.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Header="Install">
+                                    <MenuItem Header="Install" Command="{Binding InstallCommand, ConverterParameter={Binding}}">
                                         <MenuItem.Icon>
                                             <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
-                                    <MenuItem Header="Replace">
+                                    <MenuItem Header="Replace" Command="{Binding ReplaceCommand, ConverterParameter={Binding}}">
                                         <MenuItem.Icon>
                                             <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
-                                    <MenuItem Header="Extract">
-                                        <MenuItem.Icon>
-                                            <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
-                                        </MenuItem.Icon>
-                                    </MenuItem>
-                                    <MenuItem Header="Autofix">
+                                    <MenuItem Header="Extract" Command="{Binding ExtractCommand, ConverterParameter={Binding}}">
                                         <MenuItem.Icon>
                                             <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
                                         </MenuItem.Icon>
