@@ -230,11 +230,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 Status = $"Loading {Path.GetFileName(file)}...";
                 return BuildSingleTex(file);
             });
-            TransformManyBlock<string, TPFTexInfo> tpfTexMaker = new TransformManyBlock<string, TPFTexInfo>(tpf =>
+            TransformManyBlock<string, TPFTexInfo> tpfTexMaker = new TransformManyBlock<string, TPFTexInfo>(async tpf =>
             {
                 Status = $"Loading textures from {Path.GetFileName(tpf)}...";
-                return LoadTPF(tpf);
-            });
+                return await LoadTPF(tpf);
+            }, new ExecutionDataflowBlockOptions { BoundedCapacity = 1, MaxDegreeOfParallelism = 1 });
 
             // Want disk work to be done on a single thread.
             var texExtractor = new TransformBlock<TPFTexInfo, Tuple<TPFTexInfo, byte[]>>(tex => new Tuple<TPFTexInfo, byte[]>(tex, tex.Extract()), new ExecutionDataflowBlockOptions { BoundedCapacity = 2, MaxDegreeOfParallelism = 2 });  // Disk bound 
@@ -290,9 +290,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
             return tex;
         }
 
-        List<TPFTexInfo> LoadTPF(string tpf)
+        async Task<List<TPFTexInfo>> LoadTPF(string tpf)
         {
-            ZipReader zippy = new ZipReader(tpf);
+            // More than 4gb RAM available, load TPFs into memory
+            bool loadIntoMemory = ToolsetInfo.AvailableRam > 4.0 * 1024 * 1024 * 1024;   
+            
+            ZipReader zippy = await ZipReader.LoadAsync(tpf, loadIntoMemory);
             MaxProgress += zippy.Entries.Count;
             List<TPFTexInfo> tempTexes = new List<TPFTexInfo>();
 

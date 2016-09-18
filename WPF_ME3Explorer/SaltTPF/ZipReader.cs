@@ -96,11 +96,20 @@ namespace SaltTPF
                     dataoff += Filename.Length;
                 if (Extra != null)
                     dataoff += Extra.Length;
-                using (FileStream tpf = new FileStream(_par._filename, FileMode.Open, FileAccess.Read))
-                {
-                    tpf.Seek(FileOffset, SeekOrigin.Begin);
-                    databuff = ZipReader.BuffXOR(tpf, dataoff + (int)ComprSize + 16); // XOR the whole data block as well as the footer
-                }
+
+                // KFreon: Use stored MemoryStream if possible.
+                Stream tpf = null;
+                if (_par.dataStream == null)
+                    tpf = new FileStream(_par._filename, FileMode.Open, FileAccess.Read);
+                else
+                    tpf = _par.dataStream;
+
+                tpf.Seek(FileOffset, SeekOrigin.Begin);
+                databuff = ZipReader.BuffXOR(tpf, dataoff + (int)ComprSize + 16); // XOR the whole data block as well as the footer
+
+                // KFreon: Dispose of stream IF it was a FileStream
+                if (_par.dataStream == null)
+                    tpf.Dispose();
 
                 // Check for correct header data and such
                 ZipEntry fileentry = new ZipEntry(databuff);
@@ -241,32 +250,65 @@ namespace SaltTPF
         }
         public bool Scanned;
 
+        internal MemoryStream dataStream = null;
+
         /* Private members */
         private Int64 EOFRecordOff;
 
         public List<string> DefLines { get; set; }
 
         /// <summary>
+        /// Loads a TPF Asynchronously.
+        /// </summary>
+        /// <param name="filename">Filename of TPF to load.</param>
+        /// <param name="ReadIntoMemory">True = Loads TPF into memory for fast access later.</param>
+        /// <returns>ZipReader object of TPF.</returns>
+        public static async Task<ZipReader> LoadAsync(string filename, bool ReadIntoMemory)
+        {
+            MemoryStream temp = null;
+            using (FileStream fs = new FileStream(filename, FileMode.Open, FileAccess.Read))
+            {
+                temp = new MemoryStream((int)fs.Length);
+                await fs.CopyToAsync(temp);
+            }
+
+            return new ZipReader(filename, temp);
+        }
+
+        /// <summary>
         /// Construct the zip object. Reads in the file list and uses it to populate the entries var
         /// </summary>
         /// <param name="filename">The file to read in</param>
-        public ZipReader(String filename)
+        public ZipReader(String filename, bool ReadIntoMemory = false)
         {
             _filename = filename;
-
             using (FileStream fs = new FileStream(_filename, FileMode.Open, FileAccess.Read))
-            {
-                // The easiest way to do this is to just XOR the whole file, but let's try something a bit smarter
-                // First read the first 4 bytes to do a prelim correctness test
-                byte[] buff = new byte[4];
-                fs.Read(buff, 0, 4);
-                if ((BitConverter.ToUInt32(buff, 0) ^ tpfxor) != filemagic)
-                    throw new FormatException("Incorrect header");
+                LoadFromStream(fs);
+        }
 
-                EOFRecordOff = FindEOFRecord(fs);
-                EOFStrct = new EOFRecord(fs, EOFRecordOff);
-                PopulateEntries(fs);
-            }
+        /// <summary>
+        /// Load a TPF from a stream.
+        /// </summary>
+        /// <param name="stream">Stream containing TPF.</param>
+        public ZipReader(string filename, MemoryStream stream)
+        {
+            _filename = filename;
+            dataStream = stream;
+            LoadFromStream(stream);
+        }
+
+        void LoadFromStream(Stream stream)
+        {
+            // The easiest way to do this is to just XOR the whole file, but let's try something a bit smarter
+            // First read the first 4 bytes to do a prelim correctness test
+            byte[] buff = new byte[4];
+            stream.Read(buff, 0, 4);
+            if ((BitConverter.ToUInt32(buff, 0) ^ tpfxor) != filemagic)
+                throw new FormatException("Incorrect header");
+
+            EOFRecordOff = FindEOFRecord(stream);
+            EOFStrct = new EOFRecord(stream, EOFRecordOff);
+            PopulateEntries(stream);
         }
 
         /// <summary>
