@@ -99,16 +99,16 @@ namespace SaltTPF
 
                 // KFreon: Use stored MemoryStream if possible.
                 Stream tpf = null;
-                if (_par.dataStream == null)
+                if (_par.DataStream == null)
                     tpf = new FileStream(_par._filename, FileMode.Open, FileAccess.Read);
                 else
-                    tpf = _par.dataStream;
+                    tpf = _par.DataStream;
 
                 tpf.Seek(FileOffset, SeekOrigin.Begin);
                 databuff = ZipReader.BuffXOR(tpf, dataoff + (int)ComprSize + 16); // XOR the whole data block as well as the footer
 
                 // KFreon: Dispose of stream IF it was a FileStream
-                if (_par.dataStream == null)
+                if (_par.DataStream == null)
                     tpf.Dispose();
 
                 // Check for correct header data and such
@@ -250,7 +250,7 @@ namespace SaltTPF
         }
         public bool Scanned;
 
-        internal MemoryStream dataStream = null;
+        public MemoryStream DataStream = null;
 
         /* Private members */
         private Int64 EOFRecordOff;
@@ -293,7 +293,7 @@ namespace SaltTPF
         public ZipReader(string filename, MemoryStream stream)
         {
             _filename = filename;
-            dataStream = stream;
+            DataStream = stream;
             LoadFromStream(stream);
         }
 

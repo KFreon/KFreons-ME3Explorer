@@ -31,6 +31,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     tex.IsHidden = false;
         }
 
+        public bool SaveTPFEnabled
+        {
+            get
+            {
+                return Textures?.Any(t => t.Hash != 0) == true;
+            }
+        }
+
         public override void ChangeSelectedTree(int game)
         {
             base.ChangeSelectedTree(game);
@@ -223,6 +231,30 @@ namespace WPF_ME3Explorer.UI.ViewModels
             MaxProgress = fileNames.Length;
             int prevTexCount = Textures.Count;
 
+            int maxParallelism = NumThreads;
+
+            // Get Details method
+            var PopulateTexDetails = new Action<TPFTexInfo, byte[]>((tex, data) =>
+            {
+                tex.GetDetails(data);
+
+                // Wire up HashChanged to SaveTPFEnabled
+                tex.PropertyChanged += (sender, args) =>
+                {
+                    if (args.PropertyName == nameof(tex.HashChanged))
+                        OnPropertyChanged(nameof(SaveTPFEnabled));
+                };
+
+
+                // Check for duplicates in loaded files.
+                var dup = Textures.FirstOrDefault(t => t.FileHash == tex.FileHash);
+                if (dup == null)
+                    Textures.Add(tex);
+                else
+                    dup.FileDuplicates.Add(tex);
+                Progress++;
+            });
+
             /// Setup pipeline
             BufferBlock<string> fileBuffer = new BufferBlock<string>();
             TransformBlock<string, TPFTexInfo> singleTexMaker = new TransformBlock<string, TPFTexInfo>(file =>
@@ -230,33 +262,40 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 Status = $"Loading {Path.GetFileName(file)}...";
                 return BuildSingleTex(file);
             });
-            TransformManyBlock<string, TPFTexInfo> tpfTexMaker = new TransformManyBlock<string, TPFTexInfo>(async tpf =>
+
+
+            // TPF side - tpf's can be stored in memory, and be quite large so need to dispose ASAP, meaning we can't wait to dispose until all work is done. Need to do TPF's one by one, disposing once done with them.
+            var tpfMaker = new ActionBlock<string>(async tpf =>
             {
                 Status = $"Loading textures from {Path.GetFileName(tpf)}...";
-                return await LoadTPF(tpf);
+                List<TPFTexInfo> texes = await LoadTPF(tpf);
+                ZipReader zippy = Zippys.Last();
+
+                // Extract and get details
+                await Task.Run(() =>
+                {
+                    Parallel.ForEach(texes, new ParallelOptions { MaxDegreeOfParallelism = maxParallelism }, tex =>
+                    {
+                        var data = tex.Extract();
+                        PopulateTexDetails(tex, data);
+                    });
+                });
+
+                // Dipose of datastream if necessary, and indicate further operations should use the disk.
+                zippy?.DataStream?.Dispose();
+                zippy.DataStream = null;
             }, new ExecutionDataflowBlockOptions { BoundedCapacity = 1, MaxDegreeOfParallelism = 1 });
 
-            // Want disk work to be done on a single thread.
-            var texExtractor = new TransformBlock<TPFTexInfo, Tuple<TPFTexInfo, byte[]>>(tex => new Tuple<TPFTexInfo, byte[]>(tex, tex.Extract()), new ExecutionDataflowBlockOptions { BoundedCapacity = 2, MaxDegreeOfParallelism = 2 });  // Disk bound 
-            var thumbBuilder = new ActionBlock<Tuple<TPFTexInfo, byte[]>>(tuple =>
-            {
-                tuple.Item1.GetDetails(tuple.Item2);
 
-
-                // Check for duplicates in loaded files.
-                var dup = Textures.FirstOrDefault(t => t.FileHash == tuple.Item1.FileHash);
-                if (dup == null)
-                    Textures.Add(tuple.Item1);
-                else
-                    dup.FileDuplicates.Add(tuple.Item1);
-                Progress++;
-            }, new ExecutionDataflowBlockOptions { BoundedCapacity = NumThreads, MaxDegreeOfParallelism = NumThreads });
+            // Single texture side
+            var texExtractor = new TransformBlock<TPFTexInfo, Tuple<TPFTexInfo, byte[]>>(tex => new Tuple<TPFTexInfo, byte[]>(tex, tex.Extract()), new ExecutionDataflowBlockOptions { BoundedCapacity = maxParallelism, MaxDegreeOfParallelism = maxParallelism }); 
+            var thumbBuilder = new ActionBlock<Tuple<TPFTexInfo, byte[]>>(tuple => PopulateTexDetails(tuple.Item1, tuple.Item2), new ExecutionDataflowBlockOptions { BoundedCapacity = maxParallelism, MaxDegreeOfParallelism = maxParallelism });
 
             // Connect pipeline
+            fileBuffer.LinkTo(tpfMaker, new DataflowLinkOptions { PropagateCompletion = true }, file => AcceptedExtensions.Where(ext => ext.Contains("tpf")).Contains(Path.GetExtension(file)));
+
             fileBuffer.LinkTo(singleTexMaker, new DataflowLinkOptions { PropagateCompletion = true }, file => AcceptedExtensions.Where(ext => !ext.Contains("tpf")).Contains(Path.GetExtension(file)));
-            fileBuffer.LinkTo(tpfTexMaker, new DataflowLinkOptions { PropagateCompletion = true }, file => AcceptedExtensions.Where(ext => ext.Contains("tpf")).Contains(Path.GetExtension(file)));
-            singleTexMaker.LinkTo(texExtractor);
-            tpfTexMaker.LinkTo(texExtractor);
+            singleTexMaker.LinkTo(texExtractor, new DataflowLinkOptions { PropagateCompletion = true });
             texExtractor.LinkTo(thumbBuilder, new DataflowLinkOptions { PropagateCompletion = true });
 
             // Start pipeline
@@ -266,7 +305,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             fileBuffer.Complete();
 
             // Due to pipeline topology one side can and will finish first, which then Completes everything else despite the other side still working.
-            Task.WhenAll(fileBuffer.Completion, singleTexMaker.Completion, tpfTexMaker.Completion).ContinueWith(t => texExtractor.Complete());  
+            Task.WhenAll(texExtractor.Completion, tpfMaker.Completion);
+
+            OnPropertyChanged(nameof(SaveTPFEnabled));
 
             await thumbBuilder.Completion;
             Status = $"Loaded {Textures.Count - prevTexCount} from {fileNames.Length} files.";
