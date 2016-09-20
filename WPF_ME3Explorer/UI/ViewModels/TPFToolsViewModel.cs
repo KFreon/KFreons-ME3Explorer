@@ -21,37 +21,15 @@ namespace WPF_ME3Explorer.UI.ViewModels
     public class TPFToolsViewModel : MEViewModelBase<TPFTexInfo>
     {
         public static string[] AcceptedExtensions = { ".dds", ".jpg", ".jpeg", ".bmp", ".png", ".tga", ".tpf", ".metpf" };
+        List<ZipReader> Zippys = new List<ZipReader>();
 
-        public override void Search(string searchText)
-        {
-            base.Search(searchText);
-
-            if (String.IsNullOrEmpty(searchText))
-                foreach (var tex in Textures)
-                    tex.IsHidden = false;
-        }
-
+        #region Properties
         public bool SaveTPFEnabled
         {
             get
             {
                 return Textures?.Any(t => t.Hash != 0) == true;
             }
-        }
-
-        public override void ChangeSelectedTree(int game)
-        {
-            base.ChangeSelectedTree(game);
-
-            // Re-analyse if required
-            if (PreviouslyAnalysed)
-            {
-                UnAnalyse();
-                AnalyseVsTree();
-            }
-
-            Properties.Settings.Default.TPFToolsGameVersion = game;
-            Properties.Settings.Default.Save();
         }
 
         public bool AllAnalysed
@@ -78,8 +56,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
-        List<ZipReader> Zippys = new List<ZipReader>();
         public ICollectionView MainDisplayView { get; set; }
+        #endregion Properties
+
 
         #region Commands
         CommandHandler installCommand = null;
@@ -219,9 +198,33 @@ namespace WPF_ME3Explorer.UI.ViewModels
             GameDirecs.GameVersion = Properties.Settings.Default.TPFToolsGameVersion;
             OnPropertyChanged(nameof(GameVersion));
 
+            SetupCurrentTree();
+        }
+
+        public override void Search(string searchText)
+        {
+            base.Search(searchText);
+
+            if (String.IsNullOrEmpty(searchText))
+                foreach (var tex in Textures)
+                    tex.IsHidden = false;
+        }
 
 
-            BeginTreeLoading();
+
+        public override void ChangeSelectedTree(int game)
+        {
+            base.ChangeSelectedTree(game);
+
+            // Re-analyse if required
+            if (PreviouslyAnalysed)
+            {
+                UnAnalyse();
+                AnalyseVsTree();
+            }
+
+            Properties.Settings.Default.TPFToolsGameVersion = game;
+            Properties.Settings.Default.Save();
         }
 
         internal async Task LoadFiles(string[] fileNames)

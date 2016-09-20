@@ -14,6 +14,25 @@ namespace WPF_ME3Explorer.Textures
 {
     public class TreeDB : ViewModelBase
     {
+        #region Static Properties
+        static MTRangedObservableCollection<TreeTexInfo> ME1Textures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
+        static MTRangedObservableCollection<TreeTexInfo> ME2Textures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
+        static MTRangedObservableCollection<TreeTexInfo> ME3Textures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
+
+        static MTRangedObservableCollection<string> ME1ScannedPCCs { get; set; } = new MTRangedObservableCollection<string>();
+        static MTRangedObservableCollection<string> ME2ScannedPCCs { get; set; } = new MTRangedObservableCollection<string>();
+        static MTRangedObservableCollection<string> ME3ScannedPCCs { get; set; } = new MTRangedObservableCollection<string>();
+
+        static MTRangedObservableCollection<TexplorerTextureFolder> ME1TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+        static MTRangedObservableCollection<TexplorerTextureFolder> ME2TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+        static MTRangedObservableCollection<TexplorerTextureFolder> ME3TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+
+        static MTRangedObservableCollection<TexplorerTextureFolder> ME1AllFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+        static MTRangedObservableCollection<TexplorerTextureFolder> ME2AllFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+        static MTRangedObservableCollection<TexplorerTextureFolder> ME3AllFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
+        #endregion Static Properties
+
+
         bool isSelected = false;
         public bool IsSelected
         {
@@ -27,9 +46,79 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        public MTRangedObservableCollection<TreeTexInfo> Textures { get; set; }
+        public MTRangedObservableCollection<TreeTexInfo> Textures
+        {
+            get
+            {
+                switch (GameVersion)
+                {
+                    case 1:
+                        return ME1Textures;
+                    case 2:
+                        return ME2Textures;
+                    case 3:
+                        return ME3Textures;
+                }
+
+                return null;
+            }
+        }
+
+        public MTRangedObservableCollection<string> ScannedPCCs
+        {
+            get
+            {
+                switch (GameVersion)
+                {
+                    case 1:
+                        return ME1ScannedPCCs;
+                    case 2:
+                        return ME2ScannedPCCs;
+                    case 3:
+                        return ME3ScannedPCCs;
+                }
+
+                return null;
+            }
+        }
+
+        public MTRangedObservableCollection<TexplorerTextureFolder> TextureFolders
+        {
+            get
+            {
+                switch (GameVersion)
+                {
+                    case 1:
+                        return ME1TextureFolders;
+                    case 2:
+                        return ME2TextureFolders;
+                    case 3:
+                        return ME3TextureFolders;
+                }
+
+                return null;
+            }
+        }
+
+        public MTRangedObservableCollection<TexplorerTextureFolder> AllFolders
+        {
+            get
+            {
+                switch (GameVersion)
+                {
+                    case 1:
+                        return ME1AllFolders;
+                    case 2:
+                        return ME2AllFolders;
+                    case 3:
+                        return ME3AllFolders;
+                }
+
+                return null;
+            }
+        }
+
         readonly object Locker = new object();
-        public MTRangedObservableCollection<string> ScannedPCCs { get; set; }
         MEDirectories.MEDirectories GameDirecs = null;
 
         public string TreeVersion { get; set; }
@@ -77,8 +166,6 @@ namespace WPF_ME3Explorer.Textures
         public TreeDB(int gameversion)
         {
             GameDirecs = new MEDirectories.MEDirectories(gameversion);
-            Textures = new MTRangedObservableCollection<TreeTexInfo>();
-            ScannedPCCs = new MTRangedObservableCollection<string>();
         }
 
         public TreeDB(List<string> givenPCCs, int gameversion) : this(gameversion)
@@ -108,6 +195,10 @@ namespace WPF_ME3Explorer.Textures
 
         public bool ReadFromFile(string fileName = null)
         {
+            // Do this only once
+            if (Textures.Count > 0)
+                return true;
+
             OnPropertyChanged(nameof(Exists));
 
             string tempFilename = fileName;
@@ -117,11 +208,12 @@ namespace WPF_ME3Explorer.Textures
             if (!File.Exists(tempFilename))
                 return false;
 
+            List<TreeTexInfo> TempTextures = new List<TreeTexInfo>();
             try
             {
-                using (FileStream fs = new FileStream(tempFilename, FileMode.Open))
+                using (MemoryStream ms = new MemoryStream(File.ReadAllBytes(tempFilename)))
                 {
-                    using (GZipStream compressed = new GZipStream(fs, CompressionMode.Decompress))  // Compressed for nice small trees
+                    using (GZipStream compressed = new GZipStream(ms, CompressionMode.Decompress))  // Compressed for nice small trees
                     {
                         using (BinaryReader bin = new BinaryReader(compressed))
                         {
@@ -171,21 +263,23 @@ namespace WPF_ME3Explorer.Textures
                                     tex.PCCs.Add(new PCCEntry(Path.Combine(GameDirecs.BasePath, userAgnosticPath), ExpID));
                                 }
 
-                                Textures.Add(tex);
+                                TempTextures.Add(tex);
                             }
                         }
-                    }   
+                    }
                 }
 
                 // Sort ME1 files
                 if (GameVersion == 1)
-                    ToolsetTextureEngine.ME1_SortTexturesPCCs(Textures);
+                    ToolsetTextureEngine.ME1_SortTexturesPCCs(TempTextures);
             }
             catch (Exception e)
             {
                 DebugOutput.PrintLn($"Failed to load tree: {fileName}. Reason: {e.ToString()}");
                 return false;
             }
+
+            Textures.AddRange(TempTextures);
 
             Valid = true;
             return true;
@@ -200,10 +294,9 @@ namespace WPF_ME3Explorer.Textures
 
             Directory.CreateDirectory(TreePath.GetDirParent()); // Create Trees directory if required
 
-
-            using (FileStream fs = new FileStream(tempFilename, FileMode.Create))
+            using (MemoryStream ms = new MemoryStream())
             {
-                using (GZipStream compressed = new GZipStream(fs, CompressionMode.Compress))  // Compress for nice small trees
+                using (GZipStream compressed = new GZipStream(ms, CompressionMode.Compress))  // Compress for nice small trees
                 {
                     using (BinaryWriter bw = new BinaryWriter(compressed))
                     {
@@ -237,6 +330,9 @@ namespace WPF_ME3Explorer.Textures
                         }
                     }
                 }
+
+                using (FileStream fs = new FileStream(tempFilename, FileMode.Create))
+                    ms.CopyTo(fs);
             }
         }
 
@@ -292,6 +388,75 @@ namespace WPF_ME3Explorer.Textures
 
             OnPropertyChanged(nameof(Exists));
             Valid = false;
+        }
+
+        internal void ConstructTree()
+        {
+            // Only once
+            if (TextureFolders.Count > 0)
+                return;
+
+            DebugOutput.PrintLn($"Constructing ME{GameVersion}Tree...");
+
+            // Top all encompassing node
+            TexplorerTextureFolder TopTextureFolder = new TexplorerTextureFolder("All Texture Files", null, null);
+
+            // Normal nodes
+            foreach (var tex in Textures)
+                RecursivelyCreateFolders(tex.FullPackage, "", TopTextureFolder, tex);
+
+            Console.WriteLine($"Total number of folders: {AllFolders.Count}");
+            // Alphabetical order
+            TopTextureFolder.Folders = new MTRangedObservableCollection<TexplorerTextureFolder>(TopTextureFolder.Folders.OrderBy(p => p));
+
+            TextureFolders.Add(TopTextureFolder);  // Only one item in this list. Chuckles.
+
+            DebugOutput.PrintLn($"ME{GameVersion} Tree Constructed!");
+        }
+
+        void RecursivelyCreateFolders(string package, string oldFilter, TexplorerTextureFolder topFolder, TreeTexInfo texture)
+        {
+            int dotInd = package.IndexOf('.') + 1;
+            string name = package;
+            if (dotInd != 0)
+                name = package.Substring(0, dotInd).Trim('.');
+
+            string filter = oldFilter + '.' + name;
+            filter = filter.Trim('.');
+
+            TexplorerTextureFolder newFolder = new TexplorerTextureFolder(name, filter, topFolder);
+
+            // Add texture if part of this folder
+            if (newFolder.Filter == texture.FullPackage)
+                newFolder.Textures.Add(texture);
+
+            TexplorerTextureFolder existingFolder = topFolder.Folders.FirstOrDefault(folder => newFolder.Name == folder.Name);
+            if (existingFolder == null)  // newFolder not found in existing folders
+            {
+                topFolder.Folders.Add(newFolder);
+                AllFolders.Add(newFolder);
+
+                // No more folders in package
+                if (dotInd == 0)
+                    return;
+
+                string newPackage = package.Substring(dotInd).Trim('.');
+                RecursivelyCreateFolders(newPackage, filter, newFolder, texture);
+            }
+            else
+            {  // No subfolders for newFolder yet, need to make them if there are any
+
+                // Add texture if necessary
+                if (existingFolder.Filter == texture.FullPackage)
+                    existingFolder.Textures.Add(texture);
+
+                // No more folders in package
+                if (dotInd == 0)
+                    return;
+
+                string newPackage = package.Substring(dotInd).Trim('.');
+                RecursivelyCreateFolders(newPackage, filter, existingFolder, texture);
+            }
         }
     }
 }

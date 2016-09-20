@@ -206,36 +206,44 @@ namespace WPF_ME3Explorer.MEDirectories
         }
 
         static List<string> me1Files = null;
+        static readonly object me1FileLocker = new object();
         public static List<string> ME1Files
         {
             get
             {
                 if (me1Files == null && ME1BIOGame != null && Directory.Exists(ME1BIOGame))
-                    me1Files = EnumerateGameFiles(1, ME1BIOGame);
+                {
+                    lock(me1FileLocker)
+                        me1Files = EnumerateGameFiles(1, ME1BIOGame);
+                }
 
                 return me1Files;
             }
         }
 
+        static readonly object me2FileLocker = new object();
         static List<string> me2Files = null;
         public static List<string> ME2Files
         {
             get
             {
                 if (me2Files == null && ME2BIOGame != null && Directory.Exists(ME2BIOGame))
-                    me2Files = EnumerateGameFiles(2, ME2BIOGame);
+                    lock(me2FileLocker)
+                        me2Files = EnumerateGameFiles(2, ME2BIOGame);
 
                 return me2Files;
             }
         }
 
+        static readonly object me3FileLocker = new object();
         static List<string> me3Files = null;
         public static List<string> ME3Files
         {
             get
             {
                 if (me3Files == null && ME3BIOGame != null && Directory.Exists(ME3BIOGame))
-                    me3Files = EnumerateGameFiles(3, ME3BIOGame);  // Includes DLC
+                    lock(me3FileLocker)
+                        me3Files = EnumerateGameFiles(3, ME3BIOGame);  // Includes DLC
 
                 return me3Files;
             }
@@ -362,14 +370,16 @@ namespace WPF_ME3Explorer.MEDirectories
             }
         }
 
-        public MEDirectories(int game) : this()
-        {
-            GameVersion = game;
-        }
-
-        public MEDirectories()
+        static MEDirectories()
         {
             SetupPaths();
+        }
+
+        public MEDirectories() { }
+
+        public MEDirectories(int game) : this() 
+        {
+            GameVersion = game;
         }
 
         public static string GetCommonDLCName(string dLCName)
@@ -384,7 +394,7 @@ namespace WPF_ME3Explorer.MEDirectories
             return commonName;
         }
 
-        public void SetupPaths(bool force = false)
+        public static void SetupPaths(bool force = false)
         {
             if (!force && BIOGames.Any(bio => !String.IsNullOrEmpty(bio)))
                 return;

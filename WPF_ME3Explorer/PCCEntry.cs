@@ -9,6 +9,8 @@ namespace WPF_ME3Explorer
 {
     public class PCCEntry : ViewModelBase
     {
+        public bool CheckBoxListenerAttached = false;
+
         bool isChecked = true;
         public bool IsChecked
         {

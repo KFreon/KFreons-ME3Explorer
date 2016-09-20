@@ -26,10 +26,10 @@ namespace WPF_ME3Explorer
             InitializeComponent();
             DebugOutput.StartDebugger("The Toolset");
 
-            // Load all tools
-            /*var tex = ToolsetInfo.TexplorerInstance;
+            // Load all tools - NEEDS TO JUST BE the object/data model here.
+            var tex = ToolsetInfo.TexplorerInstance;
             var tpf = ToolsetInfo.TPFToolsInstance;
-            var mod = ToolsetInfo.ModmakerInstance;*/
+            var mod = ToolsetInfo.ModmakerInstance;
         }
 
         private void TPFToolsButton_MouseDown(object sender, MouseButtonEventArgs e)

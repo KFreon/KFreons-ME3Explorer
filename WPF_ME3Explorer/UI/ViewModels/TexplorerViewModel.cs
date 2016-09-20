@@ -232,17 +232,31 @@ namespace WPF_ME3Explorer.UI.ViewModels
         #endregion UI Actions
 
         #region Properties
-        public MTRangedObservableCollection<TreeTexInfo> TextureSearchResults { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
+        #region Caches
+        List<DLCEntry> ME1FTSDLCs { get; set; } = new List<DLCEntry>();
+        List<GameFileEntry> ME1FTSGameFiles { get; set; } = new List<GameFileEntry>();
+        List<AbstractFileEntry> ME1FTSExclusions { get; set; } = new List<AbstractFileEntry>();
+
+        List<DLCEntry> ME2FTSDLCs { get; set; } = new List<DLCEntry>();
+        List<GameFileEntry> ME2FTSGameFiles { get; set; } = new List<GameFileEntry>();
+        List<AbstractFileEntry> ME2FTSExclusions { get; set; } = new List<AbstractFileEntry>();
+
+        List<DLCEntry> ME3FTSDLCs { get; set; } = new List<DLCEntry>();
+        List<GameFileEntry> ME3FTSGameFiles { get; set; } = new List<GameFileEntry>();
+        List<AbstractFileEntry> ME3FTSExclusions { get; set; } = new List<AbstractFileEntry>();
+
+        // Mains
         List<DLCEntry> FTSDLCs { get; set; } = new List<DLCEntry>();
         List<GameFileEntry> FTSGameFiles { get; set; } = new List<GameFileEntry>();
         List<AbstractFileEntry> FTSExclusions { get; set; } = new List<AbstractFileEntry>();
+        #endregion Caches
+
+        public MTRangedObservableCollection<TreeTexInfo> TextureSearchResults { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
         public ICollectionView DLCItemsView { get; set; }
         public ICollectionView ExclusionsItemsView { get; set; }
         public ICollectionView FileItemsView { get; set; }
         ThumbnailWriter ThumbnailWriter = null;
         public MTRangedObservableCollection<string> Errors { get; set; } = new MTRangedObservableCollection<string>();
-        public MTRangedObservableCollection<TexplorerTextureFolder> TextureFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
-        public MTRangedObservableCollection<TexplorerTextureFolder> AllFolders { get; set; } = new MTRangedObservableCollection<TexplorerTextureFolder>();
         public MTRangedObservableCollection<TreeTexInfo> ChangedTextures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
 
         public override string TextureSearch
@@ -439,7 +453,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             // Setup thumbnail writer - not used unless tree scanning.
             ThumbnailWriter = new ThumbnailWriter(GameDirecs);
-            BeginTreeLoading();
+
+            SetupCurrentTree();
+
+            Task.Run(() => InitialiseFTS(1));
+            Task.Run(() => InitialiseFTS(2));
+            Task.Run(() => InitialiseFTS(3));
         }
 
         internal async Task RegenerateThumbs(params TreeTexInfo[] textures)
@@ -551,17 +570,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
         /// For tree setup during startup.
         /// </summary>
         /// <returns></returns>
-        protected override Task LoadTreeAndExtra()
+        protected override void SetupCurrentTree()
         {
-            var task = LoadFTSandTree();
-            return task.ContinueWith(t =>
-            {
-                if (!CurrentTree.Valid)
-                    Status = "Tree invalid/non-existent. Begin Tree Scan by clicking 'Settings'";
-            });
+            base.SetupCurrentTree();
+
+            LoadFTSandTree();
         }
 
-        async Task LoadFTSandTree(bool panelAlreadyOpen = false)
+        void LoadFTSandTree(bool panelAlreadyOpen = false)
         {
             FTSReady = false;
 
@@ -571,52 +587,100 @@ namespace WPF_ME3Explorer.UI.ViewModels
             FTSDLCs.Clear();
 
             // Tree isn't valid. Open the panel immediately.
-            if (!panelAlreadyOpen && !CurrentTree.Valid)
+            if (!panelAlreadyOpen && !CurrentTree.Valid && TreePanelOpener != null)
                 TreePanelOpener();
 
-            await Task.Run(() =>
+            switch (GameVersion)
             {
-                // Get DLC's
-                DLCEntry basegame = new DLCEntry("BaseGame", GameDirecs.Files.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList());
-                FTSDLCs.Add(basegame);
-                GetDLCEntries();
-            });
-
-            // Add all DLC files to global files list
-            foreach (DLCEntry dlc in FTSDLCs)
-                FTSGameFiles.AddRange(dlc.Files);
+                case 1:
+                    FTSExclusions.AddRange(ME1FTSExclusions);
+                    FTSGameFiles.AddRange(ME1FTSGameFiles);
+                    FTSDLCs.AddRange(ME1FTSDLCs);
+                    break;
+                case 2:
+                    FTSExclusions.AddRange(ME2FTSExclusions);
+                    FTSGameFiles.AddRange(ME2FTSGameFiles);
+                    FTSDLCs.AddRange(ME2FTSDLCs);
+                    break;
+                case 3:
+                    FTSExclusions.AddRange(ME3FTSExclusions);
+                    FTSGameFiles.AddRange(ME3FTSGameFiles);
+                    FTSDLCs.AddRange(ME3FTSDLCs);
+                    break;
+            }
 
             if (CurrentTree.Valid)
             {
-                await LoadValidTree();
+                // Put away TreeScan Panel since it isn't required if tree is valid.
+                if (TreePanelCloser != null)
+                    TreePanelCloser();
 
-                /* Find any existing exclusions from when tree was created.*/
-                // Set excluded DLC's checked first
-                FTSDLCs.ForEach(dlc => dlc.IsChecked = !dlc.Files.Any(file => CurrentTree.ScannedPCCs.Contains(file.FilePath)));
-
-                // Then set all remaining exlusions
-                foreach (DLCEntry dlc in FTSDLCs.Where(dlc => !dlc.IsChecked))
-                    dlc.Files.ForEach(file => file.IsChecked = !CurrentTree.ScannedPCCs.Contains(file.FilePath));
+                Textures.Clear();
+                Textures.AddRange(CurrentTree.Textures);
             }
             else
                 Status = "Tree invalid/non-existent. Begin Tree Scan by clicking 'Settings'";
-
-            FTSExclusions.AddRange(FTSDLCs);
-            FTSExclusions.AddRange(FTSGameFiles);
 
             FTSReady = true;
             UpdateFTS();
         }
 
-        async Task LoadValidTree()
+        void InitialiseFTS(int gameVersion)
         {
-            // Put away TreeScan Panel since it isn't required if tree is valid.
-            if (TreePanelCloser != null)
-                TreePanelCloser();
+            // Setup temps
+            List<DLCEntry> tempDLCs = null;
+            List<GameFileEntry> tempGameFiles = null;
+            List<AbstractFileEntry> tempExclusions = null;
+            DLCEntry basegame = null;
+            switch (gameVersion)
+            {
+                case 1:
+                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME1Files.Where(file => !file.Contains(@"DLC\DLC_")).ToList());
+                    tempDLCs = ME1FTSDLCs;
+                    tempGameFiles = ME1FTSGameFiles;
+                    tempExclusions = ME1FTSExclusions;
+                    break;
+                case 2:
+                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME2Files.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList());
+                    tempDLCs = ME2FTSDLCs;
+                    tempGameFiles = ME2FTSGameFiles;
+                    tempExclusions = ME2FTSExclusions;
+                    break;
+                case 3:
+                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME3Files.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList());
+                    tempDLCs = ME3FTSDLCs;
+                    tempGameFiles = ME3FTSGameFiles;
+                    tempExclusions = ME3FTSExclusions;
+                    break;
 
-            CurrentTree.IsSelected = true;
+                default:
+                    Debugger.Break();
+                    break;
+            }
 
-            await Task.Run(() => ConstructTree());
+
+            // Get DLC's
+            tempDLCs.Add(basegame);
+            GetDLCEntries(gameVersion);
+
+            // Add all DLC files to global files list
+            foreach (DLCEntry dlc in tempDLCs)
+                tempGameFiles.AddRange(dlc.Files);
+
+            if (Trees[gameVersion - 1].Valid)
+            {
+                /* Find any existing exclusions from when tree was created.*/
+                // Set excluded DLC's checked first
+                tempDLCs.ForEach(dlc => dlc.IsChecked = !dlc.Files.Any(file => CurrentTree.ScannedPCCs.Contains(file.FilePath)));
+
+                // Then set all remaining exlusions
+                foreach (DLCEntry dlc in tempDLCs.Where(dlc => !dlc.IsChecked))
+                    dlc.Files.ForEach(file => file.IsChecked = !CurrentTree.ScannedPCCs.Contains(file.FilePath));
+            }
+            
+
+            tempExclusions.AddRange(tempDLCs);
+            tempExclusions.AddRange(tempGameFiles);
         }
 
         public void UpdateFTS()
@@ -626,18 +690,39 @@ namespace WPF_ME3Explorer.UI.ViewModels
             FileItemsView.Refresh();
         }
 
-        void GetDLCEntries()
+        void GetDLCEntries(int tempGame)
         {
-            List<string> DLCs = Directory.EnumerateDirectories(GameDirecs.DLCPath).Where(direc => !direc.Contains("_metadata")).ToList();
+            List<string> DLCs = null;
+            List<DLCEntry> tempFTSDLCs = null;
+            List<string> tempGameFiles = null;
+            switch (tempGame)
+            {
+                case 1:
+                    DLCs = Directory.EnumerateDirectories(MEDirectories.MEDirectories.ME1DLCPath).Where(direc => !direc.Contains("_metadata")).ToList();
+                    tempFTSDLCs = ME1FTSDLCs;
+                    tempGameFiles = MEDirectories.MEDirectories.ME1Files;
+                    break;
+                case 2:
+                    DLCs = Directory.EnumerateDirectories(MEDirectories.MEDirectories.ME2DLCPath).Where(direc => !direc.Contains("_metadata")).ToList();
+                    tempGameFiles = MEDirectories.MEDirectories.ME2Files;
+                    tempFTSDLCs = ME2FTSDLCs;
+                    break;
+                case 3:
+                    DLCs = Directory.EnumerateDirectories(MEDirectories.MEDirectories.ME3DLCPath).Where(direc => !direc.Contains("_metadata")).ToList();
+                    tempGameFiles = MEDirectories.MEDirectories.ME3Files;
+                    tempFTSDLCs = ME3FTSDLCs;
+                    break;
+            }
+
             foreach(string dlc in DLCs)
             {
                 string[] parts = dlc.Split('\\');
                 string DLCName = parts.First(part => part.Contains("DLC_"));
 
                 string name = MEDirectories.MEDirectories.GetCommonDLCName(DLCName);
-                DLCEntry entry = new DLCEntry(name, GameDirecs.Files.Where(file => file.Contains(DLCName) && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList());
+                DLCEntry entry = new DLCEntry(name, tempGameFiles.Where(file => file.Contains(DLCName) && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList());
 
-                FTSDLCs.Add(entry);
+                tempFTSDLCs.Add(entry);
             }
         }
 
@@ -690,7 +775,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
             DebugOutput.PrintLn("Saving tree to disk...");
             await Task.Run(() => CurrentTree.SaveToFile()).ConfigureAwait(false);
             DebugOutput.PrintLn($"Treescan completed. Elapsed time: {ElapsedTime}. Num Textures: {CurrentTree.Textures.Count}.");
-            await Task.Run(() => ConstructTree()).ConfigureAwait(false);
+            await Task.Run(() =>
+            {
+                CurrentTree.ConstructTree();
+                SetupPCCCheckBoxLinking(CurrentTree.Textures);
+            }).ConfigureAwait(false);
             CurrentTree.Valid = true; // It was just scanned after all.
 
             // Put away TreeScanProgress Window
@@ -894,79 +983,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             return texes;       
         }
 
-        void ConstructTree()
-        {
-            Busy = true;
-            DebugOutput.PrintLn("Constructing Tree...");
-
-            // Top all encompassing node
-            TexplorerTextureFolder TopTextureFolder = new TexplorerTextureFolder("All Texture Files", null, null);
-
-            // Normal nodes
-            foreach (var tex in CurrentTree.Textures)
-                RecursivelyCreateFolders(tex.FullPackage, "", TopTextureFolder, tex);
-
-            Console.WriteLine($"Total number of folders: {AllFolders.Count}");
-            // Alphabetical order
-            TopTextureFolder.Folders = new MTRangedObservableCollection<TexplorerTextureFolder>(TopTextureFolder.Folders.OrderBy(p => p));
-
-            TextureFolders.Add(TopTextureFolder);  // Only one item in this list. Chuckles.
-
-            // Add textures to base class list - mostly just for searching.
-            Textures.Clear();
-            Textures.AddRange(CurrentTree.Textures);
-
-            SetupPCCCheckBoxLinking();
-
-            DebugOutput.PrintLn("Tree Constructed!");
-            Busy = false;
-        }
-
-        void RecursivelyCreateFolders(string package, string oldFilter, TexplorerTextureFolder topFolder, TreeTexInfo texture)
-        {
-            int dotInd = package.IndexOf('.') + 1;
-            string name = package;
-            if (dotInd != 0)
-                name = package.Substring(0, dotInd).Trim('.');
-
-            string filter = oldFilter + '.' + name;
-            filter = filter.Trim('.');
-
-            TexplorerTextureFolder newFolder = new TexplorerTextureFolder(name, filter, topFolder);
-
-            // Add texture if part of this folder
-            if (newFolder.Filter == texture.FullPackage)
-                newFolder.Textures.Add(texture);
-
-            TexplorerTextureFolder existingFolder = topFolder.Folders.FirstOrDefault(folder => newFolder.Name == folder.Name);
-            if (existingFolder == null)  // newFolder not found in existing folders
-            {
-                topFolder.Folders.Add(newFolder);
-                AllFolders.Add(newFolder);
-
-                // No more folders in package
-                if (dotInd == 0)
-                    return;
-
-                string newPackage = package.Substring(dotInd).Trim('.');
-                RecursivelyCreateFolders(newPackage, filter, newFolder, texture);
-            }
-            else
-            {  // No subfolders for newFolder yet, need to make them if there are any
-
-                // Add texture if necessary
-                if (existingFolder.Filter == texture.FullPackage)
-                    existingFolder.Textures.Add(texture);
-
-                // No more folders in package
-                if (dotInd == 0)
-                    return;
-
-                string newPackage = package.Substring(dotInd).Trim('.');
-                RecursivelyCreateFolders(newPackage, filter, existingFolder, texture);
-            }
-        }
-
         internal void LoadPreview(TreeTexInfo texInfo)
         {
             using (PCCObject pcc = new PCCObject(texInfo.PCCs[0].Name, GameVersion))
@@ -1066,8 +1082,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
         void RefreshTreeRelatedProperties()
         {
             // Clear texture folders
-            TextureFolders.Clear();
-            AllFolders.Clear();
             ChangedTextures.Clear();
             Errors.Clear();
             PreviewImage = null;

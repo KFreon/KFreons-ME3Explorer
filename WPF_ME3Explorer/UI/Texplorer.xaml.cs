@@ -154,7 +154,7 @@ namespace WPF_ME3Explorer.UI
         {
             // Select folder
             TreeTexInfo tex = (TreeTexInfo)((FrameworkElement)sender).DataContext;
-            TexplorerTextureFolder treeFolder = vm.AllFolders.FirstOrDefault(folder => folder.Textures.Contains(tex));
+            TexplorerTextureFolder treeFolder = vm.CurrentTree.AllFolders.FirstOrDefault(folder => folder.Textures.Contains(tex));
             vm.SelectedFolder = treeFolder;
 
             // Select texture in folder
@@ -218,7 +218,7 @@ namespace WPF_ME3Explorer.UI
 
 
             // Peform search over top level folders only
-            var topFolders = vm.TextureFolders[0].Folders;
+            var topFolders = vm.CurrentTree.TextureFolders[0].Folders;
             string temp = TreeSearchMemory.ToString();
             foreach (var folder in topFolders)
                 if (folder.Name.StartsWith(temp, StringComparison.OrdinalIgnoreCase))

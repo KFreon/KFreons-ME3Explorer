@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using System.Windows.Threading;
 using UsefulThings;
 using UsefulThings.WPF;
@@ -64,7 +65,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     {
                         int version = ((TreeDB)param).GameVersion;
                         ChangeSelectedTree(version);
-                        LoadTreeAndExtra();
+                        SetupCurrentTree();
                     }));
 
                 return changeTree;
@@ -133,9 +134,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
-        public MTRangedObservableCollection<T> Textures { get; protected set; } = new MTRangedObservableCollection<T>();
         public TreeDB[] Trees { get; private set; } = new TreeDB[3];
+        public MTRangedObservableCollection<T> Textures { get; protected set; } = new MTRangedObservableCollection<T>();
         public MEDirectories.MEDirectories GameDirecs { get; set; } = new MEDirectories.MEDirectories();
+
+        static readonly Object TreeLoadLocker = new object();
 
         string status = "Ready";
         public string Status
@@ -282,16 +285,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
-        int numthreads = 4;
         public int NumThreads
         {
             get
             {
-                return numthreads;
-            }
-            set
-            {
-                SetProperty(ref numthreads, value);
+                return Properties.Settings.Default.NumThreads;
             }
         }
 
@@ -311,12 +309,22 @@ namespace WPF_ME3Explorer.UI.ViewModels
         public int StartTime = 0;
 
         DispatcherTimer timer = new DispatcherTimer();
-        
 
-        public MEViewModelBase()
+        static Task TreeLoader = null;
+
+        static MEViewModelBase()
         {
             if (Properties.Settings.Default.UpgradeRequired)
                 Properties.Settings.Default.Upgrade();
+
+            // Set up NumThreads
+            Properties.Settings.Default.NumThreads = Environment.ProcessorCount;
+            Properties.Settings.Default.Save();
+        }
+
+        public MEViewModelBase()
+        {
+            Task.Run(async () => await Setup());
 
             timer.Interval = TimeSpan.FromSeconds(1);
             timer.Tick += (sender, args) =>
@@ -331,20 +339,63 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     ElapsedTime = TimeSpan.FromMilliseconds(Environment.TickCount - StartTime);
             };
             timer.Start();
+        }
+
+        protected Task Setup()
+        {
+            lock (TreeLoadLocker)
+                if (TreeLoader != null)
+                    return TreeLoader.ContinueWith(t => Setup());   //  Effectively wait for the original loading to be complete, then come back in on this thread and set up it's trees.
+
+            // Setup Files
+            var gameFileLoaderTask = Task.Run(() =>
+            {
+                int start = Environment.TickCount;
+                var temp = MEDirectories.MEDirectories.ME1Files;
+                temp = MEDirectories.MEDirectories.ME2Files;
+                temp = MEDirectories.MEDirectories.ME3Files;
+                Console.WriteLine($"File Load: {TimeSpan.FromMilliseconds(Environment.TickCount - start)}");
+            });
+            
+
+            // Setup Trees
             Trees[0] = new TreeDB(1);
             Trees[1] = new TreeDB(2);
             Trees[2] = new TreeDB(3);
 
-            NumThreads = Properties.Settings.Default.NumThreads;
-        }
 
-        public void LoadTrees()
-        {
-            Trees[0].ReadFromFile();
-            Trees[1].ReadFromFile();
-            Trees[2].ReadFromFile();
+            /// Can take a long time if disk is busy
+            var TreeLoadTask = Task.Run(async () =>
+            {
+                int start = Environment.TickCount;
+                BufferBlock<int> TreeBuffer = new BufferBlock<int>();
+                TransformBlock<int, int> TreeReader = new TransformBlock<int, int>(ind => { Trees[ind].ReadFromFile(); return ind; }, new ExecutionDataflowBlockOptions { BoundedCapacity = 1, MaxDegreeOfParallelism = 1 });
+                TransformBlock<int, int> TreeConstructor = new TransformBlock<int, int>(ind => { Trees[ind].ConstructTree(); return ind; });
+                ActionBlock<int> TreeCheckBoxLinker = new ActionBlock<int>(ind =>
+                {
+                    if (Trees[ind].Valid)
+                        SetupPCCCheckBoxLinking(Trees[ind].Textures);
+                });
 
-            Trees[GameDirecs.GameVersion - 1].IsSelected = true;
+                // Link pipeline
+                TreeBuffer.LinkTo(TreeReader, new DataflowLinkOptions { PropagateCompletion = true });
+                TreeReader.LinkTo(TreeConstructor, new DataflowLinkOptions { PropagateCompletion = true });
+                TreeConstructor.LinkTo(TreeCheckBoxLinker, new DataflowLinkOptions { PropagateCompletion = true });
+
+                // Producer
+                TreeBuffer.Post(0);
+                TreeBuffer.Post(1);
+                TreeBuffer.Post(2);
+                TreeBuffer.Complete();
+
+                await TreeCheckBoxLinker.Completion;
+                Console.WriteLine($"Tree load Load: {TimeSpan.FromMilliseconds(Environment.TickCount - start)}");
+            });
+
+            lock (TreeLoadLocker)
+                TreeLoader = Task.WhenAll(TreeLoadTask, gameFileLoaderTask);
+
+            return TreeLoader;
         }
 
         public virtual void Search(string searchText)
@@ -357,6 +408,22 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 bool found = texture.Searchables.Any(searchable => searchable.Contains(searchText, StringComparison.OrdinalIgnoreCase));
                 texture.IsHidden = !found;
             });
+        }
+
+        protected virtual void SetupCurrentTree()
+        {
+            Trees[GameVersion - 1].IsSelected = true;
+
+            // KFreon: Populate game files info with tree info
+            if (GameDirecs.Files?.Count <= 0)
+            {
+                DebugOutput.PrintLn($"Game files not found for ME{GameDirecs.GameVersion} at {GameDirecs.PathBIOGame}");
+                Status = "Game Files not found!";
+                Busy = false;
+                return;
+            }
+
+            ToolsetInfo.SetupDiskCounters(Path.GetPathRoot(GameDirecs.BasePath).TrimEnd('\\'));
         }
 
         public virtual void ChangeSelectedTree(int game)
@@ -379,51 +446,20 @@ namespace WPF_ME3Explorer.UI.ViewModels
             OnPropertyChanged(nameof(CurrentTree));
         }
 
-        protected async void BeginTreeLoading()
-        {
-            Busy = true;
-            Status = "Loading Trees...";
-
-            await Task.Run(() =>
-            {
-                // Load all three trees
-                LoadTrees();
-
-                /// Can take a long time if disk is busy
-                // KFreon: Populate game files info with tree info
-                if (GameDirecs.Files?.Count <= 0)
-                {
-                    DebugOutput.PrintLn($"Game files not found for ME{GameDirecs.GameVersion} at {GameDirecs.PathBIOGame}");
-                    Status = "Game Files not found!";
-                    Busy = false;
-                    return;
-                }
-            });
-
-            await LoadTreeAndExtra();
-
-            ToolsetInfo.SetupDiskCounters(Path.GetPathRoot(GameDirecs.BasePath).TrimEnd('\\'));
-
-            Status = CurrentTree.Valid ? "Ready!" : Status;
-            Busy = false;
-        }
-
-        protected virtual async Task LoadTreeAndExtra()
-        {
-            if (CurrentTree.Valid)
-                SetupPCCCheckBoxLinking();
-        }
-
-        protected void SetupPCCCheckBoxLinking()
+        protected void SetupPCCCheckBoxLinking(IEnumerable<TreeTexInfo> texes)
         {
             // Add checkbox listener for linking the check action of individual pccs to top level Check All
-            foreach (var tex in Textures)
-                foreach (var pccentry in tex.PCCs)
+            foreach (var tex in texes)
+                foreach (var pccentry in tex.PCCs.Where(pcc => !pcc.CheckBoxListenerAttached))
+                {
                     pccentry.PropertyChanged += (source, args) =>
                     {
                         if (args.PropertyName == nameof(pccentry.IsChecked))
                             OnPropertyChanged(nameof(PCCsCheckAll));
                     };
+                    pccentry.CheckBoxListenerAttached = true;
+                }
+                    
         }
 
         protected string BuildTexDetailsForCSV(T tex)
