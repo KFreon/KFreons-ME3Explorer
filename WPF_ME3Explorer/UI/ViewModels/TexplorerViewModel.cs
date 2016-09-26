@@ -246,9 +246,74 @@ namespace WPF_ME3Explorer.UI.ViewModels
         List<AbstractFileEntry> ME3FTSExclusions { get; set; } = new List<AbstractFileEntry>();
 
         // Mains
-        List<DLCEntry> FTSDLCs { get; set; } = new List<DLCEntry>();
-        List<GameFileEntry> FTSGameFiles { get; set; } = new List<GameFileEntry>();
-        List<AbstractFileEntry> FTSExclusions { get; set; } = new List<AbstractFileEntry>();
+        List<DLCEntry> tempFTSDLCs = new List<DLCEntry>();
+        List<DLCEntry> FTSDLCs
+        {
+            get
+            {
+                tempFTSDLCs.Clear();
+                switch (GameVersion)
+                {
+                    case 1:
+                        tempFTSDLCs.AddRange(ME1FTSDLCs);
+                        break;
+                    case 2:
+                        tempFTSDLCs.AddRange(ME2FTSDLCs);
+                        break;
+                    case 3:
+                        tempFTSDLCs.AddRange(ME3FTSDLCs);
+                        break;
+                }
+
+                return tempFTSDLCs;
+            }
+        }
+
+        List<GameFileEntry> tempFTSGameFiles = new List<GameFileEntry>();
+        List<GameFileEntry> FTSGameFiles
+        {
+            get
+            {
+                tempFTSGameFiles.Clear();
+                switch (GameVersion)
+                {
+                    case 1:
+                        tempFTSGameFiles.AddRange(ME1FTSGameFiles);
+                        break;
+                    case 2:
+                        tempFTSGameFiles.AddRange(ME2FTSGameFiles);
+                        break;
+                    case 3:
+                        tempFTSGameFiles.AddRange(ME3FTSGameFiles);
+                        break;
+                }
+
+                return tempFTSGameFiles;
+            }
+        }
+
+        List<AbstractFileEntry> tempFTSExclusions = new List<AbstractFileEntry>();
+        List<AbstractFileEntry> FTSExclusions
+        {
+            get
+            {
+                tempFTSExclusions.Clear();
+                switch (GameVersion)
+                {
+                    case 1:
+                        tempFTSExclusions.AddRange(ME1FTSExclusions);
+                        break;
+                    case 2:
+                        tempFTSExclusions.AddRange(ME2FTSExclusions);
+                        break;
+                    case 3:
+                        tempFTSExclusions.AddRange(ME3FTSExclusions);
+                        break;
+                }
+
+                return tempFTSExclusions;
+            }
+        }
         #endregion Caches
 
         public MTRangedObservableCollection<TreeTexInfo> TextureSearchResults { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
@@ -454,11 +519,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Setup thumbnail writer - not used unless tree scanning.
             ThumbnailWriter = new ThumbnailWriter(GameDirecs);
 
-            SetupCurrentTree();
-
-            Task.Run(() => InitialiseFTS(1));
-            Task.Run(() => InitialiseFTS(2));
-            Task.Run(() => InitialiseFTS(3));
+            Setup();
         }
 
         internal async Task RegenerateThumbs(params TreeTexInfo[] textures)
@@ -574,6 +635,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             base.SetupCurrentTree();
 
+            InitialiseFTS(1);
+            InitialiseFTS(2);
+            InitialiseFTS(3);
+
             LoadFTSandTree();
         }
 
@@ -581,33 +646,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             FTSReady = false;
 
-            // Clear everything to start again.
-            FTSExclusions.Clear();
-            FTSGameFiles.Clear();
-            FTSDLCs.Clear();
-
             // Tree isn't valid. Open the panel immediately.
             if (!panelAlreadyOpen && !CurrentTree.Valid && TreePanelOpener != null)
                 TreePanelOpener();
 
-            switch (GameVersion)
-            {
-                case 1:
-                    FTSExclusions.AddRange(ME1FTSExclusions);
-                    FTSGameFiles.AddRange(ME1FTSGameFiles);
-                    FTSDLCs.AddRange(ME1FTSDLCs);
-                    break;
-                case 2:
-                    FTSExclusions.AddRange(ME2FTSExclusions);
-                    FTSGameFiles.AddRange(ME2FTSGameFiles);
-                    FTSDLCs.AddRange(ME2FTSDLCs);
-                    break;
-                case 3:
-                    FTSExclusions.AddRange(ME3FTSExclusions);
-                    FTSGameFiles.AddRange(ME3FTSGameFiles);
-                    FTSDLCs.AddRange(ME3FTSDLCs);
-                    break;
-            }
 
             if (CurrentTree.Valid)
             {
@@ -635,19 +677,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
             switch (gameVersion)
             {
                 case 1:
-                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME1Files.Where(file => !file.Contains(@"DLC\DLC_")).ToList());
+                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME1Files.Where(file => !file.Contains(@"DLC\DLC_")).ToList(), GameDirecs);
                     tempDLCs = ME1FTSDLCs;
                     tempGameFiles = ME1FTSGameFiles;
                     tempExclusions = ME1FTSExclusions;
                     break;
                 case 2:
-                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME2Files.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList());
+                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME2Files.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), GameDirecs);
                     tempDLCs = ME2FTSDLCs;
                     tempGameFiles = ME2FTSGameFiles;
                     tempExclusions = ME2FTSExclusions;
                     break;
                 case 3:
-                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME3Files.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList());
+                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME3Files.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), GameDirecs);
                     tempDLCs = ME3FTSDLCs;
                     tempGameFiles = ME3FTSGameFiles;
                     tempExclusions = ME3FTSExclusions;
@@ -685,6 +727,15 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         public void UpdateFTS()
         {
+            OnPropertyChanged(nameof(FTSDLCs));
+            OnPropertyChanged(nameof(FTSExclusions));
+            OnPropertyChanged(nameof(FTSGameFiles));
+
+            var temp = FTSDLCs;
+            var ttemp = FTSExclusions;
+            var itemp = FTSGameFiles;
+
+            
             DLCItemsView.Refresh();
             ExclusionsItemsView.Refresh();
             FileItemsView.Refresh();
@@ -720,7 +771,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 string DLCName = parts.First(part => part.Contains("DLC_"));
 
                 string name = MEDirectories.MEDirectories.GetCommonDLCName(DLCName);
-                DLCEntry entry = new DLCEntry(name, tempGameFiles.Where(file => file.Contains(DLCName) && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList());
+                DLCEntry entry = new DLCEntry(name, tempGameFiles.Where(file => file.Contains(DLCName) && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), GameDirecs);
 
                 tempFTSDLCs.Add(entry);
             }
@@ -773,13 +824,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
             CurrentTree.IsSelected = true;  // TODO: Need to call LoadFTSandTree? 
 
             DebugOutput.PrintLn("Saving tree to disk...");
-            await Task.Run(() => CurrentTree.SaveToFile()).ConfigureAwait(false);
-            DebugOutput.PrintLn($"Treescan completed. Elapsed time: {ElapsedTime}. Num Textures: {CurrentTree.Textures.Count}.");
             await Task.Run(() =>
             {
                 CurrentTree.ConstructTree();
                 SetupPCCCheckBoxLinking(CurrentTree.Textures);
             }).ConfigureAwait(false);
+            await Task.Run(() => CurrentTree.SaveToFile()).ConfigureAwait(false);
+            DebugOutput.PrintLn($"Treescan completed. Elapsed time: {ElapsedTime}. Num Textures: {CurrentTree.Textures.Count}.");
+            
             CurrentTree.Valid = true; // It was just scanned after all.
 
             // Put away TreeScanProgress Window
@@ -1117,6 +1169,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
             });
 
             TextureSearchResults.AddRange(tempResults);
+        }
+
+        public void Refresh()
+        {
+            UpdateFTS();
         }
     }
 }

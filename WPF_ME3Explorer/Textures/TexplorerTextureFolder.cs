@@ -12,8 +12,6 @@ namespace WPF_ME3Explorer.Textures
 {
     public class TexplorerTextureFolder : ViewModelBase, IComparable, ITreeSeekable
     {
-        public TexplorerTextureFolder ParentFolder = null;
-
         internal static Func<TreeTexInfo[], Task> RegenerateThumbsDelegate { get; set; }
 
 
@@ -152,23 +150,16 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        public ITreeSeekable Parent
-        {
-            get
-            {
-                return ParentFolder;
-            }
+        public ITreeSeekable Parent { get; set; }
 
-            set
-            {
-                throw new NotImplementedException();
-            }
+        public TexplorerTextureFolder()
+        {
+
         }
 
-
-        public TexplorerTextureFolder(string folderName, string filter, TexplorerTextureFolder parent)
+        public TexplorerTextureFolder(string folderName, string filter, TexplorerTextureFolder parent) : this()
         {
-            ParentFolder = parent;
+            Parent = parent;
             Name = folderName;
             Filter = filter;
         }

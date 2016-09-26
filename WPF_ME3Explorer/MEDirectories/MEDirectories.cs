@@ -87,7 +87,6 @@ namespace WPF_ME3Explorer.MEDirectories
             set
             {
                 SetProperty(ref gameVersion, value);
-                BasePathLength = BasePath == null ? -1 : BasePath.Length + 1;
             }
         }
 
@@ -250,7 +249,13 @@ namespace WPF_ME3Explorer.MEDirectories
         }
         #endregion Individuals based on BIOGames
 
-        public static int BasePathLength { get; set; }
+        public int BasePathLength
+        {
+            get
+            {
+                return BasePath == null ? -1 : BasePath.Length + 1;
+            }
+        }
 
         public string PathCooked
         {

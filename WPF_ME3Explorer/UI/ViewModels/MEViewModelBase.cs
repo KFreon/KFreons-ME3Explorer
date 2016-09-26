@@ -310,7 +310,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         DispatcherTimer timer = new DispatcherTimer();
 
-        static Task TreeLoader = null;
+        static Task[] TreeLoadingTasks = new Task[3];
 
         static MEViewModelBase()
         {
@@ -320,12 +320,27 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Set up NumThreads
             Properties.Settings.Default.NumThreads = Environment.ProcessorCount;
             Properties.Settings.Default.Save();
+
+            // Setup Files
+            var gameFileLoaderTask = Task.Run(() =>
+            {
+                int start = Environment.TickCount;
+                var temp = MEDirectories.MEDirectories.ME1Files;
+                temp = MEDirectories.MEDirectories.ME2Files;
+                temp = MEDirectories.MEDirectories.ME3Files;
+                Console.WriteLine($"Game File Static Enumeration: {TimeSpan.FromMilliseconds(Environment.TickCount - start)}");
+            });
+
+            // Setup Trees - Sets up the underlying contents, not the objects themselves
+            for (int i = 0; i < 3; i++)
+            {
+                var tree = new TreeDB(i + 1);
+                TreeLoadingTasks[i] = Task.Run(() => tree.ReadFromFile());
+            }
         }
 
         public MEViewModelBase()
         {
-            Task.Run(async () => await Setup());
-
             timer.Interval = TimeSpan.FromSeconds(1);
             timer.Tick += (sender, args) =>
             {
@@ -341,61 +356,23 @@ namespace WPF_ME3Explorer.UI.ViewModels
             timer.Start();
         }
 
-        protected Task Setup()
+        /// <summary>
+        /// Needed here instead of just incorporating it into constructor as GameVersion is required and can be different between tools.
+        /// </summary>
+        protected void Setup()
         {
-            lock (TreeLoadLocker)
-                if (TreeLoader != null)
-                    return TreeLoader.ContinueWith(t => Setup());   //  Effectively wait for the original loading to be complete, then come back in on this thread and set up it's trees.
-
-            // Setup Files
-            var gameFileLoaderTask = Task.Run(() =>
-            {
-                int start = Environment.TickCount;
-                var temp = MEDirectories.MEDirectories.ME1Files;
-                temp = MEDirectories.MEDirectories.ME2Files;
-                temp = MEDirectories.MEDirectories.ME3Files;
-                Console.WriteLine($"File Load: {TimeSpan.FromMilliseconds(Environment.TickCount - start)}");
-            });
-            
+            Task.WhenAll(TreeLoadingTasks).Wait();
 
             // Setup Trees
-            Trees[0] = new TreeDB(1);
-            Trees[1] = new TreeDB(2);
-            Trees[2] = new TreeDB(3);
-
-
-            /// Can take a long time if disk is busy
-            var TreeLoadTask = Task.Run(async () =>
+            for (int i = 0; i < 3; i++)
             {
-                int start = Environment.TickCount;
-                BufferBlock<int> TreeBuffer = new BufferBlock<int>();
-                TransformBlock<int, int> TreeReader = new TransformBlock<int, int>(ind => { Trees[ind].ReadFromFile(); return ind; }, new ExecutionDataflowBlockOptions { BoundedCapacity = 1, MaxDegreeOfParallelism = 1 });
-                TransformBlock<int, int> TreeConstructor = new TransformBlock<int, int>(ind => { Trees[ind].ConstructTree(); return ind; });
-                ActionBlock<int> TreeCheckBoxLinker = new ActionBlock<int>(ind =>
-                {
-                    if (Trees[ind].Valid)
-                        SetupPCCCheckBoxLinking(Trees[ind].Textures);
-                });
+                Trees[i] = new TreeDB(i + 1);
+                Trees[i].ReadFromFile();  // Shouldn't actually read from file, but will if required.
+                if (Trees[i].Valid)
+                    SetupPCCCheckBoxLinking(Trees[i].Textures);
+            }
 
-                // Link pipeline
-                TreeBuffer.LinkTo(TreeReader, new DataflowLinkOptions { PropagateCompletion = true });
-                TreeReader.LinkTo(TreeConstructor, new DataflowLinkOptions { PropagateCompletion = true });
-                TreeConstructor.LinkTo(TreeCheckBoxLinker, new DataflowLinkOptions { PropagateCompletion = true });
-
-                // Producer
-                TreeBuffer.Post(0);
-                TreeBuffer.Post(1);
-                TreeBuffer.Post(2);
-                TreeBuffer.Complete();
-
-                await TreeCheckBoxLinker.Completion;
-                Console.WriteLine($"Tree load Load: {TimeSpan.FromMilliseconds(Environment.TickCount - start)}");
-            });
-
-            lock (TreeLoadLocker)
-                TreeLoader = Task.WhenAll(TreeLoadTask, gameFileLoaderTask);
-
-            return TreeLoader;
+            SetupCurrentTree();
         }
 
         public virtual void Search(string searchText)

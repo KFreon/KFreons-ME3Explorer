@@ -11,6 +11,8 @@ namespace WPF_ME3Explorer
     {
         public bool CheckBoxListenerAttached = false;
 
+        int basePathLength = 0;
+
         bool isChecked = true;
         public bool IsChecked
         {
@@ -52,22 +54,23 @@ namespace WPF_ME3Explorer
             }
         }
 
-        public PCCEntry(string name, int expid)
+        public PCCEntry(string name, int expid, MEDirectories.MEDirectories gameDirecs)
         {
             Name = name;
             ExpID = expid;
+            basePathLength = gameDirecs.BasePathLength;
         }
 
         public override string ToString()
         {
-            return $"{Name.Remove(0, MEDirectories.MEDirectories.BasePathLength)} @ {ExpID}";
+            return $"{Name.Remove(0, basePathLength)} @ {ExpID}";
         }
 
         public string DisplayName
         {
             get
             {
-                return Name.Remove(0, MEDirectories.MEDirectories.BasePathLength);
+                return Name.Remove(0, basePathLength);
             }
         }
     }

@@ -24,12 +24,12 @@ namespace WPF_ME3Explorer
             }
         }
 
-        public DLCEntry(string name, List<string> files)
+        public DLCEntry(string name, List<string> files, MEDirectories.MEDirectories gameDirecs)
         {
             Name = name;
             foreach (string file in files)
             {
-                GameFileEntry entry = new GameFileEntry(file);
+                GameFileEntry entry = new GameFileEntry(file, gameDirecs);
                 Files.Add(entry);
             }
         }

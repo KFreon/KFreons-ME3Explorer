@@ -26,7 +26,7 @@ namespace WPF_ME3Explorer
             InitializeComponent();
             DebugOutput.StartDebugger("The Toolset");
 
-            // Load all tools - NEEDS TO JUST BE the object/data model here.
+            // Load slow bits
             var tex = ToolsetInfo.TexplorerInstance;
             var tpf = ToolsetInfo.TPFToolsInstance;
             var mod = ToolsetInfo.ModmakerInstance;
@@ -40,6 +40,7 @@ namespace WPF_ME3Explorer
         private void TexplorerButton_MouseDown(object sender, MouseButtonEventArgs e)
         {
             ToolsetInfo.TexplorerInstance.Show();
+            ToolsetInfo.TexplorerInstance.vm.Refresh();
         }
 
         private void ModmakerButton_MouseDown(object sender, MouseButtonEventArgs e)

@@ -22,9 +22,9 @@ namespace WPF_ME3Explorer
             }
         }
 
-        public GameFileEntry(string path) : base()
+        public GameFileEntry(string path, MEDirectories.MEDirectories gameDirecs) : base()
         {
-            Name = path.Remove(0, MEDirectories.MEDirectories.BasePathLength);
+            Name = path.Remove(0, gameDirecs.BasePathLength);
             FilePath = path;
         }
     }

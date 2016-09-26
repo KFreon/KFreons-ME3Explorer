@@ -29,7 +29,7 @@ namespace WPF_ME3Explorer.UI
     public partial class Texplorer : Window
     {
         public bool IsClosed { get; private set; }
-        TexplorerViewModel vm = null;
+        internal TexplorerViewModel vm = null;
         DragDropHandler<TreeTexInfo> TextureDragDropper = null;
         DragDropHandler<TexplorerTextureFolder> FolderDragDropper = null;
 
@@ -105,6 +105,12 @@ namespace WPF_ME3Explorer.UI
 
             TextureDragDropper = new DragDropHandler<TreeTexInfo>(this, textureDropper, DropValidator, TextureDataGetter);
             FolderDragDropper = new DragDropHandler<TexplorerTextureFolder>(this, null, null, FolderDataGetter);  // DropAction and Validator not required as TreeView not droppable.
+
+
+
+            // As VM should be created before this constructor is called, can do this check now.
+            if (vm.CurrentTree.Valid)
+                vm.TreePanelCloser();
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

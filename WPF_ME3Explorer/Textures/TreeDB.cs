@@ -121,7 +121,40 @@ namespace WPF_ME3Explorer.Textures
         readonly object Locker = new object();
         MEDirectories.MEDirectories GameDirecs = null;
 
-        public string TreeVersion { get; set; }
+        static string ME1TreeVersion = null;
+        static string ME2TreeVersion = null;
+        static string ME3TreeVersion = null;
+        public string TreeVersion
+        {
+            get
+            {
+                switch (GameVersion)
+                {
+                    case 1:
+                        return ME1TreeVersion;
+                    case 2:
+                        return ME2TreeVersion;
+                    case 3:
+                        return ME3TreeVersion;
+                }
+                return null;
+            }
+            set
+            {
+                switch (GameVersion)
+                {
+                    case 1:
+                        ME1TreeVersion = value;
+                        break;
+                    case 2:
+                        ME2TreeVersion = value;
+                        break;
+                    case 3:
+                        ME3TreeVersion = value;
+                        break;
+                }
+            }
+        }
 
         public bool Exists
         {
@@ -195,9 +228,15 @@ namespace WPF_ME3Explorer.Textures
 
         public bool ReadFromFile(string fileName = null)
         {
-            // Do this only once
-            if (Textures.Count > 0)
-                return true;
+            lock (Textures)
+            {
+                if (Textures.Count > 0)  // When it comes back into this after Texplorer has been closed but the Toolset hasn't, it needs to "rebuild" itself i.e. mark itself as valid if it's been loaded previously.
+                {
+                    Valid = true;
+                    return true;
+                }
+            }
+            
 
             OnPropertyChanged(nameof(Exists));
 
@@ -233,45 +272,73 @@ namespace WPF_ME3Explorer.Textures
                             TreeVersion = bin.ReadString();
 
                             // PCCS
-                            int pccCount = bin.ReadInt32();
-                            for (int i = 0; i < pccCount; i++)
-                                ScannedPCCs.Add(bin.ReadString());
+                            lock (ScannedPCCs)
+                            {
+                                int pccCount = bin.ReadInt32();
+                                for (int i = 0; i < pccCount; i++)
+                                    ScannedPCCs.Add(bin.ReadString());
+                            }
+                            
 
                             // Textures
-                            int texCount = bin.ReadInt32();
-                            for (int i = 0; i < texCount; i++)
+                            lock (Textures)
                             {
-                                TreeTexInfo tex = new TreeTexInfo(GameDirecs);
-                                tex.TexName = bin.ReadString();
-                                tex.Hash = bin.ReadUInt32();
-                                //tex.StorageType = (Texture2D.storage)bin.ReadInt32();
-                                tex.FullPackage = bin.ReadString();
-                                tex.Format = (ImageEngineFormat)bin.ReadInt32();
-
-                                Thumbnail thumb = new Thumbnail(GameDirecs.ThumbnailCachePath);
-                                thumb.Offset = bin.ReadInt64();
-                                thumb.Length = bin.ReadInt32();
-                                tex.Thumb = thumb;
-
-                                tex.Mips = bin.ReadInt32();
-
-                                int numPccs = bin.ReadInt32();
-                                for (int j = 0; j < numPccs; j++)
+                                int texCount = bin.ReadInt32();
+                                for (int i = 0; i < texCount; i++)
                                 {
-                                    string userAgnosticPath = ScannedPCCs[bin.ReadInt32()];
-                                    int ExpID = bin.ReadInt32();
-                                    tex.PCCs.Add(new PCCEntry(Path.Combine(GameDirecs.BasePath, userAgnosticPath), ExpID));
+                                    TreeTexInfo tex = new TreeTexInfo(GameDirecs);
+                                    tex.TexName = bin.ReadString();
+                                    tex.Hash = bin.ReadUInt32();
+                                    //tex.StorageType = (Texture2D.storage)bin.ReadInt32();
+                                    tex.FullPackage = bin.ReadString();
+                                    tex.Format = (ImageEngineFormat)bin.ReadInt32();
+
+                                    Thumbnail thumb = new Thumbnail(GameDirecs.ThumbnailCachePath);
+                                    thumb.Offset = bin.ReadInt64();
+                                    thumb.Length = bin.ReadInt32();
+                                    tex.Thumb = thumb;
+
+                                    tex.Mips = bin.ReadInt32();
+
+                                    int numPccs = bin.ReadInt32();
+                                    for (int j = 0; j < numPccs; j++)
+                                    {
+                                        string userAgnosticPath = ScannedPCCs[bin.ReadInt32()];
+                                        int ExpID = bin.ReadInt32();
+                                        tex.PCCs.Add(new PCCEntry(Path.Combine(GameDirecs.BasePath, userAgnosticPath), ExpID, GameDirecs));
+                                    }
+
+                                    TempTextures.Add(tex);
+                                }
+                            }
+
+                            lock (Textures)
+                                Textures.AddRange(TempTextures);
+
+                            // Sort ME1 files
+                            if (GameVersion == 1)
+                                ToolsetTextureEngine.ME1_SortTexturesPCCs(Textures);
+
+                            // Texture folders
+                            // Top all encompassing node
+                            lock (TextureFolders)
+                            {
+                                TexplorerTextureFolder TopTextureFolder = new TexplorerTextureFolder("All Texture Files", null, null);
+
+                                var folderCount = bin.ReadInt32();
+                                var tempFolders = new List<TexplorerTextureFolder>();
+                                for (int i = 0; i < folderCount; i++)
+                                {
+                                    var folder = ReadTreeFolders(bin, TopTextureFolder);
+                                    tempFolders.Add(folder);
                                 }
 
-                                TempTextures.Add(tex);
+                                TopTextureFolder.Folders.AddRange(tempFolders);
+                                TextureFolders.Add(TopTextureFolder);
                             }
                         }
                     }
                 }
-
-                // Sort ME1 files
-                if (GameVersion == 1)
-                    ToolsetTextureEngine.ME1_SortTexturesPCCs(TempTextures);
             }
             catch (Exception e)
             {
@@ -279,14 +346,13 @@ namespace WPF_ME3Explorer.Textures
                 return false;
             }
 
-            Textures.AddRange(TempTextures);
-
             Valid = true;
             return true;
         }
 
         public void SaveToFile(string fileName = null)
         {
+            var start = Environment.TickCount;
             string tempFilename = fileName;
 
             if (fileName == null)
@@ -296,9 +362,9 @@ namespace WPF_ME3Explorer.Textures
 
             using (MemoryStream ms = new MemoryStream())
             {
-                using (GZipStream compressed = new GZipStream(ms, CompressionMode.Compress))  // Compress for nice small trees
+                using (GZipStream compressed = new GZipStream(ms, CompressionMode.Compress, true))  // Compress for nice small trees
                 {
-                    using (BinaryWriter bw = new BinaryWriter(compressed))
+                    using (BinaryWriter bw = new BinaryWriter(compressed, Encoding.Default, true))
                     {
                         bw.Write(631991);
                         bw.Write(GameVersion);
@@ -328,12 +394,62 @@ namespace WPF_ME3Explorer.Textures
                                 bw.Write(pcc.ExpID);
                             }
                         }
+
+                        // TextureFolders - NOT including top folder
+                        bw.Write(TextureFolders[0].Folders.Count);
+                        foreach (var folder in TextureFolders[0].Folders)
+                            WriteTreeFolders(bw, folder);
                     }
                 }
 
+                ms.Seek(0, SeekOrigin.Begin);
                 using (FileStream fs = new FileStream(tempFilename, FileMode.Create))
                     ms.CopyTo(fs);
             }
+            var end = Environment.TickCount;
+            Console.WriteLine($"Tree save elapsed: {end - start}");
+        }
+
+        void WriteTreeFolders(BinaryWriter bw, TexplorerTextureFolder folder)
+        {
+            // Details
+            bw.Write(folder.Name);
+            bw.Write(folder.Filter);
+
+            // Folders
+            bw.Write(folder.Folders.Count);
+            if (folder.Folders.Count != 0)
+                foreach (var fold in folder.Folders)
+                    WriteTreeFolders(bw, fold);
+
+            // Textures
+            bw.Write(folder.Textures.Count);
+            foreach (var tex in folder.Textures)  // Write indexes of textures instead of entire textures
+                bw.Write(Textures.IndexOf(tex));
+        }
+
+        TexplorerTextureFolder ReadTreeFolders(BinaryReader br, TexplorerTextureFolder parent)
+        {
+            TexplorerTextureFolder folder = new TexplorerTextureFolder();
+            AllFolders.Add(folder);
+            folder.Parent = parent;
+
+            // Details
+            folder.Name = br.ReadString();
+            folder.Filter = br.ReadString();
+
+            // Folders
+            int folderCount = br.ReadInt32();
+            if (folderCount != 0)
+                for (int i = 0; i < folderCount; i++)
+                    folder.Folders.Add(ReadTreeFolders(br, folder));
+
+            // Textures
+            var texCount = br.ReadInt32();
+            for (int i = 0; i < texCount; i++)
+                folder.Textures.Add(Textures[br.ReadInt32()]);
+
+            return folder;
         }
 
         public void ExportToCSV(string fileName, bool ShowFilesExpIDs)
@@ -392,10 +508,6 @@ namespace WPF_ME3Explorer.Textures
 
         internal void ConstructTree()
         {
-            // Only once
-            if (TextureFolders.Count > 0)
-                return;
-
             DebugOutput.PrintLn($"Constructing ME{GameVersion}Tree...");
 
             // Top all encompassing node

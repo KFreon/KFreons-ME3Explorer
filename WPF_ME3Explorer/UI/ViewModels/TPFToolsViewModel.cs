@@ -198,7 +198,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             GameDirecs.GameVersion = Properties.Settings.Default.TPFToolsGameVersion;
             OnPropertyChanged(nameof(GameVersion));
 
-            SetupCurrentTree();
+            Setup();
         }
 
         public override void Search(string searchText)

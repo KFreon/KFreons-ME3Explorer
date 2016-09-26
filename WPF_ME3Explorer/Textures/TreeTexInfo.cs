@@ -168,7 +168,7 @@ namespace WPF_ME3Explorer.Textures
             GenerateThumbnail = new Action(() => CreateThumbnail(ToolsetTextureEngine.AddDDSHeader(imgData, info, tex2D.texFormat), tex2D, ThumbWriter, info, TFCs, Errors));
 
             for (int i = 0; i < tex2D.allPccs.Count; i++)
-                PCCs.Add(new PCCEntry(tex2D.allPccs[i], tex2D.expIDs[i]));
+                PCCs.Add(new PCCEntry(tex2D.allPccs[i], tex2D.expIDs[i], GameDirecs));
 
             // KFreon: ME2 only?
             if (export.PackageFullName == "Base Package")
@@ -309,7 +309,7 @@ namespace WPF_ME3Explorer.Textures
             ImageInfo maxImg = tex2D.ImageList.Max();
             Width = (int)maxImg.ImageSize.Width;
             Height = (int)maxImg.ImageSize.Height;
-            TextureCache = tex2D?.FullArcPath?.Remove(0, MEDirectories.MEDirectories.BasePathLength) ?? "PCC Stored";
+            TextureCache = tex2D?.FullArcPath?.Remove(0, GameDirecs.BasePathLength) ?? "PCC Stored";
             LODGroup = tex2D.LODGroup ?? "None (Uses World)";
             Mips = tex2D.ImageList.Count;
             StorageType = tex2D.ImageList[0].storageType;

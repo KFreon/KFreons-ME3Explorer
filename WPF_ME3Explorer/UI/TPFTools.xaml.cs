@@ -23,7 +23,7 @@ namespace WPF_ME3Explorer.UI
     /// </summary>
     public partial class TPFTools : Window
     {
-        TPFToolsViewModel vm = null;
+        internal TPFToolsViewModel vm = null;
         string[] AcceptedFiles = { "DirectX Images", "JPEG Images", "JPEG Images", "Bitmap Images", "PNG Images", "Targa Images", "Texmod Archives", "ME3Explorer Archives" };
 
         DragDropHandler<TPFTexInfo> DropHelper = null;

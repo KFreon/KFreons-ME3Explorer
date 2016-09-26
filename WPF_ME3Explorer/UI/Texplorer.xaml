@@ -116,7 +116,7 @@
             </Button>
         </StackPanel>
 
-        <TreeView x:Name="MainTreeView" ItemsSource="{Binding TextureFolders}" VirtualizingPanel.IsVirtualizing="True" KeyDown="MainTreeView_KeyDown" Grid.ColumnSpan="2" Margin="0,25,738.167,0.333" Grid.RowSpan="2">
+        <TreeView x:Name="MainTreeView" ItemsSource="{Binding CurrentTree.TextureFolders}" VirtualizingPanel.IsVirtualizing="True" KeyDown="MainTreeView_KeyDown" Grid.ColumnSpan="2" Margin="0,25,738.167,0.333" Grid.RowSpan="2">
             <i:Interaction.Behaviors>
                 <usefulUIElements:TreeViewNodeSelectionBehaviour SelectedItem="{Binding SelectedFolder}"/>
             </i:Interaction.Behaviors>
@@ -491,7 +491,7 @@
             <ListBox ItemTemplate="{StaticResource SmallItemTemplate}" ItemsSource="{Binding ChangedTextures}"/>
         </Expander>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="4" x:Name="TreeScanBackground" Background="Black" Margin="0,0,0,0.333">
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="4" x:Name="TreeScanBackground" Background="Black" Margin="0,0,0,0.333" d:IsHidden="True">
             <Grid.Resources>
                 <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
                     <DoubleAnimation.EasingFunction>
