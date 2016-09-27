@@ -16,9 +16,41 @@ namespace WPF_ME3Explorer.Textures
     public class TPFTexInfo : AbstractTexInfo
     {
         ZipReader.ZipEntryFull ZipEntry = null;
-        public MTRangedObservableCollection<TPFTexInfo> FileDuplicates { get; set; }
-        public MTRangedObservableCollection<TPFTexInfo> HashDuplicates { get; set; }
+        public MTRangedObservableCollection<TPFTexInfo> FileDuplicates { get; set; } = new MTRangedObservableCollection<TPFTexInfo>();
+        public MTRangedObservableCollection<TPFTexInfo> HashDuplicates { get; set; } = new MTRangedObservableCollection<TPFTexInfo>();
         static CRC32 crc = new CRC32();
+
+        public String TPF_Comment
+        {
+            get
+            {
+                return ZipEntry.TPF_Comment;
+            }
+        }
+
+        public String TPF_Author
+        {
+            get
+            {
+                return ZipEntry.TPF_Author;
+            }
+        }
+
+        public String TPF_FileName
+        {
+            get
+            {
+                return ZipEntry.TPF_FileName;
+            }
+        }
+
+        public int TPF_EntryCount
+        {
+            get
+            {
+                return ZipEntry.TPF_EntryCount;
+            }
+        }
 
         uint fileHash = 0;
         public uint FileHash

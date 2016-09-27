@@ -74,7 +74,7 @@ namespace WPF_ME3Explorer.UI
 
         private void MainView_Drop(object sender, DragEventArgs e)
         {
-            DropHelper.Drop(sender, e);
+            DropHelper.Drop(null, e);  // Sender is the listbox, don't need that context
         }
 
         private void MainView_DragEnter(object sender, DragEventArgs e)

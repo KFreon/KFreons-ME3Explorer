@@ -22,7 +22,7 @@
             <RowDefinition Height="25"/>
             <RowDefinition Height="391*"/>
             <RowDefinition Height="304*"/>
-            <RowDefinition Height="60*"/>
+            <RowDefinition Height="80*"/>
             <RowDefinition Height="30*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -81,17 +81,17 @@
                             </DockPanel.Style>
                             <DockPanel.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Header="Install" Command="{Binding InstallCommand, ConverterParameter={Binding}}">
+                                    <MenuItem Header="Install" Command="{Binding InstallCommand}" CommandParameter="{Binding}">
                                         <MenuItem.Icon>
                                             <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
-                                    <MenuItem Header="Replace" Command="{Binding ReplaceCommand, ConverterParameter={Binding}}">
+                                    <MenuItem Header="Replace" Command="{Binding ReplaceCommand}" CommandParameter="{Binding}">
                                         <MenuItem.Icon>
                                             <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
-                                    <MenuItem Header="Extract" Command="{Binding ExtractCommand, ConverterParameter={Binding}}">
+                                    <MenuItem Header="Extract" Command="{Binding ExtractCommand}" CommandParameter="{Binding}">
                                         <MenuItem.Icon>
                                             <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
                                         </MenuItem.Icon>
@@ -213,21 +213,53 @@
             <ListBox x:Name="PCCsListBox" ItemsSource="{Binding ElementName=MainView, Path=SelectedItem.PCCs}" ItemTemplate="{StaticResource PCC-ExpID Displayer}" Margin="0,42,0,0.333"/>
         </Grid>
 
-        <DockPanel Grid.Row="3" LastChildFill="False">
+        <DockPanel Grid.Row="3">
             <Button Content="Install Textures" Style="{StaticResource MainButtonStyle}" FontSize="25" Margin="3" Padding="20,0" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Command="{Binding InstallCommand}"/>
             <Button VerticalAlignment="Center" Padding="10,3" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Command="{Binding AnalyseCommand}">
                 <Button.Style>
                     <Style BasedOn="{StaticResource MainButtonStyle}" TargetType="Button">
                         <Setter Property="Content" Value="Analyse with Texplorer"/>
-                        
+
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding AllAnalysed}" Value="True">
                                 <Setter Property="Content" Value="De-Analyse"/>
-                            </DataTrigger>    
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Button.Style>
             </Button>
+            <Grid Margin="10,0,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="92*"/>
+                    <ColumnDefinition Width="68*"/>
+                    <ColumnDefinition Width="147*"/>
+                    <ColumnDefinition Width="325*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="29*"/>
+                    <RowDefinition Height="18*"/>
+                    <RowDefinition Height="21*"/>
+                    <RowDefinition Height="18*"/>
+                </Grid.RowDefinitions>
+
+                <Label Content="TPF Details" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" Margin="10,0,10,0.667" Width="72"/>
+
+                <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="10" Grid.ColumnSpan="2" Height="13" Margin="0,2.333,0,2.667">
+                    <Run Text="Number of Files: " FontWeight="Bold"/>
+                    <Run Text="{Binding ElementName=MainView, Path=SelectedItem.TPF_EntryCount, Mode=OneWay}"/>
+                </TextBlock>
+
+                <TextBlock Text="Author:" FontWeight="Bold" Grid.Row="2" VerticalAlignment="Center" FontSize="10" Height="14" Margin="0,3.333"/>
+                <TextBox Text="{Binding ElementName=MainView, Path=SelectedItem.TPF_Author, Mode=OneWay}" Grid.ColumnSpan="2" Grid.Row="2" VerticalContentAlignment="Center" FontSize="10" Margin="40,0,0,0" />
+
+                <TextBlock Text="Comment:" FontWeight="Bold" Grid.Column="1" FontSize="10" VerticalAlignment="Center"/>
+                <TextBox Text="{Binding ElementName=MainView, Path=SelectedItem.TPF_Comment, Mode=OneWay}" Grid.Column="2" Grid.ColumnSpan="3" Grid.RowSpan="3" AcceptsReturn="True" FontSize="10" VerticalScrollBarVisibility="Auto"/>
+
+                <TextBlock Grid.Row="3" Grid.ColumnSpan="4" FontSize="10" VerticalAlignment="Center">
+                    <Run Text="Filename: " FontWeight="Bold"/>
+                    <Run Text="{Binding ElementName=MainView, Path=SelectedItem.TPF_FileName, Mode=OneWay}"/>
+                </TextBlock>
+            </Grid>
         </DockPanel>
     </Grid>
 </Window>

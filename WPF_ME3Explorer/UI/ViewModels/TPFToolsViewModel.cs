@@ -71,7 +71,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     {
                         Busy = true;
                         Status = "Installing textures...";
-
+                        
                         TPFTexInfo[] texes = null;
                         if (param == null)
                             texes = Textures.ToArray();
@@ -250,11 +250,15 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
 
                 // Check for duplicates in loaded files.
-                var dup = Textures.FirstOrDefault(t => t.FileHash == tex.FileHash);
-                if (dup == null)
-                    Textures.Add(tex);
-                else
-                    dup.FileDuplicates.Add(tex);
+                lock (Textures)
+                {
+                    var dup = Textures.FirstOrDefault(t => t.FileHash == tex.FileHash);
+                    if (dup == null)
+                        Textures.Add(tex);
+                    else
+                        dup.FileDuplicates.Add(tex);
+                }
+                
                 Progress++;
             });
 
@@ -285,8 +289,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 });
 
                 // Dipose of datastream if necessary, and indicate further operations should use the disk.
-                zippy?.DataStream?.Dispose();
-                zippy.DataStream = null;
+                zippy.FileData = null;
             }, new ExecutionDataflowBlockOptions { BoundedCapacity = 1, MaxDegreeOfParallelism = 1 });
 
 
@@ -308,11 +311,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
             fileBuffer.Complete();
 
             // Due to pipeline topology one side can and will finish first, which then Completes everything else despite the other side still working.
-            Task.WhenAll(texExtractor.Completion, tpfMaker.Completion);
+            await Task.WhenAll(thumbBuilder.Completion, tpfMaker.Completion);
 
             OnPropertyChanged(nameof(SaveTPFEnabled));
 
-            await thumbBuilder.Completion;
             Status = $"Loaded {Textures.Count - prevTexCount} from {fileNames.Length} files.";
             Progress = MaxProgress;
             Busy = false;

@@ -20,6 +20,7 @@ namespace SaltTPF
             public UInt32 CDSize;
             public UInt32 CDOffset;
             public String Comment;
+            public String Author;
 
             public EOFRecord(Stream tpfstream, Int64 eofoff)
             {
@@ -38,7 +39,11 @@ namespace SaltTPF
                 char[] comm = new char[commentlen];
                 for (int i = 0; i < commentlen; i++)
                     comm[i] = (char)EOFBuff[i + 22];
-                Comment = new string(comm);
+
+                string temp = new string(comm);
+                int separator = temp.IndexOf('\n');
+                Comment = temp.Substring(separator + 1);
+                Author = temp.Substring(0, separator - 1);
             }
         }
 
@@ -50,6 +55,38 @@ namespace SaltTPF
             protected UInt32 ExternalAttr;
             protected UInt32 FileOffset;
             public String Comment { get; protected set; }
+
+            public String TPF_Comment
+            {
+                get
+                {
+                    return _par?.EOFStrct.Comment;
+                }
+            }
+
+            public String TPF_Author
+            {
+                get
+                {
+                    return _par?.EOFStrct.Author;
+                }
+            }
+
+            public String TPF_FileName
+            {
+                get
+                {
+                    return _par?._filename;
+                }
+            }
+
+            public int TPF_EntryCount
+            {
+                get
+                {
+                    return _par?.Entries?.Count ?? 0;
+                }
+            }
 
             public ZipEntryFull(byte[] entry, ZipReader par)
                 : base(par)
@@ -99,16 +136,16 @@ namespace SaltTPF
 
                 // KFreon: Use stored MemoryStream if possible.
                 Stream tpf = null;
-                if (_par.DataStream == null)
+                if (_par.FileData == null)
                     tpf = new FileStream(_par._filename, FileMode.Open, FileAccess.Read);
                 else
-                    tpf = _par.DataStream;
+                    tpf = new MemoryStream(_par.FileData);
 
                 tpf.Seek(FileOffset, SeekOrigin.Begin);
                 databuff = ZipReader.BuffXOR(tpf, dataoff + (int)ComprSize + 16); // XOR the whole data block as well as the footer
 
                 // KFreon: Dispose of stream IF it was a FileStream
-                if (_par.DataStream == null)
+                if (_par.FileData == null)
                     tpf.Dispose();
 
                 // Check for correct header data and such
@@ -250,7 +287,7 @@ namespace SaltTPF
         }
         public bool Scanned;
 
-        public MemoryStream DataStream = null;
+        public byte[] FileData { get; set; }
 
         /* Private members */
         private Int64 EOFRecordOff;
@@ -265,14 +302,12 @@ namespace SaltTPF
         /// <returns>ZipReader object of TPF.</returns>
         public static async Task<ZipReader> LoadAsync(string filename, bool ReadIntoMemory)
         {
-            MemoryStream temp = null;
             using (FileStream fs = new FileStream(filename, FileMode.Open, FileAccess.Read))
             {
-                temp = new MemoryStream((int)fs.Length);
-                await fs.CopyToAsync(temp);
+                byte[] temp = new byte[fs.Length];
+                await fs.ReadAsync(temp, 0, temp.Length);
+                return new ZipReader(filename, temp);
             }
-
-            return new ZipReader(filename, temp);
         }
 
         /// <summary>
@@ -290,15 +325,18 @@ namespace SaltTPF
         /// Load a TPF from a stream.
         /// </summary>
         /// <param name="stream">Stream containing TPF.</param>
-        public ZipReader(string filename, MemoryStream stream)
+        public ZipReader(string filename, byte[] data)
         {
             _filename = filename;
-            DataStream = stream;
-            LoadFromStream(stream);
+            FileData = data;
+            using (MemoryStream ms = new MemoryStream(data))
+                LoadFromStream(ms);
         }
 
         void LoadFromStream(Stream stream)
         {
+            stream.Seek(0, SeekOrigin.Begin);
+
             // The easiest way to do this is to just XOR the whole file, but let's try something a bit smarter
             // First read the first 4 bytes to do a prelim correctness test
             byte[] buff = new byte[4];
