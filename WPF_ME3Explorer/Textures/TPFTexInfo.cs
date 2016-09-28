@@ -20,6 +20,19 @@ namespace WPF_ME3Explorer.Textures
         public MTRangedObservableCollection<TPFTexInfo> HashDuplicates { get; set; } = new MTRangedObservableCollection<TPFTexInfo>();
         static CRC32 crc = new CRC32();
 
+        bool isChecked = true;
+        public bool IsChecked
+        {
+            get
+            {
+                return isChecked;
+            }
+            set
+            {
+                SetProperty(ref isChecked, value);
+            }
+        }
+
         public bool IsFromTPF
         {
             get
@@ -117,11 +130,25 @@ namespace WPF_ME3Explorer.Textures
             get
             {
                 if (IsDef)
-                    return null; // TODO: Text preview
+                    return null;
 
                 byte[] data = Extract();
                 using (ImageEngineImage img = new ImageEngineImage(data))
                     return img.GetWPFBitmap();
+            }
+        }
+
+        public string DefPreview
+        {
+            get
+            {
+                if (!IsDef)
+                    return null; 
+
+                byte[] data = Extract();
+                char[] text = Array.ConvertAll(data, t => (char)t);
+
+                return new string(text).Replace("\0", "");
             }
         }
 

@@ -22,8 +22,8 @@
             <RowDefinition Height="25"/>
             <RowDefinition Height="391*"/>
             <RowDefinition Height="304*"/>
-            <RowDefinition Height="80*"/>
-            <RowDefinition Height="30*"/>
+            <RowDefinition Height="60*"/>
+            <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="989*"/>
@@ -43,7 +43,7 @@
                     </Style>
                 </MenuItem.Style>
             </MenuItem>
-            <MenuItem Header="Save to TPF" Style="{StaticResource BaseMenuItemStyle}" IsEnabled="{Binding SaveTPFEnabled}"/>
+            <MenuItem x:Name="SaveToTPFButton" Header="Save to TPF" Style="{StaticResource BaseMenuItemStyle}" IsEnabled="{Binding SaveTPFEnabled}" Command="{Binding SaveToTPFCommand}"/>
         </Menu>
 
         <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Margin="0,0,-0.333,0">
@@ -56,8 +56,10 @@
         <DockPanel Grid.Row="1" Grid.RowSpan="2">
             <TextBox x:Name="SearchBox" Height="22" BorderBrush="{x:Null}" Tag="Search..." DockPanel.Dock="Top" Template="{StaticResource SearchBoxTemplate}"
                      Text="{Binding TextureSearch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <CheckBox IsThreeState="True" Margin="2,0,0,0" IsChecked="{Binding TexturesCheckAll}" DockPanel.Dock="Top"/>
             <ListBox x:Name="MainView" ItemsSource="{Binding MainDisplayView}" SelectedItem="{Binding SelectedTexture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Drop="MainView_Drop" 
-                     AllowDrop="True" DragEnter="MainView_DragEnter" DragOver="MainView_DragOver" DragLeave="MainView_DragLeave" HorizontalContentAlignment="Stretch" SelectionMode="Multiple">
+                     AllowDrop="True" DragEnter="MainView_DragEnter" DragOver="MainView_DragOver" DragLeave="MainView_DragLeave" HorizontalContentAlignment="Stretch">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <DockPanel x:Name="MainViewItem" MouseMove="MainViewItem_MouseMove" LastChildFill="False">
@@ -98,6 +100,7 @@
                                     </MenuItem>
                                 </ContextMenu>
                             </DockPanel.ContextMenu>
+                            <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,3,0" Visibility="{Binding IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
                             <Image x:Name="ItemThumb" Width="64" Height="64">
                                 <Image.Style>
                                     <Style TargetType="Image">
@@ -205,15 +208,68 @@
                 </ListBox.ItemTemplate>
             </ListBox>
         </DockPanel>
-        <Image x:Name="PreviewImage" Grid.Column="1" Grid.Row="1" Source="{Binding ElementName=MainView, Path=SelectedItem.Preview, IsAsync=True}"/>
-        <Grid Grid.Column="1" Grid.Row="2" Margin="0.333,0.333,-0.333,0.334" Grid.RowSpan="2">
-            <CheckBox x:Name="PCCsCheckAllChecker" IsChecked="{Binding PCCsCheckAll}" Style="{StaticResource CheckAllCheckBoxStyle}" HorizontalAlignment="Left" Grid.Row="1" VerticalAlignment="Top" Margin="5,15"/>
-            <Button x:Name="SavePCCsListButton" Content="Save List" VerticalAlignment="Top" HorizontalAlignment="Right" Style="{StaticResource PCCListOptionsStyle}" Background="White" Margin="5,10" Padding="10,2" Click="SavePCCsListButton_Click"/>
-            <Label Content="PCC's" Grid.Row="1" VerticalAlignment="Top" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" DockPanel.Dock="Top"/>
-            <ListBox x:Name="PCCsListBox" ItemsSource="{Binding ElementName=MainView, Path=SelectedItem.PCCs}" ItemTemplate="{StaticResource PCC-ExpID Displayer}" Margin="0,42,0,0.333"/>
-        </Grid>
+        <StackPanel Grid.Column="1" Grid.Row="1">
+            <Image x:Name="PreviewImage" Source="{Binding ElementName=MainView, Path=SelectedItem.Preview, IsAsync=True}" Visibility="{Binding ElementName=MainView, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
+            <TextBox x:Name="PreviewText" Text="{Binding ElementName=MainView, Path=SelectedItem.DefPreview, Mode=OneWay}" Visibility="{Binding ElementName=MainView, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}}"/>
+        </StackPanel>
+        <TabControl Grid.Column="1" Grid.Row="2" Margin="0.333,0.333,-0.333,0.334" Grid.RowSpan="2">
+            <TabControl.Resources>
+                <Style TargetType="FrameworkElement" x:Key="TPFPanelVisibilityStyle">
+                    <Setter Property="Visibility" Value="Collapsed"/>
 
-        <DockPanel Grid.Row="3">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=MainView, Path=SelectedItem.IsFromTPF}" Value="true">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+
+                <Style TargetType="FrameworkElement" x:Key="PCCsPanelVisibilityStyle">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=MainView, Path=SelectedItem.Analysed}" Value="true">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TabControl.Resources>
+            <TabItem Header="TPF Info" Style="{StaticResource TPFPanelVisibilityStyle}">
+                <DockPanel Style="{StaticResource TPFPanelVisibilityStyle}">
+                    <TextBlock DockPanel.Dock="Top" Margin="5" TextWrapping="Wrap">
+                        <Run Text="Filename" FontWeight="Bold"/>
+                        <LineBreak/>
+                        <Run Text="{Binding ElementName=MainView, Path=SelectedItem.TPF_FileName, Mode=OneWay}"/>
+                    </TextBlock>
+
+                    <TextBlock DockPanel.Dock="Top" Margin="5">
+                        <Run Text="Number of files: " FontWeight="Bold"/>
+                        <Run Text="{Binding ElementName=MainView, Path=SelectedItem.TPF_EntryCount, Mode=OneWay}"/>
+                    </TextBlock>
+
+                    <TextBlock DockPanel.Dock="Top" Margin="5">
+                        <Run Text="Author: " FontWeight="Bold"/>
+                        <Run Text="{Binding ElementName=MainView, Path=SelectedItem.TPF_Author, Mode=OneWay}"/>
+                    </TextBlock>
+
+                    <TextBlock DockPanel.Dock="Top" Margin="5" TextWrapping="Wrap">
+                        <Run Text="Comment" FontWeight="Bold"/>
+                        <LineBreak/>
+                        <Run Text="{Binding ElementName=MainView, Path=SelectedItem.TPF_Comment, Mode=OneWay}"/>
+                    </TextBlock>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="PCCs" Style="{StaticResource PCCsPanelVisibilityStyle}">
+                <Grid Style="{StaticResource PCCsPanelVisibilityStyle}">
+                    <CheckBox x:Name="PCCsCheckAllChecker" IsChecked="{Binding PCCsCheckAll}" Style="{StaticResource CheckAllCheckBoxStyle}" HorizontalAlignment="Left" Grid.Row="1" VerticalAlignment="Top" Margin="5"/>
+                    <Button x:Name="SavePCCsListButton" Content="Save List" VerticalAlignment="Top" HorizontalAlignment="Right" Style="{StaticResource PCCListOptionsStyle}" Background="White" Margin="5" Padding="10,2" Click="SavePCCsListButton_Click"/>
+                    <ListBox x:Name="PCCsListBox" ItemsSource="{Binding ElementName=MainView, Path=SelectedItem.PCCs}" ItemTemplate="{StaticResource PCC-ExpID Displayer}" Margin="0,32,0,0.333"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+        
+
+        <DockPanel Grid.Row="3" LastChildFill="False">
             <Button Content="Install Textures" Style="{StaticResource MainButtonStyle}" FontSize="25" Margin="3" Padding="20,0" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Command="{Binding InstallCommand}"/>
             <Button VerticalAlignment="Center" Padding="10,3" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Command="{Binding AnalyseCommand}">
                 <Button.Style>
@@ -228,50 +284,108 @@
                     </Style>
                 </Button.Style>
             </Button>
-            <Grid Margin="10,0,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="92*"/>
-                    <ColumnDefinition Width="68*"/>
-                    <ColumnDefinition Width="147*"/>
-                    <ColumnDefinition Width="325*"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="29*"/>
-                    <RowDefinition Height="18*"/>
-                    <RowDefinition Height="21*"/>
-                    <RowDefinition Height="18*"/>
-                </Grid.RowDefinitions>
-
-                <Grid.Style>
-                    <Style TargetType="Grid">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding ElementName=MainView, Path=SelectedItem.IsFromTPF}" Value="true">
-                                <Setter Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Grid.Style>
-
-                <Label Content="TPF Details" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" Margin="10,0,10,0.667" Width="72"/>
-
-                <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="10" Grid.ColumnSpan="2" Height="13" Margin="0,2.333,0,2.667">
-                    <Run Text="Number of Files: " FontWeight="Bold"/>
-                    <Run Text="{Binding ElementName=MainView, Path=SelectedItem.TPF_EntryCount, Mode=OneWay}"/>
-                </TextBlock>
-
-                <TextBlock Text="Author:" FontWeight="Bold" Grid.Row="2" VerticalAlignment="Center" FontSize="10" Height="14" Margin="0,3.333"/>
-                <TextBox Text="{Binding ElementName=MainView, Path=SelectedItem.TPF_Author, Mode=OneWay}" Grid.ColumnSpan="2" Grid.Row="2" VerticalContentAlignment="Center" FontSize="10" Margin="40,0,0,0" />
-
-                <TextBlock Text="Comment:" FontWeight="Bold" Grid.Column="1" FontSize="10" VerticalAlignment="Center"/>
-                <TextBox Text="{Binding ElementName=MainView, Path=SelectedItem.TPF_Comment, Mode=OneWay}" Grid.Column="2" Grid.ColumnSpan="3" Grid.RowSpan="3" AcceptsReturn="True" FontSize="10" VerticalScrollBarVisibility="Auto"/>
-
-                <TextBlock Grid.Row="3" Grid.ColumnSpan="4" FontSize="10" VerticalAlignment="Center">
-                    <Run Text="Filename: " FontWeight="Bold"/>
-                    <Run Text="{Binding ElementName=MainView, Path=SelectedItem.TPF_FileName, Mode=OneWay}"/>
-                </TextBlock>
-            </Grid>
         </DockPanel>
+
+        <Border Background="#B2000000" Grid.RowSpan="5" Grid.ColumnSpan="5">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Setter Property="Opacity" Value="0"/>
+
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsTPFBuilding}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.5"/>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Visible}"/>
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.5"/>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0:0:0.5" Value="{x:Static Visibility.Collapsed}"/>
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Border.Resources>
+                <Style TargetType="TextBox">
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    <Setter Property="Margin" Value="5,0"/>
+                </Style>
+
+                <Style TargetType="ContentControl" x:Key="ItemTitleStyle">
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="DockPanel.Dock" Value="Left"/>
+                </Style>
+
+                <Style TargetType="Run" x:Key="ItemTitleStyle_2">
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="DockPanel.Dock" Value="Left"/>
+                </Style>
+
+                <Style TargetType="ContentControl" x:Key="TitleStyle">
+                    <Setter Property="FontSize" Value="30"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </Style>
+
+                <Style TargetType="Button" x:Key="BrowseButtonStyle">
+                    <Setter Property="DockPanel.Dock" Value="Right"/>
+                    <Setter Property="Padding" Value="10,2"/>
+                </Style>
+            </Border.Resources>
+            <Border Background="White" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="10" BorderBrush="White" BorderThickness="1">
+                <StackPanel Margin="10">
+                    
+                    <Label Content="Save TPF - Details" Style="{StaticResource TitleStyle}"/>
+
+                    <DockPanel>
+                        <Label Content="Save Path: " Style="{StaticResource ItemTitleStyle}"/>
+                        <Button Content="Browse" Style="{StaticResource BrowseButtonStyle}"/>
+                        <TextBox Text="{Binding TPFSave_SavePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    </DockPanel>
+
+                    <TextBlock Margin="5">
+                        <Run Text="Number of files: " Style="{StaticResource ItemTitleStyle_2}"/>
+                        <Run Text="{Binding TPFSave_TexCount, Mode=OneWay}"/>
+                    </TextBlock>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Label Content="Author: " Style="{StaticResource ItemTitleStyle}"/>
+                        <TextBox Text="{Binding TPFSave_Author, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+
+                    <Label Content="Comment" Style="{StaticResource ItemTitleStyle}"/>
+                    <TextBox Text="{Binding TPFSave_Comment, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"/>
+
+                    <DockPanel LastChildFill="False">
+                        <DockPanel.Resources>
+                            <Style TargetType="Button">
+                                <Setter Property="Margin" Value="10,2"/>
+                                <Setter Property="Padding" Value="10,2"/>
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                        </DockPanel.Resources>
+                        <Button x:Name="TPFSaveSaveButton" Content="Save!" DockPanel.Dock="Left" Command="{Binding TPFSave_SaveCommand}"/>
+                        <Button x:Name="TPFSaveCancelButton" Content="Cancel" DockPanel.Dock="Right" Command="{Binding TPFSave_CancelCommand}"/>
+
+                    </DockPanel>
+                    
+                    <TextBlock Text="{Binding Status}" Margin="0,10,0,4"/>
+                    <ProgressBar Value="{Binding Progress}" Maximum="{Binding MaxProgress}" IsIndeterminate="{Binding ProgressIndeterminate}" Height="20"/>
+                </StackPanel>
+            </Border>
+        </Border>
     </Grid>
 </Window>

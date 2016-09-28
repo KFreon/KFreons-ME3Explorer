@@ -16,7 +16,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             get
             {
-                return ThumbnailWriter.IsWriting;
+                return !ThumbnailWriter.IsWriting;
             }
         }
 

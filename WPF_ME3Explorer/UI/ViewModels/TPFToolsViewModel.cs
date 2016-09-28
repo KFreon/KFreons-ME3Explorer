@@ -24,6 +24,75 @@ namespace WPF_ME3Explorer.UI.ViewModels
         List<ZipReader> Zippys = new List<ZipReader>();
 
         #region Properties
+        #region TPFSave Properties
+        bool isTPFBuilding = false;
+        public bool IsTPFBuilding
+        {
+            get
+            {
+                return isTPFBuilding;
+            }
+            set
+            {
+                SetProperty(ref isTPFBuilding, value);
+            }
+        }
+
+        string tpfSave_SavePath = null;
+        public string TPFSave_SavePath
+        {
+            get
+            {
+                return tpfSave_SavePath;
+            }
+            set
+            {
+                SetProperty(ref tpfSave_SavePath, value);
+            }
+        }
+
+        int tpfSave_TexCount = 0;
+        public int TPFSave_TexCount
+        {
+            get
+            {
+                return tpfSave_TexCount;
+            }
+            set
+            {
+                SetProperty(ref tpfSave_TexCount, value);
+            }
+        }
+
+        string tpfSave_Author = null;
+        public string TPFSave_Author
+        {
+            get
+            {
+                return tpfSave_Author;
+            }
+            set
+            {
+                SetProperty(ref tpfSave_Author, value);
+            }
+        }
+
+        string tpfSave_Comment = null;
+        public string TPFSave_Comment
+        {
+            get
+            {
+                return tpfSave_Comment;
+            }
+            set
+            {
+                SetProperty(ref tpfSave_Comment, value);
+            }
+        }
+        #endregion TPFSave Properties
+
+
+
         public bool SaveTPFEnabled
         {
             get
@@ -59,8 +128,84 @@ namespace WPF_ME3Explorer.UI.ViewModels
         public ICollectionView MainDisplayView { get; set; }
         #endregion Properties
 
+        public bool? TexturesCheckAll
+        {
+            get
+            {
+                if (Textures == null)
+                    return false;
+
+                int num = Textures.Where(tex => !tex.IsDef && tex.IsChecked).Count();
+                if (num == 0)
+                    return false;
+                else if (num == Textures.Where(tex => !tex.IsDef).Count())
+                    return true;
+
+                return null;
+            }
+            set
+            {
+                Textures.Where(tex => !tex.IsDef).AsParallel().ForAll(tex => tex.IsChecked = value == true);
+            }
+        }
 
         #region Commands
+        #region SaveTPF Commands
+        CommandHandler saveToTPFCommand = null;
+        public CommandHandler SaveToTPFCommand
+        {
+            get
+            {
+                if (saveToTPFCommand == null)
+                    saveToTPFCommand = new CommandHandler(() =>
+                    {
+                        IsTPFBuilding = true;
+
+                        // Populate save properties
+                        TPFSave_TexCount = Textures.Where(tex => tex.IsChecked).Count();
+                        TPFSave_Author = "Commander Shepard's Hair-do";
+                        TPFSave_Comment = ""; // Can't be null
+                        TPFSave_SavePath = Path.Combine(Environment.SpecialFolder.DesktopDirectory.ToString(), "Saved TPF.tpf");
+                    });
+
+                return saveToTPFCommand;
+            }
+        }
+
+        CommandHandler tpfSave_CancelCommand = null;
+        public CommandHandler TPFSave_CancelCommand
+        {
+            get
+            {
+                if (tpfSave_CancelCommand == null)
+                    tpfSave_CancelCommand = new CommandHandler(() =>
+                    {
+                        IsTPFBuilding = false;
+                        Status = "TPF Build cancelled!";
+                    });
+
+                return tpfSave_CancelCommand;
+            }
+        }
+
+        CommandHandler tpfSave_SaveCommand = null;
+        public CommandHandler TPFSave_SaveCommand
+        {
+            get
+            {
+                if (tpfSave_SaveCommand == null)
+                    tpfSave_SaveCommand = new CommandHandler(async () =>
+                    {
+                        await Task.Run(() => SaveToTPF(TPFSave_SavePath, Textures.Where(tex => tex.IsChecked).ToArray()));
+                        IsTPFBuilding = false;
+                    });
+
+                return tpfSave_SaveCommand;
+            }
+        }
+        #endregion SaveTPF Commands
+
+
         CommandHandler installCommand = null;
         public CommandHandler InstallCommand
         {
@@ -74,7 +219,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         
                         TPFTexInfo[] texes = null;
                         if (param == null)
-                            texes = Textures.ToArray();
+                            texes = Textures.Where(tex => tex.IsChecked).ToArray();
                         else if (param is IEnumerable<TPFTexInfo>)
                             texes = ((IEnumerable<TPFTexInfo>)(param)).ToArray();
                         else
@@ -246,6 +391,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 {
                     if (args.PropertyName == nameof(tex.HashChanged))
                         OnPropertyChanged(nameof(SaveTPFEnabled));
+                    else if (args.PropertyName == nameof(tex.IsChecked))
+                        OnPropertyChanged(nameof(TexturesCheckAll));
                 };
 
 
@@ -281,11 +428,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 // Extract and get details
                 await Task.Run(() =>
                 {
+                    TPFTexInfo def = null;
                     Parallel.ForEach(texes, new ParallelOptions { MaxDegreeOfParallelism = maxParallelism }, tex =>
                     {
-                        var data = tex.Extract();
-                        PopulateTexDetails(tex, data);
+                        if (tex.IsDef)
+                            def = tex;
+                        else
+                        {
+                            var data = tex.Extract();
+                            PopulateTexDetails(tex, data);
+                        }
                     });
+
+                    Textures.Add(def);
                 });
 
                 // Dipose of datastream if necessary, and indicate further operations should use the disk.
@@ -314,6 +469,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             await Task.WhenAll(thumbBuilder.Completion, tpfMaker.Completion);
 
             OnPropertyChanged(nameof(SaveTPFEnabled));
+            OnPropertyChanged(nameof(TexturesCheckAll));
 
             Status = $"Loaded {Textures.Count - prevTexCount} from {fileNames.Length} files.";
             Progress = MaxProgress;
