@@ -20,11 +20,19 @@ namespace WPF_ME3Explorer.Textures
         public MTRangedObservableCollection<TPFTexInfo> HashDuplicates { get; set; } = new MTRangedObservableCollection<TPFTexInfo>();
         static CRC32 crc = new CRC32();
 
+        public bool IsFromTPF
+        {
+            get
+            {
+                return ZipEntry != null;
+            }
+        }
+
         public String TPF_Comment
         {
             get
             {
-                return ZipEntry.TPF_Comment;
+                return ZipEntry?.TPF_Comment;
             }
         }
 
@@ -32,7 +40,7 @@ namespace WPF_ME3Explorer.Textures
         {
             get
             {
-                return ZipEntry.TPF_Author;
+                return ZipEntry?.TPF_Author;
             }
         }
 
@@ -40,7 +48,7 @@ namespace WPF_ME3Explorer.Textures
         {
             get
             {
-                return ZipEntry.TPF_FileName;
+                return ZipEntry?.TPF_FileName;
             }
         }
 
@@ -48,7 +56,7 @@ namespace WPF_ME3Explorer.Textures
         {
             get
             {
-                return ZipEntry.TPF_EntryCount;
+                return ZipEntry?.TPF_EntryCount ?? 0;
             }
         }
 

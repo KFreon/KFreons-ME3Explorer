@@ -242,6 +242,18 @@
                     <RowDefinition Height="18*"/>
                 </Grid.RowDefinitions>
 
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=MainView, Path=SelectedItem.IsFromTPF}" Value="true">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+
                 <Label Content="TPF Details" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" Margin="10,0,10,0.667" Width="72"/>
 
                 <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="10" Grid.ColumnSpan="2" Height="13" Margin="0,2.333,0,2.667">
