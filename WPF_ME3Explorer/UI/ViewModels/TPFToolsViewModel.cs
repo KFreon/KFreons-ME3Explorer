@@ -538,6 +538,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             foreach (var tex in Textures)
             {
+                tex.Analysed = true;
+
                 if (tex.IsDef)
                     continue;
 
@@ -545,7 +547,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 TreeTexInfo treeTex = null;
 
                 if (treeTexs?.Count() == 0)
-                    continue; // Not found in tree
+                {
+                    tex.Error = "Not Found in Tree";
+                    continue;
+                }
 
                 // Look at tree duplicates
                 if (treeTexs.Count() == 1)
@@ -622,6 +627,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 tex.TexName = null;
                 tex.PCCs.Clear();
                 tex.Analysed = false;
+                tex.Error = null;
 
                 tex.HashDuplicates.Clear();
             }

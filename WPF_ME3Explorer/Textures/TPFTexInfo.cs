@@ -20,6 +20,43 @@ namespace WPF_ME3Explorer.Textures
         public MTRangedObservableCollection<TPFTexInfo> HashDuplicates { get; set; } = new MTRangedObservableCollection<TPFTexInfo>();
         static CRC32 crc = new CRC32();
 
+        public bool RequiresAutofix
+        {
+            get
+            {
+                return Analysed && FormatOK;
+            }
+        }
+
+        public bool MipsOk
+        {
+            get
+            {
+                return Mips <= TreeMips;
+            }
+        }
+
+        public bool FormatOK
+        {
+            get
+            {
+                return Format == TreeFormat;
+            }
+        }
+
+        string error = null;
+        public string Error
+        {
+            get
+            {
+                return error;
+            }
+            set
+            {
+                SetProperty(ref error, value);
+            }
+        }
+
         bool isChecked = true;
         public bool IsChecked
         {
@@ -96,6 +133,10 @@ namespace WPF_ME3Explorer.Textures
             set
             {
                 SetProperty(ref analysed, value);
+                OnPropertyChanged(nameof(RequiresAutofix));
+                OnPropertyChanged(nameof(FoundInTree));
+                OnPropertyChanged(nameof(FormatOK));
+                OnPropertyChanged(nameof(MipsOk));
             }
         }
 

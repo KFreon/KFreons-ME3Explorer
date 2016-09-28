@@ -54,10 +54,12 @@
         <StatusBar Template="{StaticResource StatusBarTemplate}" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Grid.Row="4" Margin="0,0,-0.333,0.334"/>
 
         <DockPanel Grid.Row="1" Grid.RowSpan="2">
-            <TextBox x:Name="SearchBox" Height="22" BorderBrush="{x:Null}" Tag="Search..." DockPanel.Dock="Top" Template="{StaticResource SearchBoxTemplate}"
+            <DockPanel DockPanel.Dock="Top">
+                <CheckBox IsThreeState="True" Margin="2,6,10,0" IsChecked="{Binding TexturesCheckAll}"/>
+                <TextBox x:Name="SearchBox" Height="22" BorderBrush="{x:Null}" Tag="Search..." DockPanel.Dock="Right" Template="{StaticResource SearchBoxTemplate}"
                      Text="{Binding TextureSearch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            </DockPanel>
 
-            <CheckBox IsThreeState="True" Margin="2,0,0,0" IsChecked="{Binding TexturesCheckAll}" DockPanel.Dock="Top"/>
             <ListBox x:Name="MainView" ItemsSource="{Binding MainDisplayView}" SelectedItem="{Binding SelectedTexture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Drop="MainView_Drop" 
                      AllowDrop="True" DragEnter="MainView_DragEnter" DragOver="MainView_DragOver" DragLeave="MainView_DragLeave" HorizontalContentAlignment="Stretch">
                 <ListBox.ItemTemplate>
@@ -85,17 +87,17 @@
                                 <ContextMenu>
                                     <MenuItem Header="Install" Command="{Binding InstallCommand}" CommandParameter="{Binding}">
                                         <MenuItem.Icon>
-                                            <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/ChangeTexture.png"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
                                     <MenuItem Header="Replace" Command="{Binding ReplaceCommand}" CommandParameter="{Binding}">
                                         <MenuItem.Icon>
-                                            <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/RegenerateSingle.png"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
                                     <MenuItem Header="Extract" Command="{Binding ExtractCommand}" CommandParameter="{Binding}">
                                         <MenuItem.Icon>
-                                            <Image Source="/WPF_ME3Explorer;component/Resources/Mass Effect 1.jpg"/>
+                                            <Image Source="/WPF_ME3Explorer;component/Resources/ExtractTexture.png"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
                                 </ContextMenu>
@@ -114,22 +116,50 @@
                                     </Style>
                                 </Image.Style>
                             </Image>
-                            <TextBlock x:Name="NameDisplay" Text="{Binding Name, Mode=OneWay}" VerticalAlignment="Center" Margin="5"/>
-                            <TextBlock x:Name="FilenameDisplay"  VerticalAlignment="Center" Margin="5" DockPanel.Dock="Right" Foreground="Gray">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
+                            <StackPanel x:Name="Name_Error" Margin="5" VerticalAlignment="Center">
+                                <TextBlock x:Name="NameDisplay" Text="{Binding Name, Mode=OneWay}"/>
+                                <TextBlock x:Name="FilenameDisplay" Foreground="Gray">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
 
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding FoundInTree}" Value="true">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding FoundInTree}" Value="true">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
                                 <Run Text="Filename: " FontWeight="Bold"/>
                                 <Run Text="{Binding FileName, Mode=OneWay}"/>
-                            </TextBlock>
+                                </TextBlock>
+                                <TextBlock x:Name="ErrorDisplay" Text="{Binding Error, Mode=OneWay}" FontSize="20" Foreground="Red">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible"/>
+
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Error}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="Automatic format/mip conversion will be performed." Foreground="#FFFF9191">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RequiresAutofix}" Value="true">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
                             <Grid x:Name="TexDetailsPanel" DockPanel.Dock="Right">
                                 <Grid.Resources>
                                     <Style TargetType="Label">
@@ -164,8 +194,45 @@
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}" x:Key="TreeDependentTextBlock">
                                         <Setter Property="Visibility" Value="{Binding Analysed, Converter={StaticResource BoolToVisConverter}}"/>
                                     </Style>
+
+                                    <Style TargetType="Label" BasedOn="{StaticResource TreeDependentLabel}" x:Key="TreeDependentFormat">
+                                        <Setter Property="Foreground" Value="Green"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding FormatOK}" Value="false">
+                                                <Setter Property="Foreground" Value="Red"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+
+                                    <Style TargetType="Label" BasedOn="{StaticResource TreeDependentLabel}" x:Key="TreeDependentMips">
+                                        <Setter Property="Foreground" Value="Green"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MipsOK}" Value="false">
+                                                <Setter Property="Foreground" Value="Red"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource TreeDependentTextBlock}" x:Key="TreeDependentFormatText">
+                                        <Setter Property="Foreground" Value="Green"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding FormatOK}" Value="false">
+                                                <Setter Property="Foreground" Value="Red"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource TreeDependentTextBlock}" x:Key="TreeDependentMipsText">
+                                        <Setter Property="Foreground" Value="Green"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MipsOK}" Value="false">
+                                                <Setter Property="Foreground" Value="Red"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
                                 </Grid.Resources>
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20*"/>
                                     <ColumnDefinition Width="20*"/>
                                     <ColumnDefinition Width="20*"/>
                                     <ColumnDefinition Width="20*"/>
@@ -188,20 +255,22 @@
 
                                 <Label Content="Hash:" Grid.Column="2"/>
                                 <TextBox Text="{Binding Hash, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HashStringConverter}}" Opacity=".6" 
-                                         Grid.Column="3" Margin="0,0,7,0" VerticalContentAlignment="Center" VerticalAlignment="Center" Padding="7,3" Visibility="{Binding IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
+                                         Grid.Column="3" Margin="0,0,7,0" VerticalContentAlignment="Center" VerticalAlignment="Center" Padding="7,3" 
+                                         Visibility="{Binding IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"
+                                         MouseMove="TextBox_MouseMove"/>
                                 <Button Content="Reset Hash" Grid.Column="2" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Opacity=".6" Padding="6,2" Grid.ColumnSpan="2" Style="{StaticResource MainButtonStyle}" Visibility="{Binding HashChanged, Converter={StaticResource BoolToVisConverter}}"/>
 
                                 <Label Content="Format:" Grid.Column="4"/>
                                 <TextBlock Text="{Binding Format, Converter={StaticResource ImageEngineFormatConverter}}" Grid.Column="5"/>
 
-                                <Label Content="Tree Format:" Grid.Column="6" Style="{StaticResource TreeDependentLabel}"/>
-                                <TextBlock Text="{Binding TreeFormat, Converter={StaticResource ImageEngineFormatConverter}}" Grid.Column="7" Style="{StaticResource TreeDependentTextBlock}"/>
+                                <Label Content="Tree Format:" Grid.Column="6" Style="{StaticResource TreeDependentFormat}"/>
+                                <TextBlock Text="{Binding TreeFormat, Converter={StaticResource ImageEngineFormatConverter}}" Grid.Column="7" Style="{StaticResource TreeDependentFormatText}"/>
 
                                 <Label Content="Mips:" Grid.Column="4" Grid.Row="1"/>
                                 <TextBlock Text="{Binding Mips}" Grid.Column="5" Grid.Row="1"/>
 
-                                <Label Content="Tree Mips:" Grid.Column="6" Grid.Row="1" Style="{StaticResource TreeDependentLabel}"/>
-                                <TextBlock Text="{Binding TreeMips}" Grid.Column="7" Grid.Row="1" Style="{StaticResource TreeDependentTextBlock}"/>
+                                <Label Content="Tree Mips:" Grid.Column="6" Grid.Row="1" Style="{StaticResource TreeDependentMips}"/>
+                                <TextBlock Text="{Binding TreeMips}" Grid.Column="7" Grid.Row="1" Style="{StaticResource TreeDependentMipsText}"/>
                             </Grid>
                         </DockPanel>
                     </DataTemplate>
@@ -270,10 +339,26 @@
         
 
         <DockPanel Grid.Row="3" LastChildFill="False">
-            <Button Content="Install Textures" Style="{StaticResource MainButtonStyle}" FontSize="25" Margin="3" Padding="20,0" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Command="{Binding InstallCommand}"/>
-            <Button VerticalAlignment="Center" Padding="10,3" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}" Command="{Binding AnalyseCommand}">
+            <DockPanel.Resources>
+                <Style BasedOn="{StaticResource MainButtonStyle}" TargetType="Button" x:Key="BigButtonStyle">
+                    <Setter Property="IsEnabled" Value="True"/>
+
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Busy}" Value="true">
+                            <Setter Property="IsEnabled" Value="False"/>
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding CurrentTree.Valid}" Value="false">
+                            <Setter Property="IsEnabled" Value="False"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DockPanel.Resources>
+            
+            <Button Content="Install Textures" Style="{StaticResource BigButtonStyle}" FontSize="25" Margin="3" Padding="20,0" Command="{Binding InstallCommand}"/>
+            <Button VerticalAlignment="Center" Padding="10,3" Command="{Binding AnalyseCommand}">
                 <Button.Style>
-                    <Style BasedOn="{StaticResource MainButtonStyle}" TargetType="Button">
+                    <Style BasedOn="{StaticResource BigButtonStyle}" TargetType="Button">
                         <Setter Property="Content" Value="Analyse with Texplorer"/>
 
                         <Style.Triggers>
@@ -284,6 +369,24 @@
                     </Style>
                 </Button.Style>
             </Button>
+
+            <TextBlock x:Name="BlankOutExplaination" VerticalAlignment="Center" Margin="5" Foreground="Red">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentTree.Valid}" Value="false">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+                
+                Current Tree not valid. 
+                <LineBreak/>
+                Check selected tree.
+            </TextBlock>
         </DockPanel>
 
         <Border Background="#B2000000" Grid.RowSpan="5" Grid.ColumnSpan="5">

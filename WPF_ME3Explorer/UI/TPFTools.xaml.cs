@@ -106,5 +106,10 @@ namespace WPF_ME3Explorer.UI
                 e.Handled = true;
             }
         }
+
+        private void TextBox_MouseMove(object sender, MouseEventArgs e)
+        {
+            e.Handled = true;  // Prevents item dragging when trying to select text in textbox
+        }
     }
 }
