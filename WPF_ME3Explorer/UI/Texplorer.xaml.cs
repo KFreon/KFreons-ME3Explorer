@@ -32,8 +32,10 @@ namespace WPF_ME3Explorer.UI
         internal TexplorerViewModel vm = null;
         DragDropHandler<TreeTexInfo> TextureDragDropper = null;
         DragDropHandler<TexplorerTextureFolder> FolderDragDropper = null;
+        static Random random = new Random();
 
         Action<System.Windows.Shell.TaskbarItemProgressState> TaskBarUpdater = null;
+
 
         public Texplorer()
         {
@@ -82,6 +84,7 @@ namespace WPF_ME3Explorer.UI
             });
 
             DataContext = vm;
+            GetBackgroundMovie();
             BackgroundMovie.Play();
 
 
@@ -111,6 +114,18 @@ namespace WPF_ME3Explorer.UI
             // As VM should be created before this constructor is called, can do this check now.
             if (vm.CurrentTree.Valid)
                 vm.TreePanelCloser();
+        }
+
+        void GetBackgroundMovie()
+        {
+            Uri source = null;
+            if (random.Next(6) == 5)   // Want this to be random and rarer
+                source = new Uri("Resources/Normandy Arrival.mp4", UriKind.Relative);
+            else
+                source = new Uri("Resources/Basic relay.mp4", UriKind.Relative);
+
+            if (source != BackgroundMovie.Source)
+                BackgroundMovie.Source = source;
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -273,6 +288,7 @@ namespace WPF_ME3Explorer.UI
         private void BackgroundMovie_MediaEnded(object sender, RoutedEventArgs e)
         {
             BackgroundMovie.Stop();
+            GetBackgroundMovie();
             BackgroundMovie.Play();
         }
 

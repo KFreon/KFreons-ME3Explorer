@@ -823,7 +823,7 @@
                 <RowDefinition Height="120*"/>
             </Grid.RowDefinitions>
 
-            <MediaElement x:Name="BackgroundMovie" Grid.RowSpan="3" Source="Resources/Progress Background.avi" Stretch="Fill" Margin="0,0,0,0.333" UnloadedBehavior="Manual" LoadedBehavior="Manual" MediaEnded="BackgroundMovie_MediaEnded" MediaOpened="BackgroundMovie_MediaOpened" MediaFailed="BackgroundMovie_MediaFailed"/>
+            <MediaElement x:Name="BackgroundMovie" Grid.RowSpan="3" Stretch="Fill" Margin="0,0,0,0.333" UnloadedBehavior="Manual" LoadedBehavior="Manual" MediaEnded="BackgroundMovie_MediaEnded" MediaOpened="BackgroundMovie_MediaOpened" MediaFailed="BackgroundMovie_MediaFailed"/>
             <Button x:Name="HiderButton" Content="Close" HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Button.Resources>
                     <Storyboard x:Key="ProgressPanelCloser">

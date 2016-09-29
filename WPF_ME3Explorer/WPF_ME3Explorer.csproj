@@ -269,12 +269,15 @@
     <Content Include="LZO\lzo2_64.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Resources\Basic relay.mp4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\Normandy Arrival.mp4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Resource Include="Resources\bug_icon.ico" />
     <Resource Include="Resources\ME1Game.ico" />
     <Resource Include="Resources\ExportTexandInfo.png" />
-    <Content Include="Resources\Progress Background.avi">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Resource Include="Resources\UndoChanges.png" />
     <Resource Include="Resources\LowResFix.png" />
     <Resource Include="Resources\ExtractTexture.png" />

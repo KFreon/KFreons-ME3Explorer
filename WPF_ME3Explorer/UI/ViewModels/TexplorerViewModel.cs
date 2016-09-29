@@ -1159,6 +1159,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
         public override void Search(string searchText)
         {
             TextureSearchResults.Clear();
+
+            if (String.IsNullOrEmpty(searchText))
+                return;
+
             ConcurrentBag<TreeTexInfo> tempResults = new ConcurrentBag<TreeTexInfo>();
 
             Parallel.ForEach(Textures, texture =>

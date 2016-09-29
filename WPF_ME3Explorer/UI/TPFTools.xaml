@@ -7,7 +7,7 @@
         xmlns:VM="clr-namespace:WPF_ME3Explorer.UI.ViewModels"
         x:Class="WPF_ME3Explorer.UI.TPFTools"
         mc:Ignorable="d"
-        Title="TPFTools" Height="882.469" Width="1507.27" Closing="Window_Closing" KeyDown="Window_KeyDown">
+        Title="TPFTools" Height="882.469" Width="1507.27" Closing="Window_Closing" KeyDown="Window_KeyDown" Icon="/WPF_ME3Explorer;component/Resources/TPFTools icon.ico">
 
     <Window.Resources>
         <ResourceDictionary>
