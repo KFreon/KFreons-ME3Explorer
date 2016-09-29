@@ -44,6 +44,7 @@
                 </MenuItem.Style>
             </MenuItem>
             <MenuItem x:Name="SaveToTPFButton" Header="Save to TPF" Style="{StaticResource BaseMenuItemStyle}" IsEnabled="{Binding SaveTPFEnabled}" Command="{Binding SaveToTPFCommand}"/>
+            <MenuItem x:Name="BulkExtractButton" Header="Bulk Extract TPFs" Style="{StaticResource BaseMenuItemStyle}" Click="BulkExtractButton_Click"/>
         </Menu>
 
         <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Margin="0,0,-0.333,0">

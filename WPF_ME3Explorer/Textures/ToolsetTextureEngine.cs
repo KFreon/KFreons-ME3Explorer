@@ -1,4 +1,5 @@
 ﻿using CSharpImageLibrary;
+using SaltTPF;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -151,6 +152,7 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
+
         /// <summary>
         /// Overlays one image on top of another.
         /// Both images MUST be the same size.
@@ -175,6 +177,7 @@ namespace WPF_ME3Explorer.Textures
             return overlayed;
         }
 
+        
 
         internal static bool ChangeTexture(TreeTexInfo tex, string newTextureFileName)
         {
@@ -365,6 +368,28 @@ namespace WPF_ME3Explorer.Textures
                 }
             }
             return pcc;
+        }
+
+        public static string EnsureHashInFilename(string FileName, uint Hash)
+        {
+            var hash = ToolsetTextureEngine.FormatTexmodHashAsString(Hash);
+            return EnsureHashInFilename(FileName, hash);
+        }
+
+        public static string EnsureHashInFilename(string FileName, string Hash)
+        {
+            string ext = Path.GetExtension(FileName);
+            string Name = Path.GetFileNameWithoutExtension(FileName);
+            return $"{Name.Replace(ext, "")}_{(Name.Contains(Hash) ? "" : Hash)}{ext}";
+        }
+
+        public static List<string> GetHashesAndNamesFromTPF(ZipReader zippy)
+        {
+            byte[] data = zippy.Entries.Last().Extract(true);
+            char[] chars = Array.ConvertAll(data, item => (char)item);
+
+            // Fix formatting, fix case, remove duplpicates, remove empty entries.
+            return new string(chars).Replace("\r", "").Replace("_0X", "_0x").Split('\n').Distinct().Where(s => s != "\0").ToList();
         }
     }
 }

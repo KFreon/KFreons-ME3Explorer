@@ -28,7 +28,7 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        public bool MipsOk
+        public bool MipsOK
         {
             get
             {
@@ -136,7 +136,7 @@ namespace WPF_ME3Explorer.Textures
                 OnPropertyChanged(nameof(RequiresAutofix));
                 OnPropertyChanged(nameof(FoundInTree));
                 OnPropertyChanged(nameof(FormatOK));
-                OnPropertyChanged(nameof(MipsOk));
+                OnPropertyChanged(nameof(MipsOK));
             }
         }
 
@@ -400,6 +400,5 @@ namespace WPF_ME3Explorer.Textures
                 return baseSearchables.Distinct().ToList();  // Remove any duplicates
             }
         }
-
     }
 }

@@ -188,6 +188,58 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
+        internal async Task BulkExtract(string folderName)
+        {
+            Busy = true;
+            Progress = 0;
+
+            // Get TPFs
+            var files = Directory.EnumerateFiles(folderName);
+            var tpfs = files.Where(file => file.EndsWith("tpf", StringComparison.OrdinalIgnoreCase) || file.EndsWith("metpf", StringComparison.OrdinalIgnoreCase)).ToList();
+
+            MaxProgress = tpfs.Count;
+
+            foreach (var tpf in tpfs)
+            {
+                Status = $"Extracting: {Path.GetFileName(tpf)}";
+
+                var zippy = await ZipReader.LoadAsync(tpf, true);
+
+                // Create output directory
+                string extractPath = Path.Combine(folderName, Path.GetFileNameWithoutExtension(tpf));
+                Directory.CreateDirectory(extractPath);
+
+                // Get hashes
+                List<string> Hashes_Names = ToolsetTextureEngine.GetHashesAndNamesFromTPF(zippy);
+
+                // Ensure hashes in filenames and extract
+                await Task.Run(() =>
+                {
+                    for (int i = 0; i < zippy.Entries.Count; i++)
+                    {
+                        var entry = zippy.Entries[i];
+                        var hashname = Hashes_Names[i];
+                        var sepInd = hashname.IndexOf('|');
+                        var hash = hashname.Substring(0, sepInd);
+                        string filename = ToolsetTextureEngine.EnsureHashInFilename(entry.Filename, hash);
+
+                        string savePath = Path.Combine(extractPath, filename);
+                        if (File.Exists(savePath))
+                            continue;
+
+                        entry.Extract(false, savePath);
+                    }
+                });
+                
+                Progress++;
+            }
+
+
+            Busy = false;
+            Status = "All TPFs extracted!";
+            Progress = MaxProgress;
+        }
+
         CommandHandler tpfSave_SaveCommand = null;
         public CommandHandler TPFSave_SaveCommand
         {
@@ -259,7 +311,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         ProgressIndeterminate = true;
                         Status = $"Extracting {tex.Name}";
 
-                        tex.Extract(sfd.FileName);
+                        string savePath = ToolsetTextureEngine.EnsureHashInFilename(sfd.FileName, tex.Hash);
+                        tex.Extract(savePath);
 
                         Status = $"Extracted {tex.Name}!";
                         ProgressIndeterminate = false;
@@ -502,11 +555,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             List<TPFTexInfo> tempTexes = new List<TPFTexInfo>();
 
             // Load Hashes from texmod.def (last entry)
-            byte[] data = zippy.Entries.Last().Extract(true);
-            char[] chars = Array.ConvertAll(data, item => (char)item);
-
-            // Fix formatting, fix case, remove duplpicates, remove empty entries.
-            List<string> Name_Hashes = new string(chars).Replace("\r", "").Replace("_0X", "_0x").Split('\n').Distinct().Where(s => s != "\0").ToList();
+            List<string> Name_Hashes = ToolsetTextureEngine.GetHashesAndNamesFromTPF(zippy);
 
             foreach (var entry in zippy.Entries)
             {

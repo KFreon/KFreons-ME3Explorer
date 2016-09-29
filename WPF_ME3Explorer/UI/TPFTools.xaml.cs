@@ -15,6 +15,7 @@ using Microsoft.Win32;
 using WPF_ME3Explorer.UI.ViewModels;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.Textures;
+using Microsoft.WindowsAPICodePack.Dialogs;
 
 namespace WPF_ME3Explorer.UI
 {
@@ -110,6 +111,16 @@ namespace WPF_ME3Explorer.UI
         private void TextBox_MouseMove(object sender, MouseEventArgs e)
         {
             e.Handled = true;  // Prevents item dragging when trying to select text in textbox
+        }
+
+        private async void BulkExtractButton_Click(object sender, RoutedEventArgs e)
+        {
+            CommonOpenFileDialog dialog = new CommonOpenFileDialog();
+            dialog.IsFolderPicker = true;
+            dialog.EnsurePathExists = true;
+            dialog.Title = "Select folder containing multiple TPF's to extract";
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+                await vm.BulkExtract(dialog.FileName);
         }
     }
 }
