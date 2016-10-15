@@ -123,12 +123,34 @@ namespace SaltTPF
                 for (int i = 0; i < commlen; i++)
                     strbuild[i] = (char)entry[46 + namelen + extralen + i];
                 Comment = new string(strbuild);
+
+                // KFreon: Debugging
+                /*Console.WriteLine(Filename);
+                Console.WriteLine($"build = {Buildvers}");
+                Console.WriteLine($"minvers = {Minvers}");
+                Console.WriteLine($"bitflag = {BitFlag}");
+                Console.WriteLine($"compr = {ComprMethod}");
+                Console.WriteLine($"modifytime = {ModifyTime}");
+                Console.WriteLine($"modifydate = {ModifyDate}");
+                Console.WriteLine($"crc = {CRC}");
+                Console.WriteLine($"comprsize = {ComprSize}");
+                Console.WriteLine($"uncsize = {UncomprSize}");
+                Console.WriteLine($"namelen = {namelen}");
+                Console.WriteLine($"extralen = {extralen}");
+                Console.WriteLine($"commlen = {commlen}");
+                Console.WriteLine($"diskstart = {DiskStart}");
+                Console.WriteLine($"internal = {InternalAttr}");
+                Console.WriteLine($"external = {ExternalAttr}");
+                Console.WriteLine($"file offset = {FileOffset}");
+                Console.WriteLine($"extra = {Extra}");
+                Console.WriteLine($"comment = {Comment}");
+                Console.WriteLine();*/
             }
 
             public byte[] Extract(bool Preview, String outname = null)
             {
                 byte[] databuff;
-                int dataoff = 30;
+                int dataoff = 30; // For ZipEntry header - not the above one
                 if (Filename != null)
                     dataoff += Filename.Length;
                 if (Extra != null)
@@ -156,7 +178,7 @@ namespace SaltTPF
 
                 // KFreon: Apparently not necessary. Some TPF's fail to load with this, but when commented out, they load fine, so...
                 /*if (BitConverter.ToUInt32(databuff, (int)ComprSize + dataoff) != datadescriptormagic) 
-                    throw new InvalidDataException("Footer not as expected");*/
+                    Console.WriteLine("Footer not as expected");*/
 
                 ZipDecrypto crypto = new ZipDecrypto(this, databuff, dataoff, (int)ComprSize);
                 databuff = crypto.GetBlocks();

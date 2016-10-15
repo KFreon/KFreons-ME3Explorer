@@ -122,5 +122,14 @@ namespace WPF_ME3Explorer.UI
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
                 await vm.BulkExtract(dialog.FileName);
         }
+
+        private void MainView_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Delete)
+            {
+                var tex = (TPFTexInfo)((ListBoxItem)e.OriginalSource).DataContext;
+                vm.Textures.Remove(tex);
+            }
+        }
     }
 }

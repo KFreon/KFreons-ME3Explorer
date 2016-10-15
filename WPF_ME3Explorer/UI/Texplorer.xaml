@@ -116,7 +116,8 @@
             </Button>
         </StackPanel>
 
-        <TreeView x:Name="MainTreeView" ItemsSource="{Binding CurrentTree.TextureFolders}" VirtualizingPanel.IsVirtualizing="True" KeyDown="MainTreeView_KeyDown" Grid.ColumnSpan="2" Margin="0,25,738.167,0.333" Grid.RowSpan="2">
+        <TreeView x:Name="MainTreeView" ItemsSource="{Binding CurrentTree.TextureFolders}" VirtualizingPanel.IsVirtualizing="True" KeyDown="MainTreeView_KeyDown" MouseDown="MainTreeView_MouseDown" Grid.ColumnSpan="2" 
+                  Margin="0,25,738.167,0.333" Grid.RowSpan="2">
             <i:Interaction.Behaviors>
                 <usefulUIElements:TreeViewNodeSelectionBehaviour SelectedItem="{Binding SelectedFolder}"/>
             </i:Interaction.Behaviors>
@@ -705,7 +706,7 @@
                         <Button x:Name="ExportTreeButton" Click="ExportTreeButton_Click" IsEnabled="{Binding CurrentTree.Valid}">
                             <Grid>
                                 <Image Source="/WPF_ME3Explorer;component/Resources/Export Tree.png"/>
-                                <Label Content="Export Tree"/>
+                                <Label Content="Backup Tree and Thumbs"/>
                             </Grid>
                         </Button>
 

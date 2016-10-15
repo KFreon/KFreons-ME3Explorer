@@ -15,6 +15,7 @@ using CSharpImageLibrary;
 using System.ComponentModel;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Win32;
+using Microsoft.WindowsAPICodePack.Dialogs;
 
 namespace WPF_ME3Explorer.UI.ViewModels
 {
@@ -165,7 +166,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         TPFSave_TexCount = Textures.Where(tex => tex.IsChecked).Count();
                         TPFSave_Author = "Commander Shepard's Hair-do";
                         TPFSave_Comment = ""; // Can't be null
-                        TPFSave_SavePath = Path.Combine(Environment.SpecialFolder.DesktopDirectory.ToString(), "Saved TPF.tpf");
+
+                        TPFSave_SavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Saved TPF.tpf");
                     });
 
                 return saveToTPFCommand;
@@ -288,6 +290,43 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
+        CommandHandler extractCheckedCommand = null;
+        public CommandHandler ExtractCheckedCommand
+        {
+            get
+            {
+                if (extractCheckedCommand == null)
+                    extractCheckedCommand = new CommandHandler(() =>
+                    {
+                        CommonOpenFileDialog dialog = new CommonOpenFileDialog();
+                        dialog.IsFolderPicker = true;
+                        if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+                        {
+                            Busy = true;
+                            Status = "Extracting textures...";
+                            var texes = Textures.Where(tex => tex.IsChecked).ToList();
+                            MaxProgress = texes.Count;
+                            Progress = 0;
+
+                            Task.Run(() =>
+                            {
+                                foreach (var item in texes)
+                                {
+                                    item.Extract(Path.Combine(dialog.FileName, item.DefaultSaveName));
+                                    Progress++;
+                                }
+
+                                Busy = false;
+                                Status = "Textures extracted!";
+                                Progress = MaxProgress;
+                            });
+                        }
+                    });
+
+                return extractCheckedCommand;
+            }
+        }
+
         CommandHandler extractCommand = null;
         public CommandHandler ExtractCommand
         {
@@ -301,7 +340,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                             return;
 
                         SaveFileDialog sfd = new SaveFileDialog();
-                        sfd.Filter = Path.GetExtension(tex.DefaultSaveName);   // TODO: All supported
+                        sfd.Filter = "Files|*" + Path.GetExtension(tex.DefaultSaveName);   // TODO: All supported
                         sfd.FileName = tex.DefaultSaveName;
                         if (sfd.ShowDialog() != true)
                             return;
@@ -364,7 +403,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
             get
             {
                 if (clearAllCommand == null)
-                    clearAllCommand = new CommandHandler(() => Textures.Clear());
+                    clearAllCommand = new CommandHandler(() =>
+                    {
+                        Textures.Clear();
+                        OnPropertyChanged(nameof(SaveTPFEnabled));
+                        Status = "Ready";
+                    });
 
                 return clearAllCommand;
             }
@@ -395,6 +439,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             GameDirecs.GameVersion = Properties.Settings.Default.TPFToolsGameVersion;
             OnPropertyChanged(nameof(GameVersion));
+
+            TPFTexInfo.InstallCommand = installCommand;
+            TPFTexInfo.ReplaceCommand = ReplaceCommand;
+            TPFTexInfo.ExtractCommand = ExtractCommand;
+
 
             Setup();
         }
@@ -475,14 +524,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
             var tpfMaker = new ActionBlock<string>(async tpf =>
             {
                 Status = $"Loading textures from {Path.GetFileName(tpf)}...";
+                var start = Environment.TickCount;
                 List<TPFTexInfo> texes = await LoadTPF(tpf);
+                var afterloading = Environment.TickCount;
                 ZipReader zippy = Zippys.Last();
 
                 // Extract and get details
                 await Task.Run(() =>
                 {
                     TPFTexInfo def = null;
-                    Parallel.ForEach(texes, new ParallelOptions { MaxDegreeOfParallelism = maxParallelism }, tex =>
+                    Parallel.ForEach(texes, new ParallelOptions { MaxDegreeOfParallelism = maxParallelism - 1 }, tex =>
                     {
                         if (tex.IsDef)
                             def = tex;
@@ -495,6 +546,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                     Textures.Add(def);
                 });
+                var end = Environment.TickCount;
+                Console.WriteLine($"Loading: {TimeSpan.FromMilliseconds(afterloading - start)}, texturing: {TimeSpan.FromMilliseconds(end - afterloading)}");
 
                 // Dipose of datastream if necessary, and indicate further operations should use the disk.
                 zippy.FileData = null;
@@ -565,8 +618,17 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 tempTexes.Add(tex);
             }
 
+            
+            /*Console.WriteLine($"CD Offset: {zippy.EOFStrct.CDOffset}");
+            Console.WriteLine($"CD Size: {zippy.EOFStrct.CDSize}");*/
+
             Zippys.Add(zippy);
             return tempTexes;
+        }
+
+        void test()
+        {
+
         }
 
         uint FindHashInString(string hashString, string indicator)
@@ -721,12 +783,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     string hash = ToolsetTextureEngine.FormatTexmodHashAsString(tex.Hash);
                     data.AddRange(Encoding.ASCII.GetBytes($"{hash}|{tex.DefaultSaveName}{Environment.NewLine}"));
                 }
-
+                data.Add((byte)'\0');
                 return data.ToArray();
             };
             texInfos.Add(new Tuple<string, Func<byte[]>>("texmod.def", logData));
 
-            ZipWriter.Repack(destination, texInfos);
+            ZipWriter.Repack(destination, texInfos, TPFSave_Author, TPFSave_Comment);
         }
     }
 }

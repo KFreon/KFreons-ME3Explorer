@@ -248,6 +248,8 @@ namespace WPF_ME3Explorer.UI
                     break;
                 }
 
+
+            PreviewPanel_MouseDown(null, null);
             e.Handled = true;
         }
 
@@ -354,6 +356,11 @@ namespace WPF_ME3Explorer.UI
             // Remove border when leaving tile.
             var border = sender as Border;
             border.BorderBrush = new SolidColorBrush(Colors.Transparent);
+        }
+
+        private void MainTreeView_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            PreviewPanel_MouseDown(null, null); // Ensure preview is closed
         }
     }
 }

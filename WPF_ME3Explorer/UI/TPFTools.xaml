@@ -44,6 +44,7 @@
                 </MenuItem.Style>
             </MenuItem>
             <MenuItem x:Name="SaveToTPFButton" Header="Save to TPF" Style="{StaticResource BaseMenuItemStyle}" IsEnabled="{Binding SaveTPFEnabled}" Command="{Binding SaveToTPFCommand}"/>
+            <MenuItem x:Name="ExtractAllChecked" Header="Extract All Checked" Style="{StaticResource BaseMenuItemStyle}" Command="{Binding ExtractCheckedCommand}"/>
             <MenuItem x:Name="BulkExtractButton" Header="Bulk Extract TPFs" Style="{StaticResource BaseMenuItemStyle}" Click="BulkExtractButton_Click"/>
         </Menu>
 
@@ -62,7 +63,7 @@
             </DockPanel>
 
             <ListBox x:Name="MainView" ItemsSource="{Binding MainDisplayView}" SelectedItem="{Binding SelectedTexture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Drop="MainView_Drop" 
-                     AllowDrop="True" DragEnter="MainView_DragEnter" DragOver="MainView_DragOver" DragLeave="MainView_DragLeave" HorizontalContentAlignment="Stretch">
+                     AllowDrop="True" DragEnter="MainView_DragEnter" DragOver="MainView_DragOver" DragLeave="MainView_DragLeave" HorizontalContentAlignment="Stretch" KeyDown="MainView_KeyDown">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <DockPanel x:Name="MainViewItem" MouseMove="MainViewItem_MouseMove" LastChildFill="False">
@@ -255,7 +256,7 @@
                                 <TextBlock Text="{Binding Height}" Grid.Column="1" Grid.Row="1"/>
 
                                 <Label Content="Hash:" Grid.Column="2"/>
-                                <TextBox Text="{Binding Hash, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HashStringConverter}}" Opacity=".6" 
+                                <TextBox Text="{Binding Hash, Mode=TwoWay, Converter={StaticResource HashStringConverter}}" Opacity=".6" 
                                          Grid.Column="3" Margin="0,0,7,0" VerticalContentAlignment="Center" VerticalAlignment="Center" Padding="7,3" 
                                          Visibility="{Binding IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"
                                          MouseMove="TextBox_MouseMove"/>

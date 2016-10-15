@@ -677,19 +677,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
             switch (gameVersion)
             {
                 case 1:
-                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME1Files.Where(file => !file.Contains(@"DLC\DLC_")).ToList(), GameDirecs);
+                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME1Files?.Where(file => !file.Contains(@"DLC\DLC_")).ToList(), GameDirecs);
                     tempDLCs = ME1FTSDLCs;
                     tempGameFiles = ME1FTSGameFiles;
                     tempExclusions = ME1FTSExclusions;
                     break;
                 case 2:
-                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME2Files.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), GameDirecs);
+                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME2Files?.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), GameDirecs);
                     tempDLCs = ME2FTSDLCs;
                     tempGameFiles = ME2FTSGameFiles;
                     tempExclusions = ME2FTSExclusions;
                     break;
                 case 3:
-                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME3Files.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), GameDirecs);
+                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME3Files?.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), GameDirecs);
                     tempDLCs = ME3FTSDLCs;
                     tempGameFiles = ME3FTSGameFiles;
                     tempExclusions = ME3FTSExclusions;
@@ -746,26 +746,36 @@ namespace WPF_ME3Explorer.UI.ViewModels
             List<string> DLCs = null;
             List<DLCEntry> tempFTSDLCs = null;
             List<string> tempGameFiles = null;
+
             switch (tempGame)
             {
                 case 1:
+                    if (!Directory.Exists(MEDirectories.MEDirectories.ME1DLCPath))
+                        return;
+
                     DLCs = Directory.EnumerateDirectories(MEDirectories.MEDirectories.ME1DLCPath).Where(direc => !direc.Contains("_metadata")).ToList();
                     tempFTSDLCs = ME1FTSDLCs;
                     tempGameFiles = MEDirectories.MEDirectories.ME1Files;
                     break;
                 case 2:
+                    if (!Directory.Exists(MEDirectories.MEDirectories.ME2DLCPath))
+                        return;
+
                     DLCs = Directory.EnumerateDirectories(MEDirectories.MEDirectories.ME2DLCPath).Where(direc => !direc.Contains("_metadata")).ToList();
                     tempGameFiles = MEDirectories.MEDirectories.ME2Files;
                     tempFTSDLCs = ME2FTSDLCs;
                     break;
                 case 3:
+                    if (!Directory.Exists(MEDirectories.MEDirectories.ME3DLCPath))
+                        return;
+
                     DLCs = Directory.EnumerateDirectories(MEDirectories.MEDirectories.ME3DLCPath).Where(direc => !direc.Contains("_metadata")).ToList();
                     tempGameFiles = MEDirectories.MEDirectories.ME3Files;
                     tempFTSDLCs = ME3FTSDLCs;
                     break;
             }
 
-            foreach(string dlc in DLCs)
+            foreach (string dlc in DLCs)
             {
                 string[] parts = dlc.Split('\\');
                 string DLCName = parts.First(part => part.Contains("DLC_"));
@@ -775,6 +785,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                 tempFTSDLCs.Add(entry);
             }
+
+            
         }
 
         internal async Task BeginTreeScan()
@@ -820,7 +832,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 Busy = false;
                 return;
             }
-
+            
             CurrentTree.IsSelected = true;  // TODO: Need to call LoadFTSandTree? 
 
             DebugOutput.PrintLn("Saving tree to disk...");

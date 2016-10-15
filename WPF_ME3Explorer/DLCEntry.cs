@@ -27,6 +27,9 @@ namespace WPF_ME3Explorer
         public DLCEntry(string name, List<string> files, MEDirectories.MEDirectories gameDirecs)
         {
             Name = name;
+            if (files == null)
+                return;
+
             foreach (string file in files)
             {
                 GameFileEntry entry = new GameFileEntry(file, gameDirecs);

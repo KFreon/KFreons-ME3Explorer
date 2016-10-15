@@ -40,12 +40,17 @@ namespace SaltTPF
             CRC32 crcgen = new CRC32();
             UInt32[] Keys = InitCipher(tpfkey, crcgen);
 
-            DecryptBlock(block, start, 12, Keys, crcgen);
+            // Decrypt crypt header
+            DecryptBlock(block, start, 12, Keys, crcgen); // 12 = crypt header size
 
-            if (block[11] != (byte)((entry.CRC >> 24) & 0xff) && (entry.BitFlag & 0x8) != 0x8)
-                throw new FormatException("Incorrect password");
+            // KFreon: Testing header
+            //Console.WriteLine($"crypt header crc: {block[start + 10]}, {block[start + 11]}");
 
-            DecryptBlock(block, start + 12, count - 12, Keys, crcgen);
+            // KFreon: Doesn't seem to require this
+            /*if (block[11] != (byte)((entry.CRC >> 24) & 0xff) && (entry.BitFlag & 0x8) != 0x8)
+                Console.WriteLine("Incorrect password");*/
+
+            DecryptBlock(block, start + 12, count - 12, Keys, crcgen);  // Decrypt main block after crypt header
             return block;
         }
 

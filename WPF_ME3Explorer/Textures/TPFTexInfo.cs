@@ -20,6 +20,10 @@ namespace WPF_ME3Explorer.Textures
         public MTRangedObservableCollection<TPFTexInfo> HashDuplicates { get; set; } = new MTRangedObservableCollection<TPFTexInfo>();
         static CRC32 crc = new CRC32();
 
+        public static CommandHandler InstallCommand { get; set; }
+        public static CommandHandler ExtractCommand { get; set; }
+        public static CommandHandler ReplaceCommand { get; set; }
+
         public bool RequiresAutofix
         {
             get
@@ -162,7 +166,7 @@ namespace WPF_ME3Explorer.Textures
             {
                 string ext = Path.GetExtension(FileName);
                 var hash = ToolsetTextureEngine.FormatTexmodHashAsString(Hash);
-                return $"{Name.Replace(ext, "")}_{(Name.Contains(hash) ? "" : hash)}{ext}";
+                return $"{Name.Replace(ext, "")}{(Name.Contains(hash) ? "" : "_" + hash)}{ext}";
             }
         }
 
@@ -249,7 +253,8 @@ namespace WPF_ME3Explorer.Textures
         {
             get
             {
-                return Path.GetExtension(FileName) == ".def";
+                string ext = Path.GetExtension(FileName);
+                return ext.EndsWith("def", StringComparison.OrdinalIgnoreCase) || ext.EndsWith("log", StringComparison.OrdinalIgnoreCase);
             }
         }
 
@@ -330,7 +335,7 @@ namespace WPF_ME3Explorer.Textures
             try
             {
                 // Hash data for duplicate checking purposes
-                FileHash = crc.BlockChecksum(imgData);
+                var hashGetter = Task.Run(() => crc.BlockChecksum(imgData)); // Put it off thread
 
                 // Get image details and build thumbnail.
                 DDSGeneral.DDS_HEADER header = null;
@@ -345,6 +350,14 @@ namespace WPF_ME3Explorer.Textures
                         Height = header.dwWidth;
                         Mips = header.dwMipMapCount;
                         image = new ImageEngineImage(ms, null, 64, true);
+
+                        // Often the header of DDS' are not set properly resulting in Mips = 0 - NOTE can't just read image.Mips as the image has been shrunk and doesn't have the same properties as originally
+                        if (Mips == 0)
+                        {
+                            int tempMips = 0;
+                            DDSGeneral.EnsureMipInImage(ms.Length, Width, Height, 4, new CSharpImageLibrary.Format(Format), out tempMips);
+                            Mips = tempMips;
+                        }
                     }
                     else
                     {
@@ -354,20 +367,15 @@ namespace WPF_ME3Explorer.Textures
                         Mips = image.NumMipMaps;
                     }
 
-                    // Often the header of DDS' are not set properly resulting in Mips = 0
-                    if (Mips == 0 && header != null)
-                    {
-                        int tempMips = 0;
-                        DDSGeneral.EnsureMipInImage(ms.Length, Width, Height, 4, new CSharpImageLibrary.Format(Format), out tempMips);
-                        Mips = tempMips;
-                    }
-
                     // Thumbnail
                     Thumb.StreamThumb = new MemoryStream();
                     image.Save(Thumb.StreamThumb, ImageEngineFormat.JPG, MipHandling.Default, 64);
 
                     image.Dispose();
                 }
+
+                hashGetter.Wait();
+                FileHash = hashGetter.Result;
             }
             catch (Exception e)
             {

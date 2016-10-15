@@ -105,12 +105,17 @@ namespace WPF_ME3Explorer.Textures
         /// <summary>
         /// Returns a uint of a hash in string format. 
         /// </summary>
-        /// <param name="line">String containing hash in texmod log format of name|0xhash.</param>
+        /// <param name="line">String containing hash in texmod log. 0xhash.</param>
         /// <returns>Hash as a uint.</returns>
         public static uint FormatTexmodHashAsUint(string line)
         {
             uint hash = 0;
-            uint.TryParse(line.Split('|')[0].Substring(2), System.Globalization.NumberStyles.AllowHexSpecifier, null, out hash);
+            int index = line.IndexOf("0x");
+            if (index == -1)  // Not found
+                return 0;
+
+            string hashString = line.Substring(index + 2, 8);
+            uint.TryParse(hashString, System.Globalization.NumberStyles.AllowHexSpecifier, null, out hash);
             return hash;
         }
 
@@ -380,7 +385,8 @@ namespace WPF_ME3Explorer.Textures
         {
             string ext = Path.GetExtension(FileName);
             string Name = Path.GetFileNameWithoutExtension(FileName);
-            return $"{Name.Replace(ext, "")}_{(Name.Contains(Hash) ? "" : Hash)}{ext}";
+            string hashedFilename = $"{Name.Replace(ext, "")}{(Name.Contains(Hash) ? "" : "_" + Hash)}{ext}";
+            return Path.Combine(Path.GetDirectoryName(FileName), hashedFilename);
         }
 
         public static List<string> GetHashesAndNamesFromTPF(ZipReader zippy)
