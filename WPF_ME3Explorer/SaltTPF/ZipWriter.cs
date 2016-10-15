@@ -31,7 +31,7 @@ namespace SaltTPF
         //public const UInt32 ExternalAttr = 0x81B40020;  // Texmod uses this one but ours won't work if we do...
         static CRC32 crc = new CRC32();
 
-        static WriterZipEntry BuildEntry(MemoryStream ms, string file, Func<byte[]> dataGetter)
+        static WriterZipEntry BuildEntry(Stream ms, string file, Func<byte[]> dataGetter)
         {
             bool FileOnDisk = dataGetter == null;
 
@@ -133,7 +133,7 @@ namespace SaltTPF
             return entry;
         }
 
-        static void WriteGlobalEntryHeader(ZipWriter.WriterZipEntry entry, MemoryStream ms)
+        static void WriteGlobalEntryHeader(ZipWriter.WriterZipEntry entry, Stream ms)
         {
             ms.Write(BitConverter.GetBytes(entry.Time), 0, 2);
             ms.Write(BitConverter.GetBytes(entry.Date), 0, 2);
@@ -149,7 +149,7 @@ namespace SaltTPF
                 ms.WriteByte((byte)c);
         }
 
-        static void BuildTPF(MemoryStream ms, string Author, string Comment, List<WriterZipEntry> Entries)
+        static void BuildTPF(Stream ms, string Author, string Comment, List<WriterZipEntry> Entries)
         {
             uint cdlen = 0;
             uint cdpos = (uint)ms.Position;
