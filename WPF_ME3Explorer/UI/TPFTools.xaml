@@ -44,7 +44,17 @@
                 </MenuItem.Style>
             </MenuItem>
             <MenuItem x:Name="SaveToTPFButton" Header="Save to TPF" Style="{StaticResource BaseMenuItemStyle}" IsEnabled="{Binding SaveTPFEnabled}" Command="{Binding SaveToTPFCommand}"/>
-            <MenuItem x:Name="ExtractAllChecked" Header="Extract All Checked" Style="{StaticResource BaseMenuItemStyle}" Command="{Binding ExtractCheckedCommand}"/>
+            <MenuItem x:Name="ExtractAllChecked" Header="Extract All Checked" Command="{Binding ExtractCheckedCommand}">
+                <MenuItem.Style>
+                    <Style BasedOn="{StaticResource BaseMenuItemStyle}" TargetType="MenuItem">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Textures.Count}" Value="0">
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </MenuItem.Style>
+            </MenuItem>
             <MenuItem x:Name="BulkExtractButton" Header="Bulk Extract TPFs" Style="{StaticResource BaseMenuItemStyle}" Click="BulkExtractButton_Click"/>
         </Menu>
 
@@ -74,6 +84,7 @@
                                     <Style.Triggers>
                                         <MultiDataTrigger>
                                             <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsDef}" Value="false"/>
                                                 <Condition Binding="{Binding Analysed}" Value="true"/>
                                                 <Condition Binding="{Binding FoundInTree}" Value="false"/>
                                             </MultiDataTrigger.Conditions>
@@ -104,7 +115,8 @@
                                     </MenuItem>
                                 </ContextMenu>
                             </DockPanel.ContextMenu>
-                            <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,3,0" Visibility="{Binding IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
+                            <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,3,0" 
+                                      Visibility="{Binding IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
                             <Image x:Name="ItemThumb" Width="64" Height="64">
                                 <Image.Style>
                                     <Style TargetType="Image">
@@ -119,7 +131,7 @@
                                 </Image.Style>
                             </Image>
                             <StackPanel x:Name="Name_Error" Margin="5" VerticalAlignment="Center">
-                                <TextBlock x:Name="NameDisplay" Text="{Binding Name, Mode=OneWay}"/>
+                                <TextBlock x:Name="NameDisplay" Text="{Binding Name, Mode=OneWay}" FontSize="15"/>
                                 <TextBlock x:Name="FilenameDisplay" Foreground="Gray">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -148,7 +160,7 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
-                                <TextBlock Text="Automatic format/mip conversion will be performed." Foreground="#FFFF9191">
+                                <TextBlock Text="Automatic format conversion will be performed." Foreground="#FFFF9191">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -259,8 +271,9 @@
                                 <TextBox Text="{Binding Hash, Mode=TwoWay, Converter={StaticResource HashStringConverter}}" Opacity=".6" 
                                          Grid.Column="3" Margin="0,0,7,0" VerticalContentAlignment="Center" VerticalAlignment="Center" Padding="7,3" 
                                          Visibility="{Binding IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"
-                                         MouseMove="TextBox_MouseMove"/>
-                                <Button Content="Reset Hash" Grid.Column="2" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Opacity=".6" Padding="6,2" Grid.ColumnSpan="2" Style="{StaticResource MainButtonStyle}" Visibility="{Binding HashChanged, Converter={StaticResource BoolToVisConverter}}"/>
+                                         MouseMove="TextBox_MouseMove" KeyDown="TextBox_KeyDown"/>
+                                <Button Content="Reset Hash" Grid.Column="2" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Opacity=".6" Padding="6,2" 
+                                        Grid.ColumnSpan="2" Style="{StaticResource MainButtonStyle}" Visibility="{Binding HashChanged, Converter={StaticResource BoolToVisConverter}}"/>
 
                                 <Label Content="Format:" Grid.Column="4"/>
                                 <TextBlock Text="{Binding Format, Converter={StaticResource ImageEngineFormatConverter}}" Grid.Column="5"/>
@@ -279,10 +292,10 @@
                 </ListBox.ItemTemplate>
             </ListBox>
         </DockPanel>
-        <StackPanel Grid.Column="1" Grid.Row="1">
-            <Image x:Name="PreviewImage" Source="{Binding ElementName=MainView, Path=SelectedItem.Preview, IsAsync=True}" Visibility="{Binding ElementName=MainView, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
-            <TextBox x:Name="PreviewText" Text="{Binding ElementName=MainView, Path=SelectedItem.DefPreview, Mode=OneWay}" Visibility="{Binding ElementName=MainView, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}}"/>
-        </StackPanel>
+        <Image x:Name="PreviewImage" Grid.Column="1" Grid.Row="1" Source="{Binding ElementName=MainView, Path=SelectedItem.Preview, IsAsync=True}" 
+               Visibility="{Binding ElementName=MainView, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
+        <TextBox x:Name="PreviewText" Grid.Column="1" Grid.Row="1" Text="{Binding ElementName=MainView, Path=SelectedItem.DefPreview, Mode=OneWay}" 
+                 Visibility="{Binding ElementName=MainView, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}}"/>
         <TabControl Grid.Column="1" Grid.Row="2" Margin="0.333,0.333,-0.333,0.334" Grid.RowSpan="2">
             <TabControl.Resources>
                 <Style TargetType="FrameworkElement" x:Key="TPFPanelVisibilityStyle">
@@ -333,7 +346,8 @@
             <TabItem Header="PCCs" Style="{StaticResource PCCsPanelVisibilityStyle}">
                 <Grid Style="{StaticResource PCCsPanelVisibilityStyle}">
                     <CheckBox x:Name="PCCsCheckAllChecker" IsChecked="{Binding PCCsCheckAll}" Style="{StaticResource CheckAllCheckBoxStyle}" HorizontalAlignment="Left" Grid.Row="1" VerticalAlignment="Top" Margin="5"/>
-                    <Button x:Name="SavePCCsListButton" Content="Save List" VerticalAlignment="Top" HorizontalAlignment="Right" Style="{StaticResource PCCListOptionsStyle}" Background="White" Margin="5" Padding="10,2" Click="SavePCCsListButton_Click"/>
+                    <Button x:Name="SavePCCsListButton" Content="Save List" VerticalAlignment="Top" HorizontalAlignment="Right" Style="{StaticResource PCCListOptionsStyle}" 
+                            Background="White" Margin="5" Padding="10,2" Click="SavePCCsListButton_Click"/>
                     <ListBox x:Name="PCCsListBox" ItemsSource="{Binding ElementName=MainView, Path=SelectedItem.PCCs}" ItemTemplate="{StaticResource PCC-ExpID Displayer}" Margin="0,32,0,0.333"/>
                 </Grid>
             </TabItem>
@@ -356,9 +370,8 @@
                     </Style.Triggers>
                 </Style>
             </DockPanel.Resources>
-            
-            <Button Content="Install Textures" Style="{StaticResource BigButtonStyle}" FontSize="25" Margin="3" Padding="20,0" Command="{Binding InstallCommand}"/>
-            <Button VerticalAlignment="Center" Padding="10,3" Command="{Binding AnalyseCommand}">
+
+            <Button VerticalAlignment="Center" Padding="10,10" FontSize="20" Command="{Binding AnalyseCommand}">
                 <Button.Style>
                     <Style BasedOn="{StaticResource BigButtonStyle}" TargetType="Button">
                         <Setter Property="Content" Value="Analyse with Texplorer"/>
@@ -367,10 +380,16 @@
                             <DataTrigger Binding="{Binding AllAnalysed}" Value="True">
                                 <Setter Property="Content" Value="De-Analyse"/>
                             </DataTrigger>
+
+                            <DataTrigger Binding="{Binding Textures.Count}" Value="0">
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Button.Style>
             </Button>
+            <TextBlock Text="------->" FontSize="25" VerticalAlignment="Center" Margin="10,0"/>
+            <Button Content="Install Textures" FontSize="25" Margin="3" Padding="20,0" Command="{Binding InstallCommand}" Style="{StaticResource BigButtonStyle}" IsEnabled="{Binding Analysed}"/>
 
             <TextBlock x:Name="BlankOutExplaination" VerticalAlignment="Center" Margin="5" Foreground="Red">
                 <TextBlock.Style>

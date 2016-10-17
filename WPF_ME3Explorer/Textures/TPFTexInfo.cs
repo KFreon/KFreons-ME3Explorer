@@ -18,7 +18,6 @@ namespace WPF_ME3Explorer.Textures
         ZipReader.ZipEntryFull ZipEntry = null;
         public MTRangedObservableCollection<TPFTexInfo> FileDuplicates { get; set; } = new MTRangedObservableCollection<TPFTexInfo>();
         public MTRangedObservableCollection<TPFTexInfo> HashDuplicates { get; set; } = new MTRangedObservableCollection<TPFTexInfo>();
-        static CRC32 crc = new CRC32();
 
         public static CommandHandler InstallCommand { get; set; }
         public static CommandHandler ExtractCommand { get; set; }
@@ -28,7 +27,7 @@ namespace WPF_ME3Explorer.Textures
         {
             get
             {
-                return Analysed && FormatOK;
+                return Analysed && !FormatOK;
             }
         }
 
@@ -36,7 +35,7 @@ namespace WPF_ME3Explorer.Textures
         {
             get
             {
-                return Mips <= TreeMips;
+                return Mips >= TreeMips;
             }
         }
 
@@ -114,6 +113,8 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
+        // KFreon: Actual hash of the file, since 'hash' is the hash of the texture it's replacing. 
+        // This is mostly used for duplicate detection.
         uint fileHash = 0;
         public uint FileHash
         {
@@ -321,13 +322,13 @@ namespace WPF_ME3Explorer.Textures
             return data;
         }
 
-        internal void GetDetails()
+        internal async Task GetDetails()
         {
             byte[] data = Extract();
-            GetDetails(data);
+            await GetDetails(data);
         }
 
-        internal void GetDetails(byte[] imgData)
+        internal async Task GetDetails(byte[] imgData)
         {
             if (IsDef)
                 return;
@@ -335,7 +336,7 @@ namespace WPF_ME3Explorer.Textures
             try
             {
                 // Hash data for duplicate checking purposes
-                var hashGetter = Task.Run(() => crc.BlockChecksum(imgData)); // Put it off thread
+                var hashGetter = Task.Run(() => CRC32.BlockChecksum(imgData)); // Put it off thread
 
                 // Get image details and build thumbnail.
                 DDSGeneral.DDS_HEADER header = null;
@@ -374,8 +375,7 @@ namespace WPF_ME3Explorer.Textures
                     image.Dispose();
                 }
 
-                hashGetter.Wait();
-                FileHash = hashGetter.Result;
+                FileHash = await hashGetter;
             }
             catch (Exception e)
             {

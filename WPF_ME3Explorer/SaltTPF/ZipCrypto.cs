@@ -26,14 +26,12 @@ namespace SaltTPF
         }
 
         static UInt32[] Keys;
-        static CRC32 crcgen;
 
         public static void DecryptData(ZipReader.ZipEntry entry, byte[] block, int start, int count)
         {
             if (block == null || block.Length < count || count < 12)
                 throw new ArgumentException("Invalid arguments for decryption");
 
-            crcgen = new CRC32();
             InitCipher(tpfkey);
 
             DecryptBlock(block, start, 12);
@@ -56,10 +54,10 @@ namespace SaltTPF
 
         private static void UpdateKeys(byte byteval)
         {
-            Keys[0] = (UInt32)crcgen.ComputeCrc32(Keys[0], byteval);
+            Keys[0] = (UInt32)CRC32.ComputeCrc32(Keys[0], byteval);
             Keys[1] += (byte)Keys[0];
             Keys[1] = Keys[1] * 134775813 + 1;
-            Keys[2] = (UInt32)crcgen.ComputeCrc32(Keys[2], (byte)(Keys[1] >> 24));
+            Keys[2] = (UInt32)CRC32.ComputeCrc32(Keys[2], (byte)(Keys[1] >> 24));
         }
 
         private static void DecryptBlock(byte[] block, int offset, int count)
@@ -73,7 +71,6 @@ namespace SaltTPF
 
         public static void EncryptData(Stream fs, byte[] comprBlock, uint CRC)
         {
-            crcgen = new CRC32();
             InitCipher(tpfkey);
 
             Random randomiser = new Random();

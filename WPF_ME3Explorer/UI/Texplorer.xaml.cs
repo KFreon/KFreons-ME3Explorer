@@ -102,7 +102,14 @@ namespace WPF_ME3Explorer.UI
                 return SaveInformation;
             });
 
-            var TextureDataGetter = new Func<TreeTexInfo, Dictionary<string, Func<byte[]>>>(context => new Dictionary<string, Func<byte[]>> { { context.DefaultSaveName, () => ToolsetTextureEngine.ExtractTexture(context) } });
+            var TextureDataGetter = new Func<TreeTexInfo, Dictionary<string, Func<byte[]>>>(context => new Dictionary<string, Func<byte[]>> { { context.DefaultSaveName,
+                    () =>
+                    {
+                        // KFreon: Any conversion?
+                        
+                        return ToolsetTextureEngine.ExtractTexture(context);
+                    }
+                } });
 
             Predicate<string[]> DropValidator = new Predicate<string[]>(files => files.Length == 1 && !files.Any(file => ImageFormats.ParseExtension(Path.GetExtension(file)) == ImageFormats.SupportedExtensions.UNKNOWN));
 

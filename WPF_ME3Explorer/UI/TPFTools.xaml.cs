@@ -131,5 +131,16 @@ namespace WPF_ME3Explorer.UI
                 vm.Textures.Remove(tex);
             }
         }
+
+        private void TextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                // Manually update source
+                var textbox = sender as TextBox;
+                var binding = textbox.GetBindingExpression(TextBox.TextProperty);
+                binding.UpdateSource();
+            }
+        }
     }
 }

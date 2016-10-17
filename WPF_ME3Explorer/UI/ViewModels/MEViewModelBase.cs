@@ -20,6 +20,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
     {
         protected CancellationTokenSource cts = new CancellationTokenSource();
 
+        public bool CancellationRequested
+        {
+            get
+            {
+                return cts.IsCancellationRequested;
+            }
+        }
+
         T selectedTexture = null;
         public T SelectedTexture
         {
@@ -101,7 +109,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
 
                 if (cancelCommand == null)
-                    cancelCommand = new CommandHandler(() => cts.Cancel());
+                    cancelCommand = new CommandHandler(() =>
+                    {
+                        cts.Cancel();
+                        OnPropertyChanged(nameof(CancellationRequested));
+                    });
 
                 return cancelCommand;
             }

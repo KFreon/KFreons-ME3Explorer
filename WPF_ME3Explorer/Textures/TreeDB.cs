@@ -299,6 +299,9 @@ namespace WPF_ME3Explorer.Textures
                                     tex.Thumb = thumb;
 
                                     tex.Mips = bin.ReadInt32();
+                                    tex.Width = bin.ReadInt32();
+                                    tex.Height = bin.ReadInt32();
+                                    tex.LODGroup = bin.ReadString();
 
                                     int numPccs = bin.ReadInt32();
                                     for (int j = 0; j < numPccs; j++)
@@ -387,6 +390,9 @@ namespace WPF_ME3Explorer.Textures
                             bw.Write(tex.Thumb.Offset);
                             bw.Write(tex.Thumb.Length);
                             bw.Write(tex.Mips);
+                            bw.Write(tex.Width);
+                            bw.Write(tex.Height);
+                            bw.Write(tex.LODGroup);
                             bw.Write(tex.PCCs.Count);
                             foreach (PCCEntry pcc in tex.PCCs)
                             {
@@ -484,6 +490,8 @@ namespace WPF_ME3Explorer.Textures
         public void Clear(bool ClearPCCs = false)
         {
             Textures?.Clear();
+            AllFolders?.Clear();
+            TextureFolders?.Clear();
 
             if (ClearPCCs)
                 ScannedPCCs?.Clear();

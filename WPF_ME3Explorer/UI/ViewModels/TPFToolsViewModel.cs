@@ -110,7 +110,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
-        bool PreviouslyAnalysed { get; set; }
+        public bool Analysed { get; set; }
 
         public override string TextureSearch
         {
@@ -386,7 +386,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         if (tex.Hash == 0)
                             tex.Hash = FindHashInString(tex.FileName, "0x");
 
-                        await Task.Run(() => tex.GetDetails());
+                        await Task.Run(async () => await tex.GetDetails());
 
                         ProgressIndeterminate = false;
                         Status = $"Replaced texture with {tex.Name}";
@@ -464,7 +464,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             base.ChangeSelectedTree(game);
 
             // Re-analyse if required
-            if (PreviouslyAnalysed)
+            if (Analysed)
             {
                 UnAnalyse();
                 AnalyseVsTree();
@@ -484,9 +484,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             int maxParallelism = NumThreads;
 
             // Get Details method
-            var PopulateTexDetails = new Action<TPFTexInfo, byte[]>((tex, data) =>
+            var PopulateTexDetails = new Action<TPFTexInfo, byte[]>(async (tex, data) =>
             {
-                tex.GetDetails(data);
+                await tex.GetDetails(data);
 
                 // Wire up HashChanged to SaveTPFEnabled
                 tex.PropertyChanged += (sender, args) =>
@@ -654,20 +654,18 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 if (tex.IsDef)
                     continue;
 
-                var treeTexs = CurrentTree.Textures.Where(tmptreeTex => tmptreeTex.Hash == tex.Hash);
-                TreeTexInfo treeTex = null;
+                var treeTexs = CurrentTree.Textures.Where(tmptreeTex => tmptreeTex.Hash == tex.Hash).ToList();
 
-                if (treeTexs?.Count() == 0)
+                if (treeTexs?.Count == 0)
                 {
                     tex.Error = "Not Found in Tree";
                     continue;
                 }
 
+
                 // Look at tree duplicates
-                if (treeTexs.Count() == 1)
+                if (treeTexs.Count > 1)
                 {
-                    treeTex = treeTexs.First();
-                    
                     // Create entries and link to original
                     foreach (var treet in treeTexs)
                     {
@@ -680,11 +678,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         dup.Thumb = treet.Thumb;
                     }
                 }
+                var treeTex = treeTexs[0];
+                Console.WriteLine(treeTexs.Count);
+                Console.WriteLine(treeTexs[0].TexName);
+                Console.WriteLine(treeTexs[0].Mips);
+                Console.WriteLine(treeTexs[0].Format);
 
                 tex.TreeFormat = treeTex.Format;
                 tex.TreeMips = treeTex.Mips;
                 tex.TexName = treeTex.TexName;
                 tex.PCCs = treeTex.PCCs;
+
+                Console.WriteLine(tex.TreeMips);
+                Console.WriteLine(tex.TreeFormat);
             }
 
             // Look for file duplicates - File could still occur here as previously it was data based, but here it's TREE HASH based (i.e. not actual hash of current data)
@@ -704,7 +710,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
 
             OnPropertyChanged(nameof(AllAnalysed));
-            PreviouslyAnalysed = true;
+            Analysed = true;
 
             Status = $"Analysis Complete! {(!AllAnalysed ? $"{Textures.Where(t => !t.IsDef && !t.FoundInTree).Count()} textures were not found in tree." : "")}";
         }
@@ -719,18 +725,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             // Get hash duplicates that were originally files back out.
             // All other kinds of duplicates weren't originally loaded files.
-            texes.ForEach(tex =>
+            var temp = new List<TPFTexInfo>(texes);
+            foreach (var tex in temp)
             {
                 var dups = tex.HashDuplicates.Where(t => t.FileHash != 0);
                 Textures.AddRange(dups);
 
                 // Add to working list too
                 texes.AddRange(dups);
-            });
+            }
 
             foreach (var tex in texes)
             {
-                if (!tex.FoundInTree || tex.IsDef)
+                if (tex.IsDef)  // Defs don't need any settings since they don't take part in any of these operations.
                     continue;
 
                 tex.TreeFormat = ImageEngineFormat.Unknown;
@@ -744,7 +751,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
 
             OnPropertyChanged(nameof(AllAnalysed));
-            PreviouslyAnalysed = false;
+            Analysed = false;
         }
 
         void SaveToTPF(string filename, params TPFTexInfo[] textures)

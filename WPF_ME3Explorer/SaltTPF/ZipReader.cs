@@ -180,14 +180,12 @@ namespace SaltTPF
                 /*if (BitConverter.ToUInt32(databuff, (int)ComprSize + dataoff) != datadescriptormagic) 
                     Console.WriteLine("Footer not as expected");*/
 
-                ZipDecrypto crypto = new ZipDecrypto(this, databuff, dataoff, (int)ComprSize);
-                databuff = crypto.GetBlocks();
+                databuff = ZipDecrypto.DecryptData(this, databuff, dataoff, (int)ComprSize);
 
                 databuff = Deflate(databuff, 12 + dataoff, (int)ComprSize - 12);
                 if (databuff.Length != UncomprSize)
                     throw new InvalidDataException("Deflation resulted in incorrect file size");
-                CRC32 crcgen = new CRC32();
-                if (crcgen.BlockChecksum(databuff, 0, (int)UncomprSize) != CRC)
+                if (CRC32.BlockChecksum(databuff, 0, (int)UncomprSize) != CRC)
                     throw new InvalidDataException("Checksums don't match");
 
                 if (!Preview)

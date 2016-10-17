@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace SaltTPF
 {
-    public class CRC32
+    public static class CRC32
     {
-        private UInt32[] crc32Table;
+        private static UInt32[] crc32Table;
         private const UInt32 dwPolynomial = 0xEDB88320;
 
-        public CRC32()
+        static CRC32()
         {
             crc32Table = new UInt32[256];
             unchecked
@@ -38,12 +38,12 @@ namespace SaltTPF
             }
         }
 
-        public Int32 ComputeCrc32(UInt32 W, byte B)
+        public static Int32 ComputeCrc32(UInt32 W, byte B)
         {
             return (Int32)(crc32Table[(W ^ B) & 0xFF] ^ (W >> 8));
         }
 
-        public UInt32 BlockChecksum(byte[] buffer, int offset, int count, UInt32 seed = 0xffffffff)
+        public static UInt32 BlockChecksum(byte[] buffer, int offset, int count, UInt32 seed = 0xffffffff)
         {
             UInt32 crc = seed;
             for (int i = offset; i < count; i++)
@@ -56,7 +56,7 @@ namespace SaltTPF
             return ~crc;
         }
 
-        public UInt32 BlockChecksum(byte[] buffer)
+        public static UInt32 BlockChecksum(byte[] buffer)
         {
             return BlockChecksum(buffer, 0, buffer.Length);
         }

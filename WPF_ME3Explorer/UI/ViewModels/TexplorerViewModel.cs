@@ -38,7 +38,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
             get
             {
                 if (ftsDLCsUnCheckAll == null)
-                    ftsDLCsUnCheckAll = new CommandHandler(() => FTSDLCs?.ForEach(dlc => dlc.IsChecked = false));
+                    ftsDLCsUnCheckAll = new CommandHandler(() =>
+                    {
+                        for (int i = 0; i < FTSDLCs.Count; i++)
+                            FTSDLCs[i].IsChecked = false;
+                    });
 
                 return ftsDLCsUnCheckAll;
             }
@@ -1153,6 +1157,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             SelectedTexture = null;
             ShowingPreview = false;
             Textures.Clear();  // Just in case
+            
 
             Properties.Settings.Default.TexplorerGameVersion = GameVersion;
             Properties.Settings.Default.Save();

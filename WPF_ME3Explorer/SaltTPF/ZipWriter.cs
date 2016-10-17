@@ -29,7 +29,6 @@ namespace SaltTPF
         public static uint tpfxor = 0x3FA43FA4;
         public const UInt32 ExternalAttr = 0;
         //public const UInt32 ExternalAttr = 0x81B40020;  // Texmod uses this one but ours won't work if we do...
-        static CRC32 crc = new CRC32();
 
         static WriterZipEntry BuildEntry(Stream ms, string file, Func<byte[]> dataGetter)
         {
@@ -88,7 +87,7 @@ namespace SaltTPF
                 dataStream.Read(buff, 0, buff.Length);
 
                 // create and write local header
-                entry.CRC32 = crc.BlockChecksum(buff);
+                entry.CRC32 = CRC32.BlockChecksum(buff);
                 entry.UncLen = (UInt32)dataStream.Length;
 
                 ms.Write(BitConverter.GetBytes(entry.CRC32), 0, 4);

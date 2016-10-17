@@ -127,7 +127,6 @@ namespace WPF_ME3Explorer.Textures
             // Hash
             ImageInfo info = tex2D.ImageList[0];
             uint hash = 0;
-            CRC32 crcgen = new CRC32();
             //StorageType = info.storageType;
 
             byte[] imgData = null;
@@ -144,9 +143,9 @@ namespace WPF_ME3Explorer.Textures
             if (info.storageType == storage.pccSto)
             {
                 if (tex2D.texFormat == ImageEngineFormat.DDS_ATI2_3Dc)
-                    hash = ~crcgen.BlockChecksum(imgData, 0, info.UncompressedSize / 2);
+                    hash = ~CRC32.BlockChecksum(imgData, 0, info.UncompressedSize / 2);
                 else
-                    hash = ~crcgen.BlockChecksum(imgData);
+                    hash = ~CRC32.BlockChecksum(imgData);
             }
             else
             {
@@ -155,9 +154,9 @@ namespace WPF_ME3Explorer.Textures
                 else
                 {
                     if (tex2D.texFormat == ImageEngineFormat.DDS_ATI2_3Dc)
-                        hash = ~crcgen.BlockChecksum(imgData, 0, info.UncompressedSize / 2);
+                        hash = ~CRC32.BlockChecksum(imgData, 0, info.UncompressedSize / 2);
                     else
-                        hash = ~crcgen.BlockChecksum(imgData);
+                        hash = ~CRC32.BlockChecksum(imgData);
                 }
             }
 
@@ -175,6 +174,10 @@ namespace WPF_ME3Explorer.Textures
                 FullPackage = Path.GetFileNameWithoutExtension(PCCs[0].Name).ToUpperInvariant();   // Maybe not right?
             else
                 FullPackage = export.PackageFullName.ToUpperInvariant();
+
+
+            // Fill other details
+            PopulateDetails(tex2D);
         }
 
         void CreateThumbnail(byte[] imgData, Texture2D tex2D, ThumbnailWriter ThumbWriter, ImageInfo info, Dictionary<string, MemoryStream> TFCs, IList<string> Errors)
