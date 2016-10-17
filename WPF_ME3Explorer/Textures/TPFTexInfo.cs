@@ -180,7 +180,14 @@ namespace WPF_ME3Explorer.Textures
 
                 byte[] data = Extract();
                 using (ImageEngineImage img = new ImageEngineImage(data))
-                    return img.GetWPFBitmap();
+                {
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        img.Save(ms, img.Format.SurfaceFormat, MipHandling.KeepTopOnly);
+                        var overlayed = ToolsetTextureEngine.OverlayAndPickDetailed(ms);
+                        return UsefulThings.WPF.Images.CreateWPFBitmap(overlayed);
+                    }
+                }
             }
         }
 

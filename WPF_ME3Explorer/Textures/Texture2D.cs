@@ -494,11 +494,7 @@ namespace WPF_ME3Explorer.Textures
             int imageIdx = ImageList.FindIndex(img => img.ImageSize == imgSize);
             ImageInfo imgInfo = ImageList[imageIdx];
 
-            ImageEngineFormat imgFileFormat = imgFile.Format.SurfaceFormat;
-
-            // check if images have same format type
-            if (texFormat != imgFileFormat)  // Had restriction on G8 L8 for some reason. Don't know why.
-                throw new FormatException($"Different image format, original is {texFormat}, new is {imgFile.Format.SurfaceFormat}");
+            // KFreon: No format check. Auto conversion activated.
 
             byte[] imgBuffer;
 
@@ -617,9 +613,7 @@ namespace WPF_ME3Explorer.Textures
             // check if replacing image is supported
             ImageEngineFormat imgFileFormat = imgFile.Format.SurfaceFormat;
 
-            //NEW Check for correct image format
-            if (texFormat != imgFileFormat)
-                throw new FormatException($"Different image format, original is {texFormat}, new is {imgFile.Format.SurfaceFormat}");
+            // KFreon: Format check not required. Auto conversion enabled.
 
             // check if image to add is valid
             if (biggerImageSizeOnList.Width * 2 != imgFile.Width || biggerImageSizeOnList.Height * 2 != imgFile.Height)
@@ -707,7 +701,6 @@ namespace WPF_ME3Explorer.Textures
         public void OneImageToRuleThemAll(ImageEngineImage newImg)
         {
             // starts from the smaller image
-            ImageEngineFormat mipFormat = newImg.Format.SurfaceFormat;
             for (int i = newImg.NumMipMaps - 1; i >= 0; i--)
             {
                 MipMap mip = newImg.MipMaps[i];
@@ -715,9 +708,7 @@ namespace WPF_ME3Explorer.Textures
                 if (mip.Height <= 4 || mip.Width <= 4)
                     continue;
 
-                //NEW Check for correct format
-                if (texFormat != mipFormat)
-                    throw new FormatException("Different image format, original is " + texFormat + ", new is " + mipFormat);
+                // KFreon: Format check not required - auto conversion engaged. 
 
                 ImageSize mipSize = new ImageSize((uint)mip.Width, (uint)mip.Height);
 
@@ -725,12 +716,12 @@ namespace WPF_ME3Explorer.Textures
                 if (ImageList.Exists(img => img.ImageSize == mipSize))
                 {
                     // ...but at least for now I can reuse my replaceImage function... ;)
-                    ReplaceImage(mipSize, new ImageEngineImage(mip, newImg.Format.SurfaceFormat));
+                    ReplaceImage(mipSize, new ImageEngineImage(mip, texFormat));
                 }
                 else // if the image doesn't exists then we have to add it
                 {
                     // ...and use my addBiggerImage function! :P
-                    AddBiggerImage(new ImageEngineImage(mip, newImg.Format.SurfaceFormat));
+                    AddBiggerImage(new ImageEngineImage(mip, texFormat));
                 }
             }
 

@@ -21,10 +21,37 @@ namespace WPF_ME3Explorer.UI.ViewModels
 {
     public class TPFToolsViewModel : MEViewModelBase<TPFTexInfo>
     {
-        public static string[] AcceptedExtensions = { ".dds", ".jpg", ".jpeg", ".bmp", ".png", ".tga", ".tpf", ".metpf" };
         List<ZipReader> Zippys = new List<ZipReader>();
 
         #region Properties
+        List<string> acceptedImageDescriptions = new List<string>();
+        public override List<string> AcceptedImageDescriptions
+        {
+            get
+            {
+                return acceptedImageDescriptions;
+            }
+
+            set
+            {
+                acceptedImageDescriptions = value;
+            }
+        }
+
+        List<string> acceptedImageExtensions = new List<string>();
+        public override List<string> AcceptedImageExtensions
+        {
+            get
+            {
+                return acceptedImageExtensions;
+            }
+
+            set
+            {
+                acceptedImageExtensions = value;
+            }
+        }
+
         #region TPFSave Properties
         bool isTPFBuilding = false;
         public bool IsTPFBuilding
@@ -299,6 +326,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     extractCheckedCommand = new CommandHandler(() =>
                     {
                         CommonOpenFileDialog dialog = new CommonOpenFileDialog();
+                        dialog.Title = "Select destination for extracted textures";
                         dialog.IsFolderPicker = true;
                         if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
                         {
@@ -340,6 +368,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                             return;
 
                         SaveFileDialog sfd = new SaveFileDialog();
+                        sfd.Title = "Select destination for extracted texture";
                         sfd.Filter = "Files|*" + Path.GetExtension(tex.DefaultSaveName);   // TODO: All supported
                         sfd.FileName = tex.DefaultSaveName;
                         if (sfd.ShowDialog() != true)
@@ -373,6 +402,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         var tex = param as TPFTexInfo;
 
                         OpenFileDialog ofd = new OpenFileDialog();
+                        ofd.Title = "Select image to replace";
                         ofd.Filter = Path.GetExtension(tex.DefaultSaveName);
                         if (ofd.ShowDialog() != true)
                             return;
@@ -432,6 +462,15 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         public TPFToolsViewModel() : base()
         {
+            AcceptedImageDescriptions.AddRange(base.AcceptedImageDescriptions);
+            AcceptedImageExtensions.AddRange(base.AcceptedImageExtensions);
+
+            AcceptedImageExtensions.Add(".tpf");
+            AcceptedImageExtensions.Add(".metpf");
+
+            AcceptedImageDescriptions.Add("Texmod Package");
+            AcceptedImageDescriptions.Add("Old Toolset Texture Package");
+
             DebugOutput.StartDebugger("TPFTools");
 
             MainDisplayView = CollectionViewSource.GetDefaultView(Textures);
@@ -559,9 +598,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             var thumbBuilder = new ActionBlock<Tuple<TPFTexInfo, byte[]>>(tuple => PopulateTexDetails(tuple.Item1, tuple.Item2), new ExecutionDataflowBlockOptions { BoundedCapacity = maxParallelism, MaxDegreeOfParallelism = maxParallelism });
 
             // Connect pipeline
-            fileBuffer.LinkTo(tpfMaker, new DataflowLinkOptions { PropagateCompletion = true }, file => AcceptedExtensions.Where(ext => ext.Contains("tpf")).Contains(Path.GetExtension(file)));
+            fileBuffer.LinkTo(tpfMaker, new DataflowLinkOptions { PropagateCompletion = true }, file => AcceptedImageExtensions.Where(ext => ext.Contains("tpf")).Contains(Path.GetExtension(file)));
 
-            fileBuffer.LinkTo(singleTexMaker, new DataflowLinkOptions { PropagateCompletion = true }, file => AcceptedExtensions.Where(ext => !ext.Contains("tpf")).Contains(Path.GetExtension(file)));
+            fileBuffer.LinkTo(singleTexMaker, new DataflowLinkOptions { PropagateCompletion = true }, file => AcceptedImageExtensions.Where(ext => !ext.Contains("tpf")).Contains(Path.GetExtension(file)));
             singleTexMaker.LinkTo(texExtractor, new DataflowLinkOptions { PropagateCompletion = true });
             texExtractor.LinkTo(thumbBuilder, new DataflowLinkOptions { PropagateCompletion = true });
 

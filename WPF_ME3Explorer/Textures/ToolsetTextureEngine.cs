@@ -198,10 +198,29 @@ namespace WPF_ME3Explorer.Textures
             }
 
             // Update Texture2D
-            // Build mips if required.
+            // KFreon: No format checks required. Auto conversion switched on.
             using (ImageEngineImage img = new ImageEngineImage(imgData))
                 tex2D.OneImageToRuleThemAll(img);
                 
+
+            // Ensure tex2D is part of the TreeTexInfo for later use.
+            tex.ChangedAssociatedTexture = tex2D;
+            tex.HasChanged = true;
+
+            return true;
+        }
+
+        internal static bool ChangeTexture(TreeTexInfo tex, ImageEngineImage newImage)
+        {
+            Texture2D tex2D = GetTexture2D(tex);
+
+            // Do stuff different for TPFToolsMode
+            if (TPFToolsModeEnabled)
+            {
+                return true;
+            }
+
+            tex2D.OneImageToRuleThemAll(newImage);
 
             // Ensure tex2D is part of the TreeTexInfo for later use.
             tex.ChangedAssociatedTexture = tex2D;
@@ -253,13 +272,21 @@ namespace WPF_ME3Explorer.Textures
             return tex2D;
         }
 
-        internal static void ExtractTexture(TreeTexInfo tex, string filename)
+        internal static void ExtractTexture(TreeTexInfo tex, string filename, bool BuildMips = true, ImageEngineFormat format = ImageEngineFormat.Unknown)
         {
             // Get Texture2D
             Texture2D tex2D = GetTexture2D(tex);
 
             // Extract texture
-            tex2D.ExtractMaxImage(filename);
+            // Convert if requested
+            if (format != ImageEngineFormat.Unknown)
+            {
+                byte[] data = tex2D.ExtractMaxImage(true);
+                using (ImageEngineImage img = new ImageEngineImage(data))
+                    img.Save(filename, format, BuildMips ? MipHandling.GenerateNew : MipHandling.KeepTopOnly);
+            }
+            else
+                tex2D.ExtractMaxImage(filename);
 
             // Cleanup if required
             if (tex.ChangedAssociatedTexture != tex2D)

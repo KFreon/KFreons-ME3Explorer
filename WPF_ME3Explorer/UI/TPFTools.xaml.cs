@@ -25,7 +25,6 @@ namespace WPF_ME3Explorer.UI
     public partial class TPFTools : Window
     {
         internal TPFToolsViewModel vm = null;
-        string[] AcceptedFiles = { "DirectX Images", "JPEG Images", "JPEG Images", "Bitmap Images", "PNG Images", "Targa Images", "Texmod Archives", "ME3Explorer Archives" };
 
         DragDropHandler<TPFTexInfo> DropHelper = null;
 
@@ -37,7 +36,7 @@ namespace WPF_ME3Explorer.UI
 
             // Setup drag/drop handling
             var dropAction = new Action<TPFTexInfo, string[]>(async (tex, droppedFiles) => await Task.Run(() => vm.LoadFiles(droppedFiles))); // Don't need the TPFTexInfo - it'll be null anyway.
-            Predicate<string[]> dropValidator = new Predicate<string[]>(files => files.All(file => TPFToolsViewModel.AcceptedExtensions.Contains(Path.GetExtension(file).ToLowerInvariant())));
+            Predicate<string[]> dropValidator = new Predicate<string[]>(files => files.All(file => vm.AcceptedImageExtensions.Contains(Path.GetExtension(file).ToLowerInvariant())));
             Func<TPFTexInfo, Dictionary<string, Func<byte[]>>> dataGetter = tex => new Dictionary<string, Func<byte[]>> { { tex.DefaultSaveName, () => tex.Extract() } };
 
             DropHelper = new DragDropHandler<TPFTexInfo>(this, dropAction, dropValidator, dataGetter);
@@ -55,7 +54,7 @@ namespace WPF_ME3Explorer.UI
         {
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Title = "Select TPFs/images to load";
-            string filter = "All Accepted files|" + String.Join("", TPFToolsViewModel.AcceptedExtensions.Select(t => "*" + t + ";")).TrimEnd(';') + "|" + String.Join("|", AcceptedFiles.Zip(TPFToolsViewModel.AcceptedExtensions, (file, ext) => file + "|*" + ext));
+            string filter = "All Accepted files|" + String.Join("", vm.AcceptedImageExtensions.Select(t => "*" + t + ";")).TrimEnd(';') + "|" + String.Join("|", vm.AcceptedImageDescriptions.Zip(vm.AcceptedImageExtensions, (file, ext) => file + "|*" + ext));
             ofd.Filter = filter;
             ofd.Multiselect = true;
 
@@ -66,7 +65,7 @@ namespace WPF_ME3Explorer.UI
         private void SavePCCsListButton_Click(object sender, RoutedEventArgs e)
         {
             SaveFileDialog sfd = new SaveFileDialog();
-
+            sfd.Title = "Select destination for PCCs List";
             sfd.FileName = $"{Path.GetFileNameWithoutExtension(vm.SelectedTexture.DefaultSaveName)}_PCCs-ExpIDs.csv";
             sfd.Filter = "Comma Separated|*.csv";
             if (sfd.ShowDialog() == true)

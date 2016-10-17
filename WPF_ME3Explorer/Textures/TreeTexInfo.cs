@@ -197,7 +197,7 @@ namespace WPF_ME3Explorer.Textures
                 try
                 {
                     MemoryStream thumbStream = ImageEngine.GenerateThumbnailToStream(ms, width > height ? ToolsetTextureEngine.ThumbnailSize : 0, width > height ? 0 : ToolsetTextureEngine.ThumbnailSize);
-                    thumbStream = ToolsetTextureEngine.OverlayAndPickDetailed(thumbStream);
+                    //thumbStream = ToolsetTextureEngine.OverlayAndPickDetailed(thumbStream);
                     if (thumbStream != null)
                         Thumb = ThumbWriter.Add(thumbStream);
                 }

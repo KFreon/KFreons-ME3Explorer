@@ -105,8 +105,7 @@ namespace WPF_ME3Explorer.UI
             var TextureDataGetter = new Func<TreeTexInfo, Dictionary<string, Func<byte[]>>>(context => new Dictionary<string, Func<byte[]>> { { context.DefaultSaveName,
                     () =>
                     {
-                        // KFreon: Any conversion?
-                        
+                        // KFreon: No conversions - need to use extract for that.
                         return ToolsetTextureEngine.ExtractTexture(context);
                     }
                 } });
@@ -263,6 +262,8 @@ namespace WPF_ME3Explorer.UI
         private void ImportTreeButton_Click(object sender, RoutedEventArgs e)
         {
             SaveFileDialog sfd = new SaveFileDialog();
+            sfd.Title = "Select tree to import";
+            sfd.Filter = "All Supported | *.tree;*.bin|Toolset trees | *.tree|Binary files | *.bin";
             sfd.FileName = Path.GetFileName(vm.CurrentTree.TreePath);
             if (sfd.ShowDialog() == true)
                 File.Copy(sfd.FileName, vm.CurrentTree.TreePath);
@@ -271,6 +272,8 @@ namespace WPF_ME3Explorer.UI
         private void ExportTreeButton_Click(object sender, RoutedEventArgs e)
         {
             SaveFileDialog sfd = new SaveFileDialog();
+            sfd.Title = "Select destination for current tree";
+            sfd.Filter = "Toolset trees | *.tree";
             sfd.FileName = Path.GetFileName(vm.CurrentTree.TreePath);
             if (sfd.ShowDialog() == true)
                 File.Copy(vm.CurrentTree.TreePath, sfd.FileName);
@@ -346,7 +349,8 @@ namespace WPF_ME3Explorer.UI
         {
             SaveFileDialog sfd = new SaveFileDialog();
             sfd.FileName = $"{Path.GetFileNameWithoutExtension(vm.SelectedTexture.DefaultSaveName)}_PCCs-ExpIDs.csv";
-            sfd.Filter = "Comma Separated|*.csv";
+            sfd.Filter = "Comma Separated | *.csv";
+            sfd.Title = "Select destination for CSV";
             if (sfd.ShowDialog() == true)
                 vm.ExportSelectedTexturePCCList(sfd.FileName);
         }
@@ -368,6 +372,32 @@ namespace WPF_ME3Explorer.UI
         private void MainTreeView_MouseDown(object sender, MouseButtonEventArgs e)
         {
             PreviewPanel_MouseDown(null, null); // Ensure preview is closed
+        }
+
+        private void Extract_BrowseButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.Filter = vm.GetFullDialogFilters();
+            sfd.FileName = vm.SelectedTexture?.DefaultSaveName;
+            sfd.Title = "Select destination for extracted texture";
+
+            if (sfd.ShowDialog() == true)
+                vm.Extract_SavePath = sfd.FileName;
+        }
+
+        private void Extract_ExtractButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.ExtractTexture(vm.SelectedTexture, vm.Extract_SavePath, vm.Extract_BuildMips, vm.Extract_SaveFormat);
+        }
+
+        private void Change_BrowseButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Filter = vm.GetFullDialogFilters();
+            ofd.Title = "Select image to replace";
+
+            if (ofd.ShowDialog() == true)
+                vm.Change_SavePath = ofd.FileName;
         }
     }
 }

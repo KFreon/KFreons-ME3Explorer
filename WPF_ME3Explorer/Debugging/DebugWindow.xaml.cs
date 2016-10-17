@@ -33,6 +33,7 @@ namespace WPF_ME3Explorer.Debugging
             SaveFileDialog sfd = new SaveFileDialog();
             sfd.Title = "Select destination for Debug Log";
             sfd.FileName = $"ME3Explorer Debug Log - {DateTime.Now.Date}.txt";
+            sfd.Filter = "Text files | *.txt";
             sfd.AddExtension = true;
 
             Thread thread = new Thread(() =>

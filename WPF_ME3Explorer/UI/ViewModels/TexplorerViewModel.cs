@@ -19,6 +19,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using UsefulThings;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.Debugging;
@@ -140,6 +141,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         SaveFileDialog sfd = new SaveFileDialog();
                         sfd.FileName = Path.GetFileNameWithoutExtension(tex.DefaultSaveName) + ".zip";
                         sfd.Filter = "Compressed Files|*.zip";
+                        sfd.Title = "Select destination for texture information";
                         if (sfd.ShowDialog() != true)
                             return;
 
@@ -226,7 +228,245 @@ namespace WPF_ME3Explorer.UI.ViewModels
         }
         #endregion Commands
 
-        
+        #region Extraction Panel
+        bool showExtractionPanel = false;
+        public bool ShowExtractionPanel
+        {
+            get
+            {
+                return showExtractionPanel;
+            }
+            set
+            {
+                SetProperty(ref showExtractionPanel, value);
+            }
+        }
+
+        string extract_SavePath = null;
+        public string Extract_SavePath
+        {
+            get
+            {
+                return extract_SavePath;
+            }
+            set
+            {
+                SetProperty(ref extract_SavePath, value);
+            }
+        }
+
+        ImageEngineFormat extract_SaveFormat = ImageEngineFormat.Unknown;
+        public ImageEngineFormat Extract_SaveFormat
+        {
+            get
+            {
+                return extract_SaveFormat;
+            }
+            set
+            {
+                SetProperty(ref extract_SaveFormat, value);
+            }
+        }
+
+        bool extract_BuildMips = true;
+        public bool Extract_BuildMips
+        {
+            get
+            {
+                return extract_BuildMips;
+            }
+            set
+            {
+                SetProperty(ref extract_BuildMips, value);
+            }
+        }
+
+        CommandHandler extract_ExtractCommand = null;
+        public CommandHandler Extract_ExtractCommand
+        {
+            get
+            {
+                if (extract_ExtractCommand == null)
+                    extract_ExtractCommand = new CommandHandler(() =>
+                    {
+                        ExtractTexture(SelectedTexture, Extract_SavePath, Extract_BuildMips, Extract_SaveFormat);
+                    });
+
+                return extract_ExtractCommand;
+            }
+        }
+        #endregion Extraction Panel
+
+        #region Change Texture Panel
+        float originalDXT1Alpha = 0;
+        bool showChangePanel = false;
+        public bool ShowChangePanel
+        {
+            get
+            {
+                return showChangePanel;
+            }
+            set
+            {
+                SetProperty(ref showChangePanel, value);
+                if (value)
+                    originalDXT1Alpha = DDSGeneral.DXT1AlphaThreshold;
+            }
+        }
+
+        string change_SavePath = null;
+        public string Change_SavePath
+        {
+            get
+            {
+                return change_SavePath;
+            }
+            set
+            {
+                SetProperty(ref change_SavePath, value);
+            }
+        }
+
+        bool change_DisplayAlpha = false;
+        public bool Change_DisplayAlpha
+        {
+            get
+            {
+                return change_DisplayAlpha;
+            }
+            set
+            {
+                SetProperty(ref change_DisplayAlpha, value);
+                OnPropertyChanged(nameof(Change_OrigPreview));
+                OnPropertyChanged(nameof(Change_ConvPreview));
+            }
+        }
+
+        BitmapSource change_OrigAlphaPreview = null;
+        BitmapSource change_OrigNOAlphaPreview = null;
+        public BitmapSource Change_OrigPreview
+        {
+            get
+            {
+                return Change_DisplayAlpha ? change_OrigAlphaPreview : change_OrigNOAlphaPreview;
+            }
+        }
+
+        BitmapSource change_ConvAlphaPreview = null;
+        BitmapSource change_ConvNOAlphaPreview = null;
+        public BitmapSource Change_ConvPreview
+        {
+            get
+            {
+                return Change_DisplayAlpha ? change_ConvAlphaPreview : change_ConvNOAlphaPreview;
+            }
+        }
+
+        ImageEngineFormat change_TreeFormat = ImageEngineFormat.Unknown;
+        public ImageEngineFormat Change_TreeFormat
+        {
+            get
+            {
+                return change_TreeFormat;
+            }
+            set
+            {
+                SetProperty(ref change_TreeFormat, value);
+            }
+        }
+
+        ImageEngineFormat change_ReplacingFormat = ImageEngineFormat.Unknown;
+        public ImageEngineFormat Change_ReplacingFormat
+        {
+            get
+            {
+                return change_ReplacingFormat;
+            }
+            set
+            {
+                SetProperty(ref change_ReplacingFormat, value);
+            }
+        }
+
+        CommandHandler change_ChangeCommand = null;
+        public CommandHandler Change_ChangeCommand
+        {
+            get
+            {
+                if (change_ChangeCommand == null)
+                    change_ChangeCommand = new CommandHandler(() =>
+                    {
+                        ChangeTexture(SelectedTexture, change_convImage);
+
+                        // Reset alpha threshold for further toolset operations.
+                        DDSGeneral.DXT1AlphaThreshold = originalDXT1Alpha;
+                    });
+
+                return change_ChangeCommand;
+            }
+        }
+
+        bool change_FlattenAlpha = false;
+        public bool Change_FlattenAlpha
+        {
+            get
+            {
+                return change_FlattenAlpha;
+            }
+            set
+            {
+                SetProperty(ref change_FlattenAlpha, value);
+                change_RemoveAlpha = !value;
+                OnPropertyChanged(nameof(change_RemoveAlpha));
+                DDSGeneral.DXT1AlphaThreshold = blendValue;
+
+                change_PreviewTimer.Stop();
+                change_PreviewTimer.Start();
+            }
+        }
+
+        bool change_RemoveAlpha = false;
+        public bool Change_RemoveAlpha
+        {
+            get
+            {
+                return change_RemoveAlpha;
+            }
+            set
+            {
+                SetProperty(ref change_RemoveAlpha, value);
+                change_FlattenAlpha = !value;
+                OnPropertyChanged(nameof(change_FlattenAlpha));
+                DDSGeneral.DXT1AlphaThreshold = 0f;  // KFreon: Strips the alpha out 
+
+                change_PreviewTimer.Stop();
+                change_PreviewTimer.Start();
+            }
+        }
+
+        float blendValue = DDSGeneral.DXT1AlphaThreshold;
+        public float Change_AlphaThreshold
+        {
+            get
+            {
+                DDSGeneral.DXT1AlphaThreshold = blendValue;
+                return DDSGeneral.DXT1AlphaThreshold * 100f;
+            }
+            set
+            {
+                DDSGeneral.DXT1AlphaThreshold = value / 100f;
+                OnPropertyChanged(nameof(Change_AlphaThreshold));
+                blendValue = value / 100f;
+
+                change_PreviewTimer.Stop();
+                change_PreviewTimer.Start();
+            }
+        }
+
+        ImageEngineImage change_origImg = null;
+        ImageEngineImage change_convImage = null;
+        DispatcherTimer change_PreviewTimer = new DispatcherTimer();
+        #endregion Change Texure Panel
 
         #region UI Actions
         public Action TreePanelCloser = null;
@@ -454,6 +694,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
         public TexplorerViewModel() : base()
         {
             DebugOutput.StartDebugger("Texplorer");
+            change_PreviewTimer.Interval = TimeSpan.FromSeconds(1);
+            change_PreviewTimer.Tick += (t, b) =>
+            {
+                Debugger.Break();
+                // Build previews off thread
+                Task.Run(() =>
+                {
+                    Change_GeneratePreviews();
+                });
+            };
 
             #region FTS Filtering
             DLCItemsView = CollectionViewSource.GetDefaultView(FTSDLCs);
@@ -481,26 +731,53 @@ namespace WPF_ME3Explorer.UI.ViewModels
             AbstractFileEntry.Updater = new Action(() => UpdateFTS());
 
             #region Setup Texture UI Commands
-            TreeTexInfo.ChangeCommand = new CommandHandler(new Action<object>(tex =>
+            TreeTexInfo.ChangeCommand = new CommandHandler(new Action<object>(async param =>
             {
+                // Try normal first - i.e. Replacing file is of correct format
                 OpenFileDialog ofd = new OpenFileDialog();
-                ofd.Filter = "DirectX Images|*.dds";  // TODO Expand to allow any ImageEngine supported format for on the fly conversion. Need to have some kind of preview first though to maybe change the conversion parameters.
+                ofd.Title = "Select replacing image";
+                ofd.Filter = GetFullDialogFilters();
+                ofd.CheckFileExists = true;
                 if (ofd.ShowDialog() != true)
                     return;
 
-                Task.Run(() => ChangeTexture((TreeTexInfo)tex, ofd.FileName));
+                TreeTexInfo tex = (TreeTexInfo)param;
+
+                Change_SavePath = ofd.FileName;
+                change_origImg = new ImageEngineImage(Change_SavePath);
+
+                // Format is correct. Just replace and go.
+                if (change_origImg.Format.SurfaceFormat == tex.Format)
+                {
+                    ChangeTexture(tex, change_origImg);
+                    change_origImg.Dispose();
+                    return;
+                }
+
+                // Format not correct, requries conversion //
+                ShowChangePanel = true;
+                Change_ReplacingFormat = change_origImg.Format.SurfaceFormat;
+                Change_TreeFormat = tex.Format;
+
+                // Default settings //
+                // Default - alpha tends to inhibit the normal view of textures
+                Change_DisplayAlpha = false;
+
+                // Build previews off thread
+                await Task.Run(() =>
+                {
+                    Change_GeneratePreviews();
+                });
             }));
 
             TreeTexInfo.ExtractCommand = new CommandHandler(new Action<object>(tex =>
             {
-                SaveFileDialog sfd = new SaveFileDialog();
-                var texture = tex as TreeTexInfo;
-                sfd.FileName = texture.DefaultSaveName;
-                sfd.Filter = "DirectX Images|*.dds";  // TODO Expand to allow any ImageEngine supported format.
-                if (sfd.ShowDialog() != true)
-                    return;
+                // Default settings
+                Extract_SavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), SelectedTexture?.DefaultSaveName);
+                Extract_SaveFormat = SelectedTexture?.Format ?? ImageEngineFormat.Unknown;
+                Extract_BuildMips = true;
 
-                ExtractTexture((TreeTexInfo)tex, sfd.FileName);
+                ShowExtractionPanel = true;
             }));
 
             TreeTexInfo.LowResFixCommand = new CommandHandler(new Action<object>(tex =>
@@ -524,6 +801,21 @@ namespace WPF_ME3Explorer.UI.ViewModels
             ThumbnailWriter = new ThumbnailWriter(GameDirecs);
 
             Setup();
+        }
+
+        void Change_GeneratePreviews()
+        {
+            var convData = change_origImg.Save(SelectedTexture.Format, MipHandling.KeepTopOnly);
+            ImageEngineImage conv = new ImageEngineImage(convData);
+
+            change_ConvAlphaPreview = conv.GetWPFBitmap(mergeAlpha: true);
+            change_ConvNOAlphaPreview = conv.GetWPFBitmap();
+
+            change_OrigAlphaPreview = change_origImg.GetWPFBitmap(mergeAlpha: true);
+            change_OrigNOAlphaPreview = change_origImg.GetWPFBitmap();
+
+            OnPropertyChanged(nameof(Change_ConvPreview));
+            OnPropertyChanged(nameof(Change_OrigPreview));
         }
 
         internal async Task RegenerateThumbs(params TreeTexInfo[] textures)
@@ -1074,6 +1366,23 @@ namespace WPF_ME3Explorer.UI.ViewModels
             ProgressIndeterminate = true;
 
             bool success = ToolsetTextureEngine.ChangeTexture(tex, filename);
+            ChangeTexture(tex, success);
+        }
+
+        // This is going to change to pipeline TPL stuff when TPFTools comes along
+        public void ChangeTexture(TreeTexInfo tex, ImageEngineImage img)
+        {
+            Busy = true;
+            Status = $"Changing Texture: {tex.TexName}...";
+            ProgressIndeterminate = true;
+
+            bool success = ToolsetTextureEngine.ChangeTexture(tex, img);
+            ChangeTexture(tex, success);
+        }
+
+
+        void ChangeTexture(TreeTexInfo tex, bool success)
+        {
             if (success)
             {
                 // Add only if not already added.
@@ -1089,8 +1398,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     stream = ToolsetTextureEngine.GetThumbFromTex2D(tex.ChangedAssociatedTexture);
 
                 using (PCCObject pcc = new PCCObject(tex.PCCs[0].Name, GameVersion))
-                    using (Texture2D tex2D = new Texture2D(pcc, tex.PCCs[0].ExpID, GameDirecs))
-                        stream = ToolsetTextureEngine.GetThumbFromTex2D(tex2D);
+                using (Texture2D tex2D = new Texture2D(pcc, tex.PCCs[0].ExpID, GameDirecs))
+                    stream = ToolsetTextureEngine.GetThumbFromTex2D(tex2D);
 
                 if (tex.Thumb == null) // Could happen
                     tex.Thumb = new Thumbnail();
@@ -1104,7 +1413,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Busy = false;
         }
 
-        internal void ExtractTexture(TreeTexInfo tex, string filename)
+        internal void ExtractTexture(TreeTexInfo tex, string filename, bool buildMips = true, ImageEngineFormat format = ImageEngineFormat.Unknown)
         {
             Busy = true;
             Status = $"Extracting Texture: {tex.TexName}...";
@@ -1113,7 +1422,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             string error = null;
             try
             {
-                ToolsetTextureEngine.ExtractTexture(tex, filename);
+                ToolsetTextureEngine.ExtractTexture(tex, filename, buildMips, format);
             }
             catch (Exception e)
             {

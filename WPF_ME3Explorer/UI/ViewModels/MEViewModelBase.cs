@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CSharpImageLibrary;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -18,6 +19,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
 {
     public class MEViewModelBase<T> : ViewModelBase where T : AbstractTexInfo
     {
+        public virtual List<string> AcceptedImageExtensions { get; set; } = new List<string>();
+        public virtual List<string> AcceptedImageDescriptions { get; set; } = new List<string>();
+
         protected CancellationTokenSource cts = new CancellationTokenSource();
 
         public bool CancellationRequested
@@ -366,6 +370,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     ElapsedTime = TimeSpan.FromMilliseconds(Environment.TickCount - StartTime);
             };
             timer.Start();
+
+            // Formatting stuff
+            AcceptedImageExtensions.AddRange(ImageFormats.GetSupportedExtensions().Select(t => $".{t}"));
+            AcceptedImageDescriptions.AddRange(ImageFormats.GetSupportedExtensionsDescriptions());
         }
 
         /// <summary>
@@ -499,6 +507,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Status = $"PCCs exported to: {fileName}";
             Progress = MaxProgress;
             Busy = false;
+        }
+
+        internal string GetFullDialogFilters()
+        {
+            var filters = AcceptedImageDescriptions.Zip(AcceptedImageExtensions, (one, two) => $"{one}|*.{two}").ToList();
+            return $"All Images | *.{String.Join(";*.", AcceptedImageExtensions)} | {String.Join("|", filters)}";
         }
     }
 }

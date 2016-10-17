@@ -41,8 +41,13 @@ namespace WPF_ME3Explorer.UI
 
         private void BIOGamePathBrowser_Click(object sender, RoutedEventArgs e)
         {
-            string newPath = PathingBrowser(true);
-            vm.PathBIOGame = newPath;
+            var dialog = new CommonOpenFileDialog();
+            dialog.Title = "Select Path to BIOGame folder";
+            dialog.IsFolderPicker = true;
+
+            var result = dialog.ShowDialog();
+            if (result == CommonFileDialogResult.Ok)
+                vm.PathBIOGame = dialog.FileName;
         }
 
         private void CookedPathBrowser_Click(object sender, RoutedEventArgs e)
@@ -53,22 +58,6 @@ namespace WPF_ME3Explorer.UI
         private void DLCPathBrowser_Click(object sender, RoutedEventArgs e)
         {
 
-        }
-
-
-
-        string PathingBrowser(bool isFolder)
-        {
-            var dialog = new CommonOpenFileDialog();
-
-            if (isFolder)
-                dialog.IsFolderPicker = true;
-
-            var result = dialog.ShowDialog();
-            if (result == CommonFileDialogResult.Ok)
-                return dialog.FileName;
-
-            return null;
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
