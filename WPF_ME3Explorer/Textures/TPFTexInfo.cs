@@ -183,7 +183,7 @@ namespace WPF_ME3Explorer.Textures
                 {
                     using (MemoryStream ms = new MemoryStream())
                     {
-                        img.Save(ms, img.Format.SurfaceFormat, MipHandling.KeepTopOnly);
+                        img.Save(ms, img.Format, MipHandling.KeepTopOnly);
                         var overlayed = ToolsetTextureEngine.OverlayAndPickDetailed(ms);
                         return UsefulThings.WPF.Images.CreateWPFBitmap(overlayed);
                     }
@@ -346,39 +346,21 @@ namespace WPF_ME3Explorer.Textures
                 var hashGetter = Task.Run(() => CRC32.BlockChecksum(imgData)); // Put it off thread
 
                 // Get image details and build thumbnail.
-                DDSGeneral.DDS_HEADER header = null;
                 using (MemoryStream ms = new MemoryStream(imgData))
                 {
-                    Format = ImageFormats.ParseFormat(ms, null, ref header).SurfaceFormat;
+                    CSharpImageLibrary.Headers.DDS_Header header = new CSharpImageLibrary.Headers.DDS_Header(ms);
+                    Format = header.Format;
                     ImageEngineImage image = null;
 
-                    if (header != null)
-                    {
-                        Width = header.dwWidth;
-                        Height = header.dwWidth;
-                        Mips = header.dwMipMapCount;
-                        image = new ImageEngineImage(ms, null, 64, true);
 
-                        // Often the header of DDS' are not set properly resulting in Mips = 0 - NOTE can't just read image.Mips as the image has been shrunk and doesn't have the same properties as originally
-                        if (Mips == 0)
-                        {
-                            int tempMips = 0;
-                            DDSGeneral.EnsureMipInImage(ms.Length, Width, Height, 4, new CSharpImageLibrary.Format(Format), out tempMips);
-                            Mips = tempMips;
-                        }
-                    }
-                    else
-                    {
-                        image = new ImageEngineImage(ms);
-                        Width = image.Width;
-                        Height = image.Height;
-                        Mips = image.NumMipMaps;
-                    }
+                    image = new ImageEngineImage(ms);
+                    Width = image.Width;
+                    Height = image.Height;
+                    Mips = image.NumMipMaps;
+                    
 
                     // Thumbnail
-                    Thumb.StreamThumb = new MemoryStream();
-                    image.Save(Thumb.StreamThumb, ImageEngineFormat.JPG, MipHandling.Default, 64);
-
+                    Thumb.StreamThumb = new MemoryStream(image.Save(ImageEngineFormat.JPG, MipHandling.Default, 64));
                     image.Dispose();
                 }
 

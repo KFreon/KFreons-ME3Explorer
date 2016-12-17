@@ -406,47 +406,22 @@ namespace WPF_ME3Explorer.Textures
             File.WriteAllBytes(filename, data);
         }
 
-        int GetUncompressedSize(ImageEngineImage img)
-        {
-            return GetUncompressedSize(img.Width, img.Height, img.Format.SurfaceFormat, img.header);
-        }
-
-        int GetUncompressedSize(int width, int height, ImageEngineFormat format, DDSGeneral.DDS_HEADER header)
-        {
-            float BPP = 0;
-            switch (format)
-            {
-                case ImageEngineFormat.DDS_DXT1: BPP = 0.5F; break;
-                case ImageEngineFormat.DDS_DXT5:
-                case ImageEngineFormat.DDS_ATI2_3Dc: BPP = 1F; break;
-                case ImageEngineFormat.DDS_V8U8: BPP = 2F; break;
-                default: BPP = (float)header.ddspf.dwRGBBitCount / 8; break;
-            }
-
-            if (width < 4)
-                width = 4;
-            if (height < 4)
-                height = 4;
-
-            return (int)(width * height * BPP);
-        }
-
         void SingleImageUpscale(ImageEngineImage imgFile)
         {
             ImageSize biggerImageSizeOnList = ImageList.Max(image => image.ImageSize);
             // check if replacing image is supported
-            ImageEngineFormat imageFileFormat = imgFile.Format.SurfaceFormat;
+            ImageEngineFormat imageFileFormat = imgFile.Format;
 
 
             //NEW Check for correct image format
             if (texFormat != imageFileFormat)
-                throw new FormatException($"Different image format, original is {texFormat}, new is  {imgFile.Format.SurfaceFormat}");
+                throw new FormatException($"Different image format, original is {texFormat}, new is  {imgFile.Format}");
 
             // !!! warning, this method breaks consistency between imgList and imageData[] !!!
             ImageInfo newImgInfo = new ImageInfo();
             newImgInfo.storageType = ImageList.Find(img => img.storageType != storage.empty && img.storageType != storage.pccSto).storageType;
             newImgInfo.ImageSize = new ImageSize((uint)imgFile.Width, (uint)imgFile.Height);
-            newImgInfo.UncompressedSize = GetUncompressedSize(imgFile.Width, imgFile.Height, imgFile.Format.SurfaceFormat, imgFile.header);
+            newImgInfo.UncompressedSize = 
             newImgInfo.CompressedSize = 0x00; // not yet filled
             newImgInfo.Offset = 0x00; // not yet filled
             ImageList.RemoveAt(0);  // Remove old single image and add new one
@@ -486,6 +461,11 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
+        int GetUncompressedSize(ImageEngineImage img)
+        {
+            return ImageFormats.GetUncompressedSize(img.Width, img.Height, img.NumberOfChannels, false);
+        }
+
 	    void ReplaceImage(ImageSize imgSize, ImageEngineImage imgFile)
         {
             if (!ImageList.Exists(img => img.ImageSize == imgSize))
@@ -506,7 +486,7 @@ namespace WPF_ME3Explorer.Textures
                 imgInfo.CompressedSize = imgInfo.UncompressedSize; // Don't know why...
             }
 
-            byte[] imgData = imgFile.Save(imgFile.Format.SurfaceFormat, MipHandling.KeepTopOnly);
+            byte[] imgData = imgFile.Save(imgFile.Format, MipHandling.KeepTopOnly);
             imgBuffer = ToolsetTextureEngine.RemoveDDSHeader(imgData);
 
             switch (imgInfo.storageType)
@@ -610,8 +590,6 @@ namespace WPF_ME3Explorer.Textures
         void AddBiggerImage(ImageEngineImage imgFile)
         {
             ImageSize biggerImageSizeOnList = ImageList.Max(image => image.ImageSize);
-            // check if replacing image is supported
-            ImageEngineFormat imgFileFormat = imgFile.Format.SurfaceFormat;
 
             // KFreon: Format check not required. Auto conversion enabled.
 
@@ -711,17 +689,18 @@ namespace WPF_ME3Explorer.Textures
                 // KFreon: Format check not required - auto conversion engaged. 
 
                 ImageSize mipSize = new ImageSize((uint)mip.Width, (uint)mip.Height);
+                var mipmap = new ImageEngineImage(mip);
 
                 // if the image size exists inside the texture2d image list then we have to replace it
                 if (ImageList.Exists(img => img.ImageSize == mipSize))
                 {
                     // ...but at least for now I can reuse my replaceImage function... ;)
-                    ReplaceImage(mipSize, new ImageEngineImage(mip, texFormat));
+                    ReplaceImage(mipSize, new ImageEngineImage(mip));
                 }
                 else // if the image doesn't exists then we have to add it
                 {
                     // ...and use my addBiggerImage function! :P
-                    AddBiggerImage(new ImageEngineImage(mip, texFormat));
+                    AddBiggerImage(new ImageEngineImage(mip));
                 }
             }
 

@@ -32,7 +32,7 @@ namespace WPF_ME3Explorer.Textures
             if (formatString.Contains("normal", StringComparison.OrdinalIgnoreCase))
                 return ImageEngineFormat.DDS_ATI2_3Dc;
             else
-                return ImageFormats.FindFormatInString(formatString).SurfaceFormat;
+                return ImageFormats.FindFormatInString(formatString);
         }
 
         public static string StringifyFormat(ImageEngineFormat format)
@@ -56,7 +56,13 @@ namespace WPF_ME3Explorer.Textures
                 imgData = tex2D.ExtractImage(size.First(), true);
 
             using (MemoryStream ms = new MemoryStream(imgData))
-                return ImageEngine.GenerateThumbnailToStream(ms, ThumbnailSize, ThumbnailSize);
+                return GenerateThumbnailToStream(ms, ThumbnailSize);
+        }
+
+        internal static MemoryStream GenerateThumbnailToStream(MemoryStream source, int maxDimension, ImageEngineFormat format = ImageEngineFormat.JPG)
+        {
+            using (ImageEngineImage img = new ImageEngineImage(source, maxDimension))
+                return new MemoryStream(img.Save(format, MipHandling.KeepTopOnly, maxDimension));
         }
 
         /// <summary>
@@ -68,16 +74,12 @@ namespace WPF_ME3Explorer.Textures
         /// <returns></returns>
         public static byte[] AddDDSHeader(byte[] imgBuffer, ImageInfo imgInfo, ImageEngineFormat texFormat)
         {
-            using (MemoryStream ms = new MemoryStream())
-            {
-                using (BinaryWriter bw = new BinaryWriter(ms, Encoding.Default, true))
-                {
-                    var header = CSharpImageLibrary.DDSGeneral.Build_DDS_Header(1, (int)imgInfo.ImageSize.Height, (int)imgInfo.ImageSize.Width, texFormat);
-                    CSharpImageLibrary.DDSGeneral.Write_DDS_Header(header, bw);
-                    bw.Write(imgBuffer);
-                }
-                return ms.ToArray();
-            }
+            var header = new CSharpImageLibrary.Headers.DDS_Header(1, (int)imgInfo.ImageSize.Height, (int)imgInfo.ImageSize.Width, texFormat);
+
+            byte[] destination = new byte[imgBuffer.Length + 128];  // 128 = general header size.
+            header.WriteToArray(destination, 0);
+            Array.Copy(imgBuffer, 0, destination, 128, imgBuffer.Length);
+            return destination;
         }
 
         /// <summary>
@@ -126,7 +128,7 @@ namespace WPF_ME3Explorer.Textures
 
 
 
-            BitmapSource source = UsefulThings.WPF.Images.CreateWPFBitmap(sourceStream);
+            /*BitmapSource source = UsefulThings.WPF.Images.CreateWPFBitmap(sourceStream);
             WriteableBitmap dest = new WriteableBitmap(source.PixelWidth, source.PixelHeight, source.DpiX, source.DpiY, System.Windows.Media.PixelFormats.Bgra32, source.Palette);
 
             // KFreon: Write onto black
@@ -154,7 +156,7 @@ namespace WPF_ME3Explorer.Textures
             {
                 jpg.Dispose();
                 return mstest;
-            }
+            }*/
         }
 
 

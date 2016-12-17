@@ -2,6 +2,7 @@
 #undef ThreadedScan
 
 using CSharpImageLibrary;
+using CSharpImageLibrary.DDS;
 using Microsoft.Win32;
 using System;
 using System.Collections.Concurrent;
@@ -298,7 +299,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         #endregion Extraction Panel
 
         #region Change Texture Panel
-        float originalDXT1Alpha = 0;
+        double originalDXT1Alpha = 0;
         bool showChangePanel = false;
         public bool ShowChangePanel
         {
@@ -444,13 +445,13 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
-        float blendValue = DDSGeneral.DXT1AlphaThreshold;
-        public float Change_AlphaThreshold
+        double blendValue = DDSGeneral.DXT1AlphaThreshold;
+        public double Change_AlphaThreshold
         {
             get
             {
                 DDSGeneral.DXT1AlphaThreshold = blendValue;
-                return DDSGeneral.DXT1AlphaThreshold * 100f;
+                return DDSGeneral.DXT1AlphaThreshold * 100d;
             }
             set
             {
@@ -747,7 +748,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 change_origImg = new ImageEngineImage(Change_SavePath);
 
                 // Format is correct. Just replace and go.
-                if (change_origImg.Format.SurfaceFormat == tex.Format)
+                if (change_origImg.Format == tex.Format)
                 {
                     ChangeTexture(tex, change_origImg);
                     change_origImg.Dispose();
@@ -756,7 +757,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                 // Format not correct, requries conversion //
                 ShowChangePanel = true;
-                Change_ReplacingFormat = change_origImg.Format.SurfaceFormat;
+                Change_ReplacingFormat = change_origImg.Format;
                 Change_TreeFormat = tex.Format;
 
                 // Default settings //
@@ -808,10 +809,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
             var convData = change_origImg.Save(SelectedTexture.Format, MipHandling.KeepTopOnly);
             ImageEngineImage conv = new ImageEngineImage(convData);
 
-            change_ConvAlphaPreview = conv.GetWPFBitmap(mergeAlpha: true);
+            change_ConvAlphaPreview = conv.GetWPFBitmap(ShowAlpha: true);
             change_ConvNOAlphaPreview = conv.GetWPFBitmap();
 
-            change_OrigAlphaPreview = change_origImg.GetWPFBitmap(mergeAlpha: true);
+            change_OrigAlphaPreview = change_origImg.GetWPFBitmap(ShowAlpha: true);
             change_OrigNOAlphaPreview = change_origImg.GetWPFBitmap();
 
             OnPropertyChanged(nameof(Change_ConvPreview));
