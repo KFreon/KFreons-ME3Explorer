@@ -1,5 +1,4 @@
 ﻿#define ThreadedScan
-#undef ThreadedScan
 
 using CSharpImageLibrary;
 using CSharpImageLibrary.DDS;
@@ -47,6 +46,18 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     });
 
                 return ftsDLCsUnCheckAll;
+            }
+        }
+
+        CommandHandler removeNullPointersCommand = null;
+        public CommandHandler RemoveNullPointersCommand
+        {
+            get
+            {
+                if (removeNullPointersCommand == null)
+                    removeNullPointersCommand = new CommandHandler(new Action(async () => Task.Run(() => RemoveNullPointersFromTree())));
+
+                return removeNullPointersCommand;
             }
         }
 
@@ -477,6 +488,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
         #endregion UI Actions
 
         #region Properties
+        bool removeNullPointers = true;
+        public bool RemoveNullPointers
+        {
+            get
+            {
+                return removeNullPointers;
+            }
+            set
+            {
+                SetProperty(ref removeNullPointers, value);
+            }
+        }
+
         #region Caches
         List<DLCEntry> ME1FTSDLCs { get; set; } = new List<DLCEntry>();
         List<GameFileEntry> ME1FTSGameFiles { get; set; } = new List<GameFileEntry>();
@@ -491,74 +515,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
         List<AbstractFileEntry> ME3FTSExclusions { get; set; } = new List<AbstractFileEntry>();
 
         // Mains
-        List<DLCEntry> tempFTSDLCs = new List<DLCEntry>();
-        List<DLCEntry> FTSDLCs
-        {
-            get
-            {
-                tempFTSDLCs.Clear();
-                switch (GameVersion)
-                {
-                    case 1:
-                        tempFTSDLCs.AddRange(ME1FTSDLCs);
-                        break;
-                    case 2:
-                        tempFTSDLCs.AddRange(ME2FTSDLCs);
-                        break;
-                    case 3:
-                        tempFTSDLCs.AddRange(ME3FTSDLCs);
-                        break;
-                }
-
-                return tempFTSDLCs;
-            }
-        }
-
-        List<GameFileEntry> tempFTSGameFiles = new List<GameFileEntry>();
-        List<GameFileEntry> FTSGameFiles
-        {
-            get
-            {
-                tempFTSGameFiles.Clear();
-                switch (GameVersion)
-                {
-                    case 1:
-                        tempFTSGameFiles.AddRange(ME1FTSGameFiles);
-                        break;
-                    case 2:
-                        tempFTSGameFiles.AddRange(ME2FTSGameFiles);
-                        break;
-                    case 3:
-                        tempFTSGameFiles.AddRange(ME3FTSGameFiles);
-                        break;
-                }
-
-                return tempFTSGameFiles;
-            }
-        }
-
-        List<AbstractFileEntry> tempFTSExclusions = new List<AbstractFileEntry>();
-        List<AbstractFileEntry> FTSExclusions
-        {
-            get
-            {
-                tempFTSExclusions.Clear();
-                switch (GameVersion)
-                {
-                    case 1:
-                        tempFTSExclusions.AddRange(ME1FTSExclusions);
-                        break;
-                    case 2:
-                        tempFTSExclusions.AddRange(ME2FTSExclusions);
-                        break;
-                    case 3:
-                        tempFTSExclusions.AddRange(ME3FTSExclusions);
-                        break;
-                }
-
-                return tempFTSExclusions;
-            }
-        }
+        MTRangedObservableCollection<DLCEntry> FTSDLCs { get; set; } = new MTRangedObservableCollection<DLCEntry>();
+        MTRangedObservableCollection<GameFileEntry> FTSGameFiles { get; set; } = new MTRangedObservableCollection<GameFileEntry>();
+        MTRangedObservableCollection<AbstractFileEntry> FTSExclusions { get; set; } = new MTRangedObservableCollection<AbstractFileEntry>();
         #endregion Caches
 
         public MTRangedObservableCollection<TreeTexInfo> TextureSearchResults { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
@@ -795,6 +754,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             #endregion Setup UI Commands
 
+            PropertyChanged += (sender, args) =>
+            {
+                if (args.PropertyName == nameof(GameVersion))
+                    UpdateFTS();
+            };
+
             GameDirecs.GameVersion = Properties.Settings.Default.TexplorerGameVersion;
             OnPropertyChanged(nameof(GameVersion));
 
@@ -1024,18 +989,41 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         public void UpdateFTS()
         {
+            // Update FTS collections
+            FTSDLCs.Clear();
+            FTSExclusions.Clear();
+            FTSGameFiles.Clear();
+
+            switch (GameVersion)
+            {
+                case 1:
+                    FTSDLCs.AddRange(ME1FTSDLCs);
+                    FTSGameFiles.AddRange(ME1FTSGameFiles);
+                    FTSExclusions.AddRange(ME1FTSExclusions);
+                    break;
+                case 2:
+                    FTSDLCs.AddRange(ME2FTSDLCs);
+                    FTSGameFiles.AddRange(ME2FTSGameFiles);
+                    FTSExclusions.AddRange(ME2FTSExclusions);
+                    break;
+                case 3:
+                    FTSDLCs.AddRange(ME3FTSDLCs);
+                    FTSGameFiles.AddRange(ME3FTSGameFiles);
+                    FTSExclusions.AddRange(ME3FTSExclusions);
+                    break;
+            }
+
+            DLCItemsView.Refresh();
+            ExclusionsItemsView.Refresh();
+            FileItemsView.Refresh();
+
             OnPropertyChanged(nameof(FTSDLCs));
             OnPropertyChanged(nameof(FTSExclusions));
             OnPropertyChanged(nameof(FTSGameFiles));
 
-            var temp = FTSDLCs;
-            var ttemp = FTSExclusions;
-            var itemp = FTSGameFiles;
-
-            
-            DLCItemsView.Refresh();
-            ExclusionsItemsView.Refresh();
-            FileItemsView.Refresh();
+            OnPropertyChanged(nameof(DLCItemsView));
+            OnPropertyChanged(nameof(ExclusionsItemsView));
+            OnPropertyChanged(nameof(FileItemsView));
         }
 
         void GetDLCEntries(int tempGame)
@@ -1246,23 +1234,36 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             // Decide degrees of parallelism for each block of the pipeline
             int numScanners = NumThreads;
-            int maxParallelForSorter = NumThreads;
-#if (ThreadedScan)
-            maxParallelForSorter = 1;
+            int numThumbGenerators = NumThreads;
+#if (!ThreadedScan)
+            numThumbGenerators = 1;
             numScanners = 1;
 #endif
 
 
-            var texSorterOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = maxParallelForSorter, MaxDegreeOfParallelism = maxParallelForSorter };
+            var thumbGenOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = numThumbGenerators, MaxDegreeOfParallelism = numThumbGenerators };
             var pccScannerOptions = new ExecutionDataflowBlockOptions { BoundedCapacity = numScanners, MaxDegreeOfParallelism = numScanners };
 
             // Setup pipeline blocks
             var pccScanner = new TransformManyBlock<PCCObject, TreeTexInfo>(pcc => ScanSinglePCC(pcc, TFCs), pccScannerOptions);
-            var texSorter = new ActionBlock<TreeTexInfo>(tex => CurrentTree.AddTexture(tex), texSorterOptions);  // In another block so as to allow Generating Thumbnails to decouple from identifying textures
+            var texSorter = new TransformBlock<TreeTexInfo, TreeTexInfo>(tex =>
+            {
+                CurrentTree.AddTexture(tex);
+                return tex;
+            }, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 1, BoundedCapacity = 5 });  // Limited to single thread since it's all locked anyway.
+
+            var thumbGenerator = new ActionBlock<TreeTexInfo>(tex =>
+            {
+                if (tex.GenerateThumbnail != null)
+                    tex.GenerateThumbnail();
+
+                tex.GenerateThumbnail = null; // Frees up the generation code for GC.
+            }, thumbGenOptions);   // In another block so as to allow Generating Thumbnails to decouple from identifying textures
 
             // Link together
             pccScanBuffer.LinkTo(pccScanner, new DataflowLinkOptions { PropagateCompletion = true });
             pccScanner.LinkTo(texSorter, new DataflowLinkOptions { PropagateCompletion = true });
+            texSorter.LinkTo(thumbGenerator, new DataflowLinkOptions { PropagateCompletion = true });
 
             // Begin producer
             PCCProducer(PCCs, pccScanBuffer);
@@ -1287,10 +1288,68 @@ namespace WPF_ME3Explorer.UI.ViewModels
             pccs.Complete();
         }
 
+
+        // Much thanks to Aquadran for his idea of removing the null pointers to prevent weird texture displays when upscaling.
+        bool RemoveInvalidTexEntries(Texture2D tex2D)
+        {
+            // Remove null pointers
+            if (tex2D.ImageList.Any(t => t.storageType == Texture2D.storage.empty || t.Offset == -1 || t.CompressedSize == -1))
+            {
+                // imgdata/header/footer?,
+                tex2D.ImageList.RemoveAll(t => t.storageType == Texture2D.storage.empty || t.Offset == -1 || t.CompressedSize == -1);
+                if (tex2D.ImageList.Any())
+                {
+                    tex2D.UpdateSizeProperties(tex2D.ImageList[0].ImageSize.Width, tex2D.ImageList[0].ImageSize.Height, true);
+                    tex2D.UpdateMipCountProperty();
+                }
+                return true;
+            }
+
+            return false;
+        }
+
+        public void RemoveNullPointersFromTree()
+        {
+            // Massage textures into more efficient loop format (loop over pccs, then textures)
+            var pccTexGroups =
+                from tex in CurrentTree.Textures
+                from pcc in tex.PCCs
+                group pcc by pcc.Name;
+
+
+            int count = 0;
+            int length = pccTexGroups.Count();
+            Progress = 0;
+            MaxProgress = length;
+            foreach (var group in pccTexGroups)
+            {
+                Status = $"Removing nulls from pccs: {count++}/{length}";
+
+                PCCObject pcc = new PCCObject(group.Key, GameVersion);
+                bool requiresSave = false;
+                foreach (var tex in group.Distinct())
+                {
+                    var tex2D = new Texture2D(pcc, tex.ExpID, GameDirecs);
+                    if (RemoveInvalidTexEntries(tex2D))
+                        requiresSave = true;
+                }
+
+                if (requiresSave)
+                    pcc.SaveToFile(pcc.pccFileName);
+
+                Progress++;
+            }
+
+            Progress = MaxProgress;
+            Status = "Nulls removed!";
+        }
+
         List<TreeTexInfo> ScanSinglePCC(PCCObject pcc, Dictionary<string, MemoryStream> TFCs)
         {
             List<TreeTexInfo> texes = new List<TreeTexInfo>();
             DebugOutput.PrintLn($"Scanning: {pcc.pccFileName}");
+
+            bool pccRequiresSave = false;
 
             try
             {
@@ -1304,6 +1363,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     try
                     {
                         tex2D = new Texture2D(pcc, i, GameDirecs);
+
+                        if (RemoveNullPointers && RemoveInvalidTexEntries(tex2D))
+                            pccRequiresSave = true;
                     }
                     catch (Exception e)
                     {
@@ -1328,6 +1390,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         Errors.Add(e.ToString());
                     }
                 }
+
+                // Save PCC if nulls removed
+                if (RemoveNullPointers && pccRequiresSave)
+                    pcc.SaveToFile(pcc.pccFileName);
             }
             catch (Exception e)
             {
@@ -1479,6 +1545,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
             CurrentTree.Clear(true);
 
             RefreshTreeRelatedProperties();
+
+            // Clear exclusions
+            foreach (var dlc in FTSDLCs)
+                dlc.IsChecked = false;
+
+            foreach (var file in FTSGameFiles)
+                file.IsChecked = false;
+
 
             LoadFTSandTree(true);
         }

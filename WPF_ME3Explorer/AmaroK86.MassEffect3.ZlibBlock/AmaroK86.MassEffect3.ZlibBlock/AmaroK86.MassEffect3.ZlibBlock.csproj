@@ -44,7 +44,7 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="UsefulThings, Version=1.5.5.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="UsefulThings, Version=1.6.1.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\Stuff\Other\Useful things\Code Repository\C#\UsefulThings\UsefulThings\bin\Debug\UsefulThings.dll</HintPath>
     </Reference>

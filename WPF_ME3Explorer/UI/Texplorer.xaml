@@ -80,6 +80,8 @@
                       Command="{Binding StartTPFToolsModeCommand}" Visibility="{Binding TPFToolsModeEnabled, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
             <MenuItem x:Name="StopTPFToolsMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Stop TPFTools Mode" 
                       Command="{Binding StopTPFToolsModeCommand}" Visibility="{Binding TPFToolsModeEnabled, Converter={StaticResource BoolToVisConverter}}"/>
+            <MenuItem x:Name="RemoveNullsMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Remove Null Pointers" 
+                      Command="{Binding RemoveNullPointersCommand}"/>
         </Menu>
 
         <StackPanel x:Name="GameAndTreeIndicators" Orientation="Horizontal" Grid.Column="3" HorizontalAlignment="Right" Margin="0,0,0,0.333">
@@ -493,7 +495,7 @@
             <ListBox ItemTemplate="{StaticResource SmallItemTemplate}" ItemsSource="{Binding ChangedTextures}"/>
         </Expander>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="4" x:Name="TreeScanBackground" Background="Black" Margin="0,0,0,0.333" d:IsHidden="True">
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="4" x:Name="TreeScanBackground" Background="Black" Margin="0,0,0,0.333">
             <Grid.Resources>
                 <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
                     <DoubleAnimation.EasingFunction>
@@ -584,7 +586,11 @@
                     <TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Text="This panel is for removing specific DLC's or PCC's from the Tree Scanning process. You may have a DLC you don't want included, or a file that is causing trouble." Margin="0,10,0,0"/>
                     <TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Text="NOTE: If a tree is loaded, exclusions are the files already scanned for that tree." Margin="0,0,0,5"/>
 
-                    <Button x:Name="BeginScanButton" DockPanel.Dock="Bottom" HorizontalAlignment="Center" FontSize="20" Margin="0,2" Padding="7,0" Click="BeginScanButton_Click">
+
+                    <DockPanel DockPanel.Dock="Bottom">
+                        <CheckBox Content="Remove Null Pointers" DockPanel.Dock="Left" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" IsChecked="{Binding RemoveNullPointers}"/>
+                        <Label Content="Prevents weird artifacting when upscaling." VerticalAlignment="Center" FontSize="9" Foreground="Gray"/>
+                        <Button x:Name="BeginScanButton" DockPanel.Dock="Bottom" HorizontalAlignment="Center" FontSize="20" Margin="0,2" Padding="7,0" Click="BeginScanButton_Click">
                         <Button.Style>
                             <Style TargetType="Button">
                                 <Setter Property="Content" Value="Begin Scan!"/>
@@ -604,6 +610,7 @@
                             </EventTrigger>
                         </Button.Triggers>
                     </Button>
+                    </DockPanel>
 
                     <Grid DockPanel.Dock="Right">
                         <Grid.Resources>

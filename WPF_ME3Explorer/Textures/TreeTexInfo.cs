@@ -189,10 +189,10 @@ namespace WPF_ME3Explorer.Textures
             if (thumbInfo.ImageSize != null) // i.e.image size doesn't exist.
                 thumbImageData = tex2D.ExtractImage(thumbInfo.ImageSize, true, TFCs);
 
-            using (MemoryStream ms = new MemoryStream(thumbImageData))
+            using (MemoryStream ms = new MemoryStream(thumbImageData, 0, thumbImageData.Length, false, true))
             {
-                uint width = info.ImageSize.Width;
-                uint height = info.ImageSize.Height;
+                int width = info.ImageSize.Width;
+                int height = info.ImageSize.Height;
 
                 try
                 {

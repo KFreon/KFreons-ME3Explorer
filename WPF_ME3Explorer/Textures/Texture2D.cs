@@ -51,7 +51,7 @@ namespace WPF_ME3Explorer.Textures
         public byte[] headerData;
         public byte[] imageData;
         private uint dataOffset = 0;
-        private uint numMipMaps;
+        private int numMipMaps { get { return ImageList?.Count ?? 0; } }
         public Dictionary<string, SaltPropertyReader.Property> properties;
 
         public int exportOffset;
@@ -205,8 +205,7 @@ namespace WPF_ME3Explorer.Textures
             if (GameVersion != 3)
                 dataStream.Seek(4, SeekOrigin.Current);  
 
-            numMipMaps = dataStream.ReadUInt32();                 // FG: 1st int32 (4 bytes / 32bits) is number of mipmaps
-            uint count = numMipMaps;
+            uint count = dataStream.ReadUInt32();                 // FG: 1st int32 (4 bytes / 32bits) is number of mipmaps
 
             ImageList = new List<ImageInfo>();
             ArcDataSize = 0;
@@ -230,10 +229,11 @@ namespace WPF_ME3Explorer.Textures
                 else if (imgInfo.storageType == storage.arcCpr || imgInfo.storageType == storage.arcUnc)
                     ArcDataSize += imgInfo.UncompressedSize;
 
-                imgInfo.ImageSize = new ImageSize(dataStream.ReadUInt32(), dataStream.ReadUInt32());  // FG: 6th & 7th [or nth and (nth + 1) if local] int32 are width x height
+                imgInfo.ImageSize = new ImageSize(dataStream.ReadInt32(), dataStream.ReadInt32());  // FG: 6th & 7th [or nth and (nth + 1) if local] int32 are width x height
 
+                // KFreon: Not doing this anymore because want to remove them later (from aquadran)
                 // KFreon: Test - instead of filtering out the null entries later, just don't add them here.
-                if (imgInfo.Offset != -1 && imgInfo.CompressedSize != -1)
+                //if (imgInfo.Offset != -1 && imgInfo.CompressedSize != -1)
                     ImageList.Add(imgInfo);                                                                   // FG: A salty's favorite, add the struct to a list<struct>
                 count--;
             }
@@ -420,7 +420,7 @@ namespace WPF_ME3Explorer.Textures
             // !!! warning, this method breaks consistency between imgList and imageData[] !!!
             ImageInfo newImgInfo = new ImageInfo();
             newImgInfo.storageType = ImageList.Find(img => img.storageType != storage.empty && img.storageType != storage.pccSto).storageType;
-            newImgInfo.ImageSize = new ImageSize((uint)imgFile.Width, (uint)imgFile.Height);
+            newImgInfo.ImageSize = new ImageSize(imgFile.Width, imgFile.Height);
             newImgInfo.UncompressedSize = 
             newImgInfo.CompressedSize = 0x00; // not yet filled
             newImgInfo.Offset = 0x00; // not yet filled
@@ -430,35 +430,7 @@ namespace WPF_ME3Explorer.Textures
             ReplaceImage(newImgInfo.ImageSize, imgFile);
 
             // update Sizes
-            int propVal = (int)newImgInfo.ImageSize.Width;
-            properties["SizeX"].Value.IntValue = propVal;
-            using (MemoryStream rawStream = new MemoryStream(properties["SizeX"].raw))
-            {
-                rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
-                rawStream.WriteInt32(propVal);
-                properties["SizeX"].raw = rawStream.ToArray();
-            }
-            properties["SizeY"].Value.IntValue = (int)newImgInfo.ImageSize.Height;
-            using (MemoryStream rawStream = new MemoryStream(properties["SizeY"].raw))
-            {
-                rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
-                rawStream.WriteInt32(propVal);
-                properties["SizeY"].raw = rawStream.ToArray();
-            }
-            properties["OriginalSizeX"].Value.IntValue = propVal;
-            using (MemoryStream rawStream = new MemoryStream(properties["OriginalSizeX"].raw))
-            {
-                rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
-                rawStream.WriteInt32(propVal);
-                properties["OriginalSizeX"].raw = rawStream.ToArray();
-            }
-            properties["OriginalSizeY"].Value.IntValue = propVal;
-            using (MemoryStream rawStream = new MemoryStream(properties["OriginalSizeY"].raw))
-            {
-                rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
-                rawStream.WriteInt32(propVal);
-                properties["OriginalSizeY"].raw = rawStream.ToArray();
-            }
+            UpdateSizeProperties((int)newImgInfo.ImageSize.Width, (int)newImgInfo.ImageSize.Height, true);
         }
 
         int GetUncompressedSize(ImageEngineImage img)
@@ -587,6 +559,73 @@ namespace WPF_ME3Explorer.Textures
             ImageList[imageIdx] = imgInfo;
         }
 
+        internal void UpdateSizeProperties(int width, int height, bool updateOriginals = false)
+        {
+            if (properties.ContainsKey("SizeX"))
+            {
+                properties["SizeX"].Value.IntValue = width;
+                using (MemoryStream rawStream = new MemoryStream(properties["SizeX"].raw))
+                {
+                    rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
+                    rawStream.WriteInt32(width);
+                    properties["SizeX"].raw = rawStream.ToArray();
+                }
+            }
+            
+            if (properties.ContainsKey("SizeY"))
+            {
+                properties["SizeY"].Value.IntValue = height;
+                using (MemoryStream rawStream = new MemoryStream(properties["SizeY"].raw))
+                {
+                    rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
+                    rawStream.WriteInt32(height);
+                    properties["SizeY"].raw = rawStream.ToArray();
+                }
+            }
+            
+
+            if (updateOriginals)
+            {
+                if (properties.ContainsKey("OriginalSizeX"))
+                {
+                    properties["OriginalSizeX"].Value.IntValue = width;
+                    using (MemoryStream rawStream = new MemoryStream(properties["OriginalSizeX"].raw))
+                    {
+                        rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
+                        rawStream.WriteInt32(width);
+                        properties["OriginalSizeX"].raw = rawStream.ToArray();
+                    }
+                }
+                
+                if (properties.ContainsKey("OriginalSizeY"))
+                {
+                    properties["OriginalSizeY"].Value.IntValue = height;
+                    using (MemoryStream rawStream = new MemoryStream(properties["OriginalSizeY"].raw))
+                    {
+                        rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
+                        rawStream.WriteInt32(height);
+                        properties["OriginalSizeY"].raw = rawStream.ToArray();
+                    }
+                }
+                
+
+                // KFreon: Some lightmaps don't have these properties. I'm ignoring them cos I'm ignorant.
+                
+            }
+        }
+
+        internal void UpdateMipCountProperty()
+        {
+            int propVal = ImageList.Count;
+            properties["MipTailBaseIdx"].Value.IntValue = propVal;
+            using (MemoryStream rawStream = new MemoryStream(properties["MipTailBaseIdx"].raw))
+            {
+                rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
+                rawStream.WriteInt32(propVal);
+                properties["MipTailBaseIdx"].raw = rawStream.ToArray();
+            }
+        }
+
         void AddBiggerImage(ImageEngineImage imgFile)
         {
             ImageSize biggerImageSizeOnList = ImageList.Max(image => image.ImageSize);
@@ -604,7 +643,7 @@ namespace WPF_ME3Explorer.Textures
             // !!! warning, this method breaks consistency between imgList and imageData[] !!!
             ImageInfo newImgInfo = new ImageInfo();
             newImgInfo.storageType = ImageList.Find(img => img.storageType != storage.empty && img.storageType != storage.pccSto).storageType;
-            newImgInfo.ImageSize = new ImageSize((uint)imgFile.Width, (uint)imgFile.Height);
+            newImgInfo.ImageSize = new ImageSize(imgFile.Width, imgFile.Height);
             newImgInfo.UncompressedSize = GetUncompressedSize(imgFile);
             newImgInfo.CompressedSize = 0x00; // not yet filled
             newImgInfo.Offset = 0x00; // not yet filled
@@ -612,64 +651,13 @@ namespace WPF_ME3Explorer.Textures
                                                   //now I let believe the program that I'm doing an image replace, saving lot of code ;)
             ReplaceImage(newImgInfo.ImageSize, imgFile);
 
-            //updating num of images
-            numMipMaps++;
-
             // update MipTailBaseIdx
-            int propVal = properties["MipTailBaseIdx"].Value.IntValue;
-            propVal++;
-            properties["MipTailBaseIdx"].Value.IntValue = propVal;
-            using (MemoryStream rawStream = new MemoryStream(properties["MipTailBaseIdx"].raw))
-            {
-                rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
-                rawStream.WriteInt32(propVal);
-                properties["MipTailBaseIdx"].raw = rawStream.ToArray();
-            }
-
-            // update Sizes
+            UpdateMipCountProperty();
 
             // Heff: Fixed(?) to account for non-square images
             int propX = (int)newImgInfo.ImageSize.Width;
             int propY = (int)newImgInfo.ImageSize.Height;
-            properties["SizeX"].Value.IntValue = propX;
-            using (MemoryStream rawStream = new MemoryStream(properties["SizeX"].raw))
-            {
-                rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
-                rawStream.WriteInt32(propX);
-                properties["SizeX"].raw = rawStream.ToArray();
-            }
-            properties["SizeY"].Value.IntValue = propY;
-            using (MemoryStream rawStream = new MemoryStream(properties["SizeY"].raw))
-            {
-                rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
-                rawStream.WriteInt32(propY);
-                properties["SizeY"].raw = rawStream.ToArray();
-            }
-
-            if (GameVersion == 3)
-            {
-                try
-                {
-                    properties["OriginalSizeX"].Value.IntValue = propX;
-                    using (MemoryStream rawStream = new MemoryStream(properties["OriginalSizeX"].raw))
-                    {
-                        rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
-                        rawStream.WriteInt32(propX);
-                        properties["OriginalSizeX"].raw = rawStream.ToArray();
-                    }
-                    properties["OriginalSizeY"].Value.IntValue = propY;
-                    using (MemoryStream rawStream = new MemoryStream(properties["OriginalSizeY"].raw))
-                    {
-                        rawStream.Seek(rawStream.Length - 4, SeekOrigin.Begin);
-                        rawStream.WriteInt32(propY);
-                        properties["OriginalSizeY"].raw = rawStream.ToArray();
-                    }
-                }
-                catch
-                {
-                    // Some lightmaps don't have these properties. I'm ignoring them cos I'm ignorant. KFreon.
-                }
-            }
+            UpdateSizeProperties(propX, propY, GameVersion == 3);
         }
 
         /// <summary>
@@ -688,7 +676,7 @@ namespace WPF_ME3Explorer.Textures
 
                 // KFreon: Format check not required - auto conversion engaged. 
 
-                ImageSize mipSize = new ImageSize((uint)mip.Width, (uint)mip.Height);
+                ImageSize mipSize = new ImageSize(mip.Width, mip.Height);
                 var mipmap = new ImageEngineImage(mip);
 
                 // if the image size exists inside the texture2d image list then we have to replace it
@@ -707,14 +695,11 @@ namespace WPF_ME3Explorer.Textures
             while (ImageList[0].ImageSize.Width > newImg.MipMaps[0].Width)
             {
                 ImageList.RemoveAt(0);
-                numMipMaps--;
                 if (properties.ContainsKey("MipTailBaseIdx"))
                     properties["MipTailBaseIdx"].Value.IntValue--;
             }
-            if (properties.ContainsKey("SizeX"))
-                properties["SizeX"].Value.IntValue = (int)newImg.MipMaps[0].Width;
-            if (properties.ContainsKey("SizeY"))
-                properties["SizeY"].Value.IntValue = (int)newImg.MipMaps[0].Height;
+
+            UpdateSizeProperties((int)newImg.MipMaps[0].Width, (int)newImg.MipMaps[0].Height);
         }
 
         public List<SaltPropertyReader.Property> GetPropertyList()
@@ -745,7 +730,6 @@ namespace WPF_ME3Explorer.Textures
         {
             List<ImageInfo> tempList = new List<ImageInfo>();
             MemoryStream tempData = new MemoryStream();
-            numMipMaps = inTex.numMipMaps;
 
             // forced norenderfix
             // norender = true;
@@ -983,8 +967,6 @@ namespace WPF_ME3Explorer.Textures
 
         void ME2_CopyImgList(Texture2D inTex, PCCObject pcc)
         {
-            numMipMaps = inTex.numMipMaps;
-
             if (properties.ContainsKey("NeverStream") && properties["NeverStream"].Value.IntValue == 1)
             {
                 imageData = null;
@@ -1115,7 +1097,6 @@ namespace WPF_ME3Explorer.Textures
         {
             imageData = inTex.imageData;
             ImageList = inTex.ImageList;
-            numMipMaps = inTex.numMipMaps;
 
             //Copy Properties
             byte[] buff;
@@ -1378,18 +1359,13 @@ namespace WPF_ME3Explorer.Textures
         public void LowResFix(int MipMapsToKeep = 1)
         {
             while (ImageList[0].storageType == storage.empty)
-            {
-                numMipMaps--;
                 ImageList.RemoveAt(0);
-            }
+            
 
             while (ImageList.Count > MipMapsToKeep)
-            {
-                numMipMaps--;
                 ImageList.Remove(ImageList.Last());
-            }
+            
 
-            numMipMaps = (uint)MipMapsToKeep;
             if (properties.ContainsKey("MipTailBaseIdx"))
                 properties["MipTailBaseIdx"].Value.IntValue = 0;
             if (properties.ContainsKey("SizeX"))
@@ -1567,9 +1543,8 @@ namespace WPF_ME3Explorer.Textures
                     tempList.Add(imgInfo);
             }
             ImageList = tempList;
-            numMipMaps = (uint)ImageList.Count;
 
-            buffer.WriteUInt32(numMipMaps);
+            buffer.WriteInt32(numMipMaps);
 
             foreach (ImageInfo imgInfo in ImageList)
             {
@@ -1589,13 +1564,13 @@ namespace WPF_ME3Explorer.Textures
                 else
                     buffer.WriteInt32(imgInfo.Offset);
                 if (imgInfo.ImageSize.Width < 4)
-                    buffer.WriteUInt32(4);
+                    buffer.WriteInt32(4);
                 else
-                    buffer.WriteUInt32(imgInfo.ImageSize.Width);
+                    buffer.WriteInt32(imgInfo.ImageSize.Width);
                 if (imgInfo.ImageSize.Height < 4)
-                    buffer.WriteUInt32(4);
+                    buffer.WriteInt32(4);
                 else
-                    buffer.WriteUInt32(imgInfo.ImageSize.Height);
+                    buffer.WriteInt32(imgInfo.ImageSize.Height);
             }
             buffer.WriteBytes(footerData);
             return buffer.ToArray();
@@ -1701,9 +1676,9 @@ namespace WPF_ME3Explorer.Textures
                     tempList.Add(imgInfo);
             }
             ImageList = tempList;
-            numMipMaps = (uint)ImageList.Count;
 
-            buffer.WriteUInt32(numMipMaps);
+
+            buffer.WriteInt32(numMipMaps);
             foreach (ImageInfo imgInfo in ImageList)
             {
                 buffer.WriteInt32((int)imgInfo.storageType);
@@ -1719,11 +1694,11 @@ namespace WPF_ME3Explorer.Textures
                 if (imgInfo.ImageSize.Width < 4)
                     buffer.WriteUInt32(4);
                 else
-                    buffer.WriteUInt32(imgInfo.ImageSize.Width);
+                    buffer.WriteInt32(imgInfo.ImageSize.Width);
                 if (imgInfo.ImageSize.Height < 4)
                     buffer.WriteUInt32(4);
                 else
-                    buffer.WriteUInt32(imgInfo.ImageSize.Height);
+                    buffer.WriteInt32(imgInfo.ImageSize.Height);
             }
             buffer.WriteBytes(footerData);
             return buffer.ToArray();
@@ -1803,10 +1778,7 @@ namespace WPF_ME3Explorer.Textures
                     }
                 }
 
-
-                numMipMaps = (uint)ImageList.Count;
-
-                tempStream.WriteUInt32(numMipMaps);
+                tempStream.WriteInt32(numMipMaps);
                 foreach (ImageInfo imgInfo in ImageList)
                 {
                     tempStream.WriteInt32((int)imgInfo.storageType);
@@ -1819,8 +1791,8 @@ namespace WPF_ME3Explorer.Textures
                     }
                     else
                         tempStream.WriteInt32(imgInfo.Offset);
-                    tempStream.WriteUInt32(imgInfo.ImageSize.Width);
-                    tempStream.WriteUInt32(imgInfo.ImageSize.Height);
+                    tempStream.WriteInt32(imgInfo.ImageSize.Width);
+                    tempStream.WriteInt32(imgInfo.ImageSize.Height);
                 }
                 //// Texture2D footer, 24 bytes size - changed to 20
                 tempStream.WriteBytes(footerData);

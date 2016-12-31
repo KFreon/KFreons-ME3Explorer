@@ -25,6 +25,26 @@
     <s:Boolean x:Key="True">True</s:Boolean>
     <s:Boolean x:Key="False">False</s:Boolean>
 
+    <Style TargetType="Button" x:Key="BrowseButtonStyle">
+        <Setter Property="DockPanel.Dock" Value="Right"/>
+        <Setter Property="Padding" Value="10,2"/>
+    </Style>
+
+    <Style TargetType="ContentControl" x:Key="ItemTitleStyle">
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="DockPanel.Dock" Value="Left"/>
+    </Style>
+
+    <Style TargetType="Run" x:Key="ItemTitleStyle_2">
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="DockPanel.Dock" Value="Left"/>
+    </Style>
+
+    <Style TargetType="ContentControl" x:Key="TitleStyle">
+        <Setter Property="FontSize" Value="30"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
+
     <DataTemplate x:Key="PCC-ExpID Displayer">
         <StackPanel Orientation="Horizontal">
             <CheckBox IsChecked="{Binding IsChecked, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,2,0" VerticalAlignment="Center"/>
@@ -303,27 +323,8 @@
                 <Setter Property="VerticalContentAlignment" Value="Center"/>
                 <Setter Property="Margin" Value="5,0"/>
             </Style>
-
-            <Style TargetType="ContentControl" x:Key="ItemTitleStyle">
-                <Setter Property="FontWeight" Value="Bold"/>
-                <Setter Property="DockPanel.Dock" Value="Left"/>
-            </Style>
-
-            <Style TargetType="Run" x:Key="ItemTitleStyle_2">
-                <Setter Property="FontWeight" Value="Bold"/>
-                <Setter Property="DockPanel.Dock" Value="Left"/>
-            </Style>
-
-            <Style TargetType="ContentControl" x:Key="TitleStyle">
-                <Setter Property="FontSize" Value="30"/>
-                <Setter Property="FontWeight" Value="Bold"/>
-            </Style>
-
-            <Style TargetType="Button" x:Key="BrowseButtonStyle">
-                <Setter Property="DockPanel.Dock" Value="Right"/>
-                <Setter Property="Padding" Value="10,2"/>
-            </Style>
         </ControlTemplate.Resources>
+        
         <Border Background="#B2000000" Grid.RowSpan="4" Grid.ColumnSpan="5" x:Name="ChangeTexturePanel">
             <Border.Style>
                 <Style TargetType="Border">
@@ -331,7 +332,7 @@
                     <Setter Property="Opacity" Value="0"/>
 
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding Tag}" Value="true">
+                        <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="true">
                             <DataTrigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>

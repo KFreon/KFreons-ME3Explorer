@@ -34,12 +34,8 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CSharpImageLibrary">
-      <HintPath>..\..\..\Code Repository\C#\CSharpImageLibrary\CSharpImageLibrary\bin\Debug\CSharpImageLibrary.exe</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.IO.RecyclableMemoryStream, Version=1.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.IO.RecyclableMemoryStream.1.1.0.0\lib\net45\Microsoft.IO.RecyclableMemoryStream.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Microsoft.IO.RecyclableMemoryStream, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Microsoft.IO.RecyclableMemoryStream.1.2.1\lib\net45\Microsoft.IO.RecyclableMemoryStream.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -50,6 +46,9 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="UsefulThings">
+      <HintPath>..\..\..\..\..\Stuff\Other\Useful things\Code Repository\C#\CSharpImageLibrary\CSharpImageLibrary\bin\Debug\UsefulThings.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CRC32.cs" />
@@ -58,20 +57,9 @@
     <Compile Include="TargaImage.cs" />
     <Compile Include="TPFExtract.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TPFView.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="TPFView.Designer.cs">
-      <DependentUpon>TPFView.cs</DependentUpon>
-    </Compile>
     <Compile Include="ZipCrypto.cs" />
     <Compile Include="ZipReader.cs" />
     <Compile Include="ZipWriter.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="TPFView.resx">
-      <DependentUpon>TPFView.cs</DependentUpon>
-    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

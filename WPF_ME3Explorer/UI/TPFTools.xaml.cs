@@ -35,11 +35,12 @@ namespace WPF_ME3Explorer.UI
             InitializeComponent();
 
             // Setup drag/drop handling
-            var dropAction = new Action<TPFTexInfo, string[]>(async (tex, droppedFiles) => await Task.Run(() => vm.LoadFiles(droppedFiles))); // Don't need the TPFTexInfo - it'll be null anyway.
-            Predicate<string[]> dropValidator = new Predicate<string[]>(files => files.All(file => vm.AcceptedImageExtensions.Contains(Path.GetExtension(file).ToLowerInvariant())));
-            Func<TPFTexInfo, Dictionary<string, Func<byte[]>>> dataGetter = tex => new Dictionary<string, Func<byte[]>> { { tex.DefaultSaveName, () => tex.Extract() } };
-
-            DropHelper = new DragDropHandler<TPFTexInfo>(this, dropAction, dropValidator, dataGetter);
+            DropHelper = new DragDropHandler<TPFTexInfo>(this)
+            {
+                DropAction = new Action<TPFTexInfo, string[]>(async (tex, droppedFiles) => await Task.Run(() => vm.LoadFiles(droppedFiles))), // Don't need the TPFTexInfo - it'll be null anyway.
+                DropValidator = new Predicate<string[]>(files => files.All(file => vm.AcceptedImageExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()))),
+                DragOutDataGetter = tex => new Dictionary<string, Func<byte[]>> { { tex.DefaultSaveName, () => tex.Extract() } },
+            };
 
             vm = new TPFToolsViewModel();
             DataContext = vm;

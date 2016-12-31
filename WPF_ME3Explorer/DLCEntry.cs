@@ -16,7 +16,6 @@ namespace WPF_ME3Explorer
             {
                 return base.IsChecked;
             }
-
             set
             {
                 Files.ForEach(file => file.FilterOut = value);

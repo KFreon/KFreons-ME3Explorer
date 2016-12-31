@@ -20,6 +20,7 @@ using WPF_ME3Explorer.UI.ViewModels;
 using UsefulThings;
 using CSharpImageLibrary;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace WPF_ME3Explorer.UI
 {
@@ -39,7 +40,6 @@ namespace WPF_ME3Explorer.UI
 
         public Texplorer()
         {
-            InitializeComponent();
             vm = new TexplorerViewModel();
 
             TaskBarUpdater = new Action<System.Windows.Shell.TaskbarItemProgressState>(state => TaskBarProgressMeter.Dispatcher.Invoke(new Action(() => TaskBarProgressMeter.ProgressState = state)));
@@ -83,39 +83,43 @@ namespace WPF_ME3Explorer.UI
                 opener.Begin();
             });
 
+
             DataContext = vm;
+            InitializeComponent();
+
+
             GetBackgroundMovie();
             BackgroundMovie.Play();
 
-
-            Action<TreeTexInfo, string[]> textureDropper = new Action<TreeTexInfo, string[]>((tex, files) => Task.Run(() => vm.ChangeTexture(tex, files[0]))); // Can only be one due to validation in DragOver
-
-            var FolderDataGetter = new Func<TexplorerTextureFolder, Dictionary<string, Func<byte[]>>>(context =>
+            TextureDragDropper = new DragDropHandler<TreeTexInfo>(this)
             {
-                var SaveInformation = new Dictionary<string, Func<byte[]>>();
-                for (int i = 0; i < context.TexturesInclSubs.Count; i++)
-                {
-                    var tex = context.TexturesInclSubs[i];
-                    Func<byte[]> data = () =>  ToolsetTextureEngine.ExtractTexture(tex);
-                    SaveInformation.Add(tex.DefaultSaveName, data);
-                }
-                return SaveInformation;
-            });
-
-            var TextureDataGetter = new Func<TreeTexInfo, Dictionary<string, Func<byte[]>>>(context => new Dictionary<string, Func<byte[]>> { { context.DefaultSaveName,
+                DragOutDataGetter = new Func<TreeTexInfo, Dictionary<string, Func<byte[]>>>(context => new Dictionary<string, Func<byte[]>> { { context.DefaultSaveName,
                     () =>
                     {
                         // KFreon: No conversions - need to use extract for that.
                         return ToolsetTextureEngine.ExtractTexture(context);
                     }
-                } });
+                } }),
 
-            Predicate<string[]> DropValidator = new Predicate<string[]>(files => files.Length == 1 && !files.Any(file => ImageFormats.ParseExtension(Path.GetExtension(file)) == ImageFormats.SupportedExtensions.UNKNOWN));
+                DropValidator = new Predicate<string[]>(files => files.Length == 1 && !files.Any(file => ImageFormats.ParseExtension(Path.GetExtension(file)) == ImageFormats.SupportedExtensions.UNKNOWN)),
 
-            TextureDragDropper = new DragDropHandler<TreeTexInfo>(this, textureDropper, DropValidator, TextureDataGetter);
-            FolderDragDropper = new DragDropHandler<TexplorerTextureFolder>(this, null, null, FolderDataGetter);  // DropAction and Validator not required as TreeView not droppable.
+                DropAction = new Action<TreeTexInfo, string[]>((tex, files) => Task.Run(() => vm.ChangeTexture(tex, files[0]))), // Can only be one due to validation in DragOver
+            };
 
-
+            FolderDragDropper = new DragDropHandler<TexplorerTextureFolder>(this)  // DropAction and Validator not required as TreeView not droppable.
+            {
+                DragOutDataGetter = new Func<TexplorerTextureFolder, Dictionary<string, Func<byte[]>>>(context =>
+                {
+                    var SaveInformation = new Dictionary<string, Func<byte[]>>();
+                    for (int i = 0; i < context.TexturesInclSubs.Count; i++)
+                    {
+                        var tex = context.TexturesInclSubs[i];
+                        Func<byte[]> data = () => ToolsetTextureEngine.ExtractTexture(tex);
+                        SaveInformation.Add(tex.DefaultSaveName, data);
+                    }
+                    return SaveInformation;
+                }),
+            };
 
             // As VM should be created before this constructor is called, can do this check now.
             if (vm.CurrentTree.Valid)

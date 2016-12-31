@@ -49,8 +49,8 @@ namespace SaltTPF
             {
                 if (_trees.Count < 3)
                     MessageBox.Show("Some of the hash files weren't found, some of the auto-matching options won't be available", "Missing files", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
-                TPFView form = new TPFView(this);
-                form.Show();
+                /*TPFView form = new TPFView(this);
+                form.Show();*/
             }
         }
 

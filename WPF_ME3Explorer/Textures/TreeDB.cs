@@ -216,14 +216,10 @@ namespace WPF_ME3Explorer.Textures
                 {
                     var existing = Textures[Textures.IndexOf(tex)];
                     existing.Update(tex);
-                    tex.GenerateThumbnail = null; // clear generation code - frees up many large objects for GC.
+                    tex.GenerateThumbnail = null;   // Clear generation code for GC to free up
                     return;
                 }
             }
-
-            // Generate thumbnail if new texture
-            tex.GenerateThumbnail();
-            tex.GenerateThumbnail = null; // clear generation code - frees up many large objects for GC.
         }
 
         public bool ReadFromFile(string fileName = null)

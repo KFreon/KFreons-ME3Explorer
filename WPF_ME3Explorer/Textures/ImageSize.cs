@@ -8,10 +8,10 @@ namespace WPF_ME3Explorer.Textures
 {
     public class ImageSize : IComparable
     {
-        public readonly uint Width;
-        public readonly uint Height;
+        public readonly int Width;
+        public readonly int Height;
 
-        public ImageSize(uint width, uint height)
+        public ImageSize(int width, int height)
         {
             if (!UsefulThings.General.IsPowerOfTwo(width))
                 new FormatException("Invalid width value, must be power of 2");
@@ -96,12 +96,12 @@ namespace WPF_ME3Explorer.Textures
 
         public static ImageSize operator /(ImageSize a, int b)
         {
-            return new ImageSize((uint)(a.Width / b), (uint)(a.Height / b));
+            return new ImageSize(a.Width / b, a.Height / b);
         }
 
         public static ImageSize operator *(ImageSize a, int b)
         {
-            return new ImageSize((uint)(a.Width * b), (uint)(a.Height * b));
+            return new ImageSize(a.Width * b, a.Height * b);
         }
 
         public static ImageSize stringToSize(string input)
@@ -109,8 +109,8 @@ namespace WPF_ME3Explorer.Textures
             string[] parsed = input.Split('x');
             if (parsed.Length != 2)
                 throw new FormatException();
-            uint width = Convert.ToUInt32(parsed[0]);
-            uint height = Convert.ToUInt32(parsed[1]);
+            int width = Convert.ToInt32(parsed[0]);
+            int height = Convert.ToInt32(parsed[1]);
             return new ImageSize(width, height);
         }
     }
