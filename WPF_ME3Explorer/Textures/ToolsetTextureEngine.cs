@@ -2,6 +2,7 @@
 using SaltTPF;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -23,6 +24,89 @@ namespace WPF_ME3Explorer.Textures
         public const int ThumbnailSize = 128;
 
         public static bool TPFToolsModeEnabled = false;
+        public static List<string> AcceptedImageExtensions { get; set; } = new List<string>();
+        public static List<string> AcceptedImageDescriptions { get; set; } = new List<string>();
+        public static bool IsInitialised = false;
+        public static TreeDB[] Trees { get; private set; } = new TreeDB[3];
+        static Stopwatch stopwatch = new Stopwatch();
+
+        public static async Task Initialise()
+        {
+            if (IsInitialised)
+                return;
+
+            stopwatch.Restart();
+
+            // Game file enumeration
+            var temp = MEDirectories.MEDirectories.ME1Files;
+            temp = MEDirectories.MEDirectories.ME2Files;
+            temp = MEDirectories.MEDirectories.ME3Files;
+
+
+            Trace.WriteLine($"Game file enumeration took: {stopwatch.ElapsedMilliseconds}ms.");
+            DebugOutput.PrintLn($"Game file enumeration took: {stopwatch.ElapsedMilliseconds}ms.");
+            stopwatch.Restart();
+
+            // Read Trees
+            Task[] treeLoaders = new Task[3];
+            for (int i = 0; i < 3; i++)
+            {
+                Trees[i] = new TreeDB(i+1);
+                int j = i;
+                treeLoaders[i] = Task.Run(() => Trees[j].ReadFromFile());
+            }
+
+            await Task.WhenAll(treeLoaders);
+            stopwatch.Stop();
+            Trace.WriteLine($"Full tree loading took: {stopwatch.ElapsedMilliseconds}ms.");
+            DebugOutput.PrintLn($"Full tree loading took: {stopwatch.ElapsedMilliseconds}ms.");
+
+            // Formatting stuff
+            AcceptedImageExtensions.AddRange(ImageFormats.GetSupportedExtensions().Select(t => $".{t}"));
+            AcceptedImageDescriptions.AddRange(ImageFormats.GetSupportedExtensionsDescriptions());
+        }
+
+        public static string GetFullDialogAcceptedImageFilters()
+        {
+            var filters = AcceptedImageDescriptions.Zip(AcceptedImageExtensions, (one, two) => $"{one}|*.{two}").ToList();
+            return $"All Images | *.{String.Join(";*.", AcceptedImageExtensions)} | {String.Join("|", filters)}";
+        }
+
+        public static string BuildTexDetailsForCSV<T>(T tex) where T : AbstractTexInfo
+        {
+            StringBuilder texDetails = new StringBuilder();
+            texDetails.AppendLine($"Texture details for:, {tex.TexName}, with hash, {FormatTexmodHashAsString(tex.Hash)}");
+            texDetails.AppendLine();
+
+            // Details
+            texDetails.AppendLine($"Game Version, {tex.GameVersion}");
+            texDetails.AppendLine($"Format, {ToolsetTextureEngine.StringifyFormat(tex.Format)}");
+            texDetails.AppendLine($"Number of Mips, {tex.Mips}");
+            texDetails.AppendLine($"Dimensions (Width x Height), {tex.Width}x{tex.Height}");
+
+            var treetex = tex as TreeTexInfo;
+            if (treetex != null)
+            {
+                texDetails.AppendLine($"Package, {treetex.FullPackage}");
+                texDetails.AppendLine($"LODGroup (if available), {treetex.LODGroup}");
+                texDetails.AppendLine($"Storage Type (if available), {treetex.StorageType}");
+                texDetails.AppendLine($"Texture Cache (if available), {treetex.TextureCache}");
+            }
+
+            texDetails.AppendLine();
+            texDetails.AppendLine();
+            texDetails.AppendLine();
+
+            //////// PCCS ////////
+            // Column Headers
+            texDetails.AppendLine("Is Checked, Name, Export ID");
+
+            // PCC details
+            foreach (PCCEntry pcc in tex.PCCs)
+                texDetails.AppendLine($"{pcc.IsChecked}, {pcc.Name}, {pcc.ExpID}");
+
+            return texDetails.ToString();
+        }
 
         public static ImageEngineFormat ParseFormat(string formatString)
         {
@@ -62,7 +146,7 @@ namespace WPF_ME3Explorer.Textures
         internal static MemoryStream GenerateThumbnailToStream(MemoryStream source, int maxDimension, ImageEngineFormat format = ImageEngineFormat.JPG)
         {
             using (ImageEngineImage img = new ImageEngineImage(source, maxDimension))
-                return new MemoryStream(img.Save(format, MipHandling.KeepTopOnly, maxDimension));
+                return new MemoryStream(img.Save(new ImageFormats.ImageEngineFormatDetails(format), MipHandling.KeepTopOnly, maxDimension));
         }
 
         /// <summary>
@@ -285,7 +369,7 @@ namespace WPF_ME3Explorer.Textures
             {
                 byte[] data = tex2D.ExtractMaxImage(true);
                 using (ImageEngineImage img = new ImageEngineImage(data))
-                    img.Save(filename, format, BuildMips ? MipHandling.GenerateNew : MipHandling.KeepTopOnly);
+                    img.Save(filename, new ImageFormats.ImageEngineFormatDetails(format), BuildMips ? MipHandling.GenerateNew : MipHandling.KeepTopOnly);
             }
             else
                 tex2D.ExtractMaxImage(filename);

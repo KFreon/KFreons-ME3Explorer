@@ -121,9 +121,14 @@ namespace WPF_ME3Explorer.UI
                 }),
             };
 
-            // As VM should be created before this constructor is called, can do this check now.
-            if (vm.CurrentTree.Valid)
-                vm.TreePanelCloser();
+            var treecloser = new Action<Task>(r =>
+            {
+                // As VM should be created before this constructor is called, can do this check now.
+                if (vm.CurrentTree.Valid)
+                    vm.TreePanelCloser();
+            });
+
+            treecloser(null);
         }
 
         void GetBackgroundMovie()
@@ -381,7 +386,7 @@ namespace WPF_ME3Explorer.UI
         private void Extract_BrowseButton_Click(object sender, RoutedEventArgs e)
         {
             SaveFileDialog sfd = new SaveFileDialog();
-            sfd.Filter = vm.GetFullDialogFilters();
+            sfd.Filter = ToolsetTextureEngine.GetFullDialogAcceptedImageFilters();
             sfd.FileName = vm.SelectedTexture?.DefaultSaveName;
             sfd.Title = "Select destination for extracted texture";
 
@@ -397,11 +402,16 @@ namespace WPF_ME3Explorer.UI
         private void Change_BrowseButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = vm.GetFullDialogFilters();
+            ofd.Filter = ToolsetTextureEngine.GetFullDialogAcceptedImageFilters();
             ofd.Title = "Select image to replace";
 
             if (ofd.ShowDialog() == true)
                 vm.Change_SavePath = ofd.FileName;
+        }
+
+        private void ExtractPanelCloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.ShowExtractionPanel = false;
         }
     }
 }

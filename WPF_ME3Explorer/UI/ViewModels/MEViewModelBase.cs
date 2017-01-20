@@ -19,9 +19,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 {
     public class MEViewModelBase<T> : ViewModelBase where T : AbstractTexInfo
     {
-        public virtual List<string> AcceptedImageExtensions { get; set; } = new List<string>();
-        public virtual List<string> AcceptedImageDescriptions { get; set; } = new List<string>();
-
+        #region Properties
         protected CancellationTokenSource cts = new CancellationTokenSource();
 
         public bool CancellationRequested
@@ -150,11 +148,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
-        public TreeDB[] Trees { get; private set; } = new TreeDB[3];
         public MTRangedObservableCollection<T> Textures { get; protected set; } = new MTRangedObservableCollection<T>();
         public MEDirectories.MEDirectories GameDirecs { get; set; } = new MEDirectories.MEDirectories();
-
-        static readonly Object TreeLoadLocker = new object();
 
         string status = "Ready";
         public string Status
@@ -217,6 +212,14 @@ namespace WPF_ME3Explorer.UI.ViewModels
             set
             {
                 SetProperty(ref progressIndeterminate, value);
+            }
+        }
+
+        public TreeDB[] Trees
+        {
+            get
+            {
+                return ToolsetTextureEngine.Trees;
             }
         }
 
@@ -323,10 +326,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
         }
 
         public int StartTime = 0;
-
         DispatcherTimer timer = new DispatcherTimer();
+        #endregion Properties
 
-        static Task[] TreeLoadingTasks = new Task[3];
 
         static MEViewModelBase()
         {
@@ -336,23 +338,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Set up NumThreads
             Properties.Settings.Default.NumThreads = Environment.ProcessorCount;
             Properties.Settings.Default.Save();
-
-            // Setup Files
-            var gameFileLoaderTask = Task.Run(() =>
-            {
-                int start = Environment.TickCount;
-                var temp = MEDirectories.MEDirectories.ME1Files;
-                temp = MEDirectories.MEDirectories.ME2Files;
-                temp = MEDirectories.MEDirectories.ME3Files;
-                Console.WriteLine($"Game File Static Enumeration: {TimeSpan.FromMilliseconds(Environment.TickCount - start)}");
-            });
-
-            // Setup Trees - Sets up the underlying contents, not the objects themselves
-            for (int i = 0; i < 3; i++)
-            {
-                var tree = new TreeDB(i + 1);
-                TreeLoadingTasks[i] = Task.Run(() => tree.ReadFromFile());
-            }
         }
 
         public MEViewModelBase()
@@ -370,29 +355,25 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     ElapsedTime = TimeSpan.FromMilliseconds(Environment.TickCount - StartTime);
             };
             timer.Start();
-
-            // Formatting stuff
-            AcceptedImageExtensions.AddRange(ImageFormats.GetSupportedExtensions().Select(t => $".{t}"));
-            AcceptedImageDescriptions.AddRange(ImageFormats.GetSupportedExtensionsDescriptions());
         }
 
         /// <summary>
         /// Needed here instead of just incorporating it into constructor as GameVersion is required and can be different between tools.
         /// </summary>
-        protected void Setup()
+        protected async Task Setup()
         {
-            Task.WhenAll(TreeLoadingTasks).Wait();
+            Busy = true;
 
             // Setup Trees
             for (int i = 0; i < 3; i++)
             {
-                Trees[i] = new TreeDB(i + 1);
-                Trees[i].ReadFromFile();  // Shouldn't actually read from file, but will if required.
                 if (Trees[i].Valid)
                     SetupPCCCheckBoxLinking(Trees[i].Textures);
             }
 
             SetupCurrentTree();
+
+            Busy = false;
         }
 
         public virtual void Search(string searchText)
@@ -458,42 +439,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 }
                     
         }
-
-        protected string BuildTexDetailsForCSV(T tex)
-        {
-            StringBuilder texDetails = new StringBuilder();
-            texDetails.AppendLine($"Texture details for:, {tex.TexName}, with hash, {ToolsetTextureEngine.FormatTexmodHashAsString(tex.Hash)}");
-            texDetails.AppendLine();
-
-            // Details
-            texDetails.AppendLine($"Game Version, {tex.GameVersion}");
-            texDetails.AppendLine($"Format, {ToolsetTextureEngine.StringifyFormat(tex.Format)}");
-            texDetails.AppendLine($"Number of Mips, {tex.Mips}");
-            texDetails.AppendLine($"Dimensions (Width x Height), {tex.Width}x{tex.Height}");
-
-            var treetex = tex as TreeTexInfo;
-            if (treetex != null)
-            {
-                texDetails.AppendLine($"Package, {treetex.FullPackage}");
-                texDetails.AppendLine($"LODGroup (if available), {treetex.LODGroup}");
-                texDetails.AppendLine($"Storage Type (if available), {treetex.StorageType}");
-                texDetails.AppendLine($"Texture Cache (if available), {treetex.TextureCache}");
-            }
-
-            texDetails.AppendLine();
-            texDetails.AppendLine();
-            texDetails.AppendLine();
-
-            //////// PCCS ////////
-            // Column Headers
-            texDetails.AppendLine("Is Checked, Name, Export ID");
-
-            // PCC details
-            foreach (PCCEntry pcc in tex.PCCs)
-                texDetails.AppendLine($"{pcc.IsChecked}, {pcc.Name}, {pcc.ExpID}");
-
-            return texDetails.ToString();
-        }
+        
 
         internal void ExportSelectedTexturePCCList(string fileName)
         {
@@ -502,17 +448,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Progress = 0;
 
             using (StreamWriter writer = new StreamWriter(fileName))
-                writer.Write(BuildTexDetailsForCSV(SelectedTexture));
+                writer.Write(ToolsetTextureEngine.BuildTexDetailsForCSV(SelectedTexture));
 
             Status = $"PCCs exported to: {fileName}";
             Progress = MaxProgress;
             Busy = false;
-        }
-
-        internal string GetFullDialogFilters()
-        {
-            var filters = AcceptedImageDescriptions.Zip(AcceptedImageExtensions, (one, two) => $"{one}|*.{two}").ToList();
-            return $"All Images | *.{String.Join(";*.", AcceptedImageExtensions)} | {String.Join("|", filters)}";
         }
     }
 }

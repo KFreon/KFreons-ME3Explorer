@@ -87,6 +87,11 @@ namespace WPF_ME3Explorer.MEDirectories
             set
             {
                 SetProperty(ref gameVersion, value);
+                if (value != 0)
+                {
+                    ThumbnailCachePath = Path.Combine(StorageFolder, "ThumbnailCaches", "ME" + GameVersion + "ThumbnailCache.cache");
+                    BasePath = String.IsNullOrEmpty(PathBIOGame) ? null : Path.GetDirectoryName(PathBIOGame);
+                }
             }
         }
 
@@ -321,35 +326,22 @@ namespace WPF_ME3Explorer.MEDirectories
             }
         }
 
-        public string BasePath
-        {
-            get
-            {
-                if (String.IsNullOrEmpty(PathBIOGame))
-                    return null;
 
-                return Path.GetDirectoryName(PathBIOGame);
-            }
-        }
+        public string BasePath { get; private set; }
 
+        static string storageFolder = null;
         public static string StorageFolder
         {
             get
             {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ME3Explorer");
+                if (storageFolder == null)
+                    storageFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ME3Explorer");
+
+                return storageFolder;
             }
         }
 
-        public string ThumbnailCachePath
-        {
-            get
-            {
-                if (GameVersion == 0)
-                    return null;
-
-                return Path.Combine(StorageFolder, "ThumbnailCaches", "ME" + GameVersion + "ThumbnailCache.cache");
-            }
-        }
+        public string ThumbnailCachePath { get; private set; }
 
         public bool DoesGame1Exist
         {
@@ -495,7 +487,12 @@ namespace WPF_ME3Explorer.MEDirectories
         {
             List<string> files = new List<string>();
 
-            files = Directory.EnumerateFiles(searchPath, "*", recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).ToList();
+            //files = Directory.EnumerateFiles(searchPath, "*", recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).ToList();
+
+            List<string> folders = null;
+            bool thing = FileIOHelper.FindNextFilePInvokeRecursiveParalleled(searchPath, out files, out folders);
+
+
             DebugOutput.PrintLn($"Enumerated files for ME{GameVersion} in {searchPath}");
             files = EnumerateGameFiles(GameVersion, files, predicate);
             DebugOutput.PrintLn($"Filtered gamefiles for ME{GameVersion} in {searchPath}");

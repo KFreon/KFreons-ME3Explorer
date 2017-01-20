@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using WPF_ME3Explorer.Debugging;
+using WPF_ME3Explorer.Textures;
 
 namespace WPF_ME3Explorer
 {
@@ -21,26 +22,48 @@ namespace WPF_ME3Explorer
     /// </summary>
     public partial class MainWindow : Window
     {
+        static int UI_DelayTime = 200;
+
         public MainWindow()
         {
             InitializeComponent();
             DebugOutput.StartDebugger("The Toolset");
 
+            Startup();
+        }
+
+        async void Startup()
+        {
+            IsEnabled = false;
+
             // Load slow bits
-            var tex = ToolsetInfo.TexplorerInstance;
+            await ToolsetTextureEngine.Initialise();
+            /*var tex = ToolsetInfo.TexplorerInstance;
             var tpf = ToolsetInfo.TPFToolsInstance;
-            var mod = ToolsetInfo.ModmakerInstance;
+            var mod = ToolsetInfo.ModmakerInstance;*/
+
+            IsEnabled = true;
         }
 
-        private void TPFToolsButton_MouseDown(object sender, MouseButtonEventArgs e)
+        private async void TPFToolsButton_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            ToolsetInfo.TPFToolsInstance.vm.Busy = true;
             ToolsetInfo.TPFToolsInstance.Show();
+
+            await Task.Delay(UI_DelayTime);
+
+            ToolsetInfo.TPFToolsInstance.vm.Busy = false;
         }
 
-        private void TexplorerButton_MouseDown(object sender, MouseButtonEventArgs e)
+        private async void TexplorerButton_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            ToolsetInfo.TexplorerInstance.vm.Busy = true;
             ToolsetInfo.TexplorerInstance.Show();
             ToolsetInfo.TexplorerInstance.vm.Refresh();
+
+            await Task.Delay(UI_DelayTime);
+
+            ToolsetInfo.TexplorerInstance.vm.Busy = false;  // Needed as when form is shown, mouse can be over a button and trigger the button's command.
         }
 
         private void ModmakerButton_MouseDown(object sender, MouseButtonEventArgs e)

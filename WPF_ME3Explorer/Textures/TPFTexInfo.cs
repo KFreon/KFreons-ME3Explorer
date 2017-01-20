@@ -183,7 +183,7 @@ namespace WPF_ME3Explorer.Textures
                 {
                     using (MemoryStream ms = new MemoryStream())
                     {
-                        img.Save(ms, img.Format, MipHandling.KeepTopOnly);
+                        img.Save(ms, img.FormatDetails, MipHandling.KeepTopOnly);
                         var overlayed = ToolsetTextureEngine.OverlayAndPickDetailed(ms);
                         return UsefulThings.WPF.Images.CreateWPFBitmap(overlayed);
                     }
@@ -360,7 +360,7 @@ namespace WPF_ME3Explorer.Textures
                     
 
                     // Thumbnail
-                    Thumb.StreamThumb = new MemoryStream(image.Save(ImageEngineFormat.JPG, MipHandling.Default, 64));
+                    Thumb.StreamThumb = new MemoryStream(image.Save(new ImageFormats.ImageEngineFormatDetails(ImageEngineFormat.JPG), MipHandling.Default, 64));
                     image.Dispose();
                 }
 

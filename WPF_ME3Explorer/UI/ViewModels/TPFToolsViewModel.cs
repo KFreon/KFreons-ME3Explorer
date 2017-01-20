@@ -24,33 +24,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
         List<ZipReader> Zippys = new List<ZipReader>();
 
         #region Properties
-        List<string> acceptedImageDescriptions = new List<string>();
-        public override List<string> AcceptedImageDescriptions
-        {
-            get
-            {
-                return acceptedImageDescriptions;
-            }
-
-            set
-            {
-                acceptedImageDescriptions = value;
-            }
-        }
-
-        List<string> acceptedImageExtensions = new List<string>();
-        public override List<string> AcceptedImageExtensions
-        {
-            get
-            {
-                return acceptedImageExtensions;
-            }
-
-            set
-            {
-                acceptedImageExtensions = value;
-            }
-        }
+        public List<string> AcceptedImageExtensions = null;
+        public List<string> AcceptedImageDescriptions = null;
 
         #region TPFSave Properties
         bool isTPFBuilding = false;
@@ -462,16 +437,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         public TPFToolsViewModel() : base()
         {
-            AcceptedImageDescriptions.AddRange(base.AcceptedImageDescriptions);
-            AcceptedImageExtensions.AddRange(base.AcceptedImageExtensions);
+            DebugOutput.StartDebugger("TPFTools");
+
+            AcceptedImageDescriptions = ToolsetTextureEngine.AcceptedImageDescriptions;
+            AcceptedImageExtensions = ToolsetTextureEngine.AcceptedImageExtensions;
 
             AcceptedImageExtensions.Add(".tpf");
             AcceptedImageExtensions.Add(".metpf");
 
             AcceptedImageDescriptions.Add("Texmod Package");
             AcceptedImageDescriptions.Add("Old Toolset Texture Package");
-
-            DebugOutput.StartDebugger("TPFTools");
 
             MainDisplayView = CollectionViewSource.GetDefaultView(Textures);
             MainDisplayView.Filter = item => !((TPFTexInfo)item).IsHidden;
@@ -482,9 +457,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             TPFTexInfo.InstallCommand = installCommand;
             TPFTexInfo.ReplaceCommand = ReplaceCommand;
             TPFTexInfo.ExtractCommand = ExtractCommand;
-
-
-            Setup();
         }
 
         public override void Search(string searchText)
@@ -663,11 +635,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             Zippys.Add(zippy);
             return tempTexes;
-        }
-
-        void test()
-        {
-
         }
 
         uint FindHashInString(string hashString, string indicator)

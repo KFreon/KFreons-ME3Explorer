@@ -170,7 +170,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                                     sw.Write(imgData, 0, imgData.Length);
 
                                 // Create details csv
-                                string details = BuildTexDetailsForCSV(tex);
+                                string details = ToolsetTextureEngine.BuildTexDetailsForCSV(tex);
 
                                 // Put details into zip archive
                                 var csv = zipper.CreateEntry($"{Path.GetFileNameWithoutExtension(tex.DefaultSaveName)}_details.csv");
@@ -696,7 +696,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 // Try normal first - i.e. Replacing file is of correct format
                 OpenFileDialog ofd = new OpenFileDialog();
                 ofd.Title = "Select replacing image";
-                ofd.Filter = GetFullDialogFilters();
+                ofd.Filter = ToolsetTextureEngine.GetFullDialogAcceptedImageFilters();
                 ofd.CheckFileExists = true;
                 if (ofd.ShowDialog() != true)
                     return;
@@ -735,7 +735,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 // Default settings
                 Extract_SavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), SelectedTexture?.DefaultSaveName);
                 Extract_SaveFormat = SelectedTexture?.Format ?? ImageEngineFormat.Unknown;
-                Extract_BuildMips = true;
+                Extract_BuildMips = false;
 
                 ShowExtractionPanel = true;
             }));
@@ -765,13 +765,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             // Setup thumbnail writer - not used unless tree scanning.
             ThumbnailWriter = new ThumbnailWriter(GameDirecs);
-
-            Setup();
         }
 
         void Change_GeneratePreviews()
         {
-            var convData = change_origImg.Save(SelectedTexture.Format, MipHandling.KeepTopOnly);
+            var convData = change_origImg.Save(new ImageFormats.ImageEngineFormatDetails(SelectedTexture.Format), MipHandling.KeepTopOnly);
             ImageEngineImage conv = new ImageEngineImage(convData);
 
             change_ConvAlphaPreview = conv.GetWPFBitmap(ShowAlpha: true);
@@ -1501,6 +1499,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Progress = MaxProgress;
             Busy = false;
             Status = $"Texture: {tex.TexName} " + (error == null ? $"extracted to {filename}!" : $"failed to extract. Reason: {error}.");
+            showExtractionPanel = false;
         }
 
         internal void ME1_LowResFix(TreeTexInfo tex)

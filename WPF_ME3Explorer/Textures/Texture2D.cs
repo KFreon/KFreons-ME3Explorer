@@ -458,7 +458,7 @@ namespace WPF_ME3Explorer.Textures
                 imgInfo.CompressedSize = imgInfo.UncompressedSize; // Don't know why...
             }
 
-            byte[] imgData = imgFile.Save(imgFile.Format, MipHandling.KeepTopOnly);
+            byte[] imgData = imgFile.Save(imgFile.FormatDetails, MipHandling.KeepTopOnly);
             imgBuffer = ToolsetTextureEngine.RemoveDDSHeader(imgData);
 
             switch (imgInfo.storageType)

@@ -246,7 +246,8 @@ namespace WPF_ME3Explorer.Textures
             List<TreeTexInfo> TempTextures = new List<TreeTexInfo>();
             try
             {
-                using (MemoryStream ms = new MemoryStream(File.ReadAllBytes(tempFilename)))
+                //ing (MemoryStream ms = new MemoryStream(File.ReadAllBytes(tempFilename)))
+                using (FileStream ms = new FileStream(tempFilename, FileMode.Open))
                 {
                     using (GZipStream compressed = new GZipStream(ms, CompressionMode.Decompress))  // Compressed for nice small trees
                     {
@@ -274,7 +275,7 @@ namespace WPF_ME3Explorer.Textures
                                 for (int i = 0; i < pccCount; i++)
                                     ScannedPCCs.Add(bin.ReadString());
                             }
-                            
+
 
                             // Textures
                             lock (Textures)

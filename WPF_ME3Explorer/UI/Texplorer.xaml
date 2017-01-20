@@ -929,118 +929,134 @@
             </ListBox>
         </Grid>
 
-        <ContentControl x:Name="ExtractionPanel" Tag="{Binding ShowExtractionPanel}" Template="{StaticResource OperationPresenter}">
-            <StackPanel>
-                <StackPanel.Resources>
-                    <Style TargetType="DockPanel">
-                        <Setter Property="Margin" Value="3,3"/>
-                    </Style>
-                </StackPanel.Resources>
-                <Label Content="Texture Extraction" FontSize="30" FontWeight="Bold"/>
-
-                <DockPanel>
-                    <Label Content="Extract Path: " DockPanel.Dock="Left"/>
-                    <Button x:Name="Extract_BrowseButton" Content="Browse" DockPanel.Dock="Right" Click="Extract_BrowseButton_Click"/>
-                    <TextBox Text="{Binding Extract_SavePath}" VerticalContentAlignment="Center" Margin="10,0"/>
-                </DockPanel>
-
-                <DockPanel>
-                    <Label Content="Extract Format: "/>
-                    <ComboBox VerticalContentAlignment="Center" ItemsSource="{usefulUIElements:EnumToItemsSource {x:Type ImgLib:ImageEngineFormat}}" DisplayMemberPath="DisplayName" SelectedValue="{Binding Extract_SaveFormat, Mode=TwoWay}" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True"/>
-                </DockPanel>
-
-                <CheckBox IsChecked="{Binding Extract_BuildMips}" VerticalAlignment="Center" Content="Build Mipmaps?"/>
-
-                <Button Content="Extract!" Style="{StaticResource MainButtonStyle}" Padding="0,5" x:Name="Extract_ExtractButton" Command="{Binding Extract_ExtractCommand}"/>
-            </StackPanel>
-        </ContentControl>
-
-        <ContentControl x:Name="ChangePanel" Tag="{Binding ShowChangePanel}" Template="{StaticResource OperationPresenter}">
-            <StackPanel>
-                <StackPanel.Resources>
-                    <Style TargetType="TextBlock" x:Key="MainBlocks">
-                        <Setter Property="Margin" Value="2,2"/>
-                    </Style>
-
-                    <Style TargetType="DockPanel">
-                        <Setter Property="Margin" Value="3,3"/>
-                    </Style>
-                </StackPanel.Resources>
-                <Label Content="Change Texture" FontSize="30" FontWeight="Bold"/>
-
-                <DockPanel>
-                    <Label Content="Replacing Path: " DockPanel.Dock="Left"/>
-                    <Button x:Name="Change_BrowseButton" Content="Browse" DockPanel.Dock="Right" Click="Change_BrowseButton_Click"/>
-                    <TextBox Text="{Binding Change_SavePath}" VerticalContentAlignment="Center" Margin="10,0"/>
-                </DockPanel>
-
-                <CheckBox x:Name="Change_BackgroundToggle" Content="White Preview Backgrounds" VerticalContentAlignment="Center" Margin="6,5,6,2"/>
-                <CheckBox x:Name="Change_AlphaToggle" Content="Display Composite (incl Alpha Channel)" VerticalContentAlignment="Center" Margin="6,2,5,6" IsChecked="{Binding Change_DisplayAlpha, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <Grid Margin="0,0,0,5">
-                    <Grid.Style>
-                        <Style TargetType="Grid">
-                            <Setter Property="Background" Value="Black"/>
-
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding ElementName=Change_BackgroundToggle, Path=IsChecked}" Value="true">
-                                    <Setter Property="Background" Value="White"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Grid.Style>
-                    <Grid.Resources>
-                        <Style TargetType="Image">
-                            <Setter Property="MaxWidth" Value="512"/>
-                            <Setter Property="MaxHeight" Value="512"/>
-                        </Style>
-                    </Grid.Resources>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="2*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="10*"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <Image Source="{Binding Change_OrigPreview}"/>
-                    <Image Grid.Column="1" Source="{Binding Change_ConvPreview}"/>
-
-                    <Label Background="White" Content="Preview" HorizontalContentAlignment="Center" Grid.Row="1"/>
-                    <Label Background="White" Content="Auto-Converted Preview" HorizontalContentAlignment="Center" Grid.Row="1" Grid.Column="1"/>
-                </Grid>
-
+        <Border x:Name="ExtractionPanel" Tag="{Binding ShowExtractionPanel}" Style="{StaticResource FadedBackgroundBorder}">
+            <Border Style="{StaticResource FadedInnerBorder}">
                 <StackPanel>
-                    <Label Content="DXT1 - Alpha Blending" FontSize="12" FontWeight="Bold"/>
-                    <StackPanel Orientation="Horizontal">
-                        <StackPanel.Resources>
-                            <Style TargetType="CheckBox">
-                                <Setter Property="Margin" Value="0,0,15,0"/>
-                            </Style>
-                        </StackPanel.Resources>
-                        <CheckBox Content="Remove" IsChecked="{Binding Change_RemoveAlpha}"/>
-                        <CheckBox Content="Flatten" IsChecked="{Binding Change_FlattenAlpha}"/>
-                    </StackPanel>
-                    <Label Content="Alpha Threshold" FontStyle="Italic"/>
-                    <Slider Minimum="0" Maximum="100" Value="{Binding Change_AlphaThreshold, Mode=TwoWay}" IsEnabled="{Binding Change_FlattenAlpha}"/>
-                </StackPanel>
+                    <StackPanel.Resources>
+                        <Style TargetType="DockPanel">
+                            <Setter Property="Margin" Value="3,3"/>
+                        </Style>
 
-                <TextBlock Style="{StaticResource MainBlocks}">
+                        <Style TargetType="TextBox">
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Setter Property="Margin" Value="5,0"/>
+                        </Style>
+
+                        <Style TargetType="Label">
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Style>
+                    </StackPanel.Resources>
+                    <Label Content="Texture Extraction" FontSize="30" FontWeight="Bold" HorizontalAlignment="Center"/>
+
+                    <DockPanel>
+                        <Label Content="Extract Path: " DockPanel.Dock="Left"/>
+                        <Button x:Name="Extract_BrowseButton" Content="Browse" DockPanel.Dock="Right" Click="Extract_BrowseButton_Click" Padding="8,5"/>
+                        <TextBox Text="{Binding Extract_SavePath}" VerticalContentAlignment="Center" Margin="10,0"/>
+                    </DockPanel>
+
+                    <DockPanel LastChildFill="False">
+                        <Label Content="Extract Format: "/>
+                        <ComboBox VerticalContentAlignment="Center" ItemsSource="{usefulUIElements:EnumToItemsSource {x:Type ImgLib:ImageEngineFormat}}" DisplayMemberPath="DisplayName" SelectedValue="{Binding Extract_SaveFormat, Mode=TwoWay}" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True"/>
+                    </DockPanel>
+
+                    <CheckBox IsChecked="{Binding Extract_BuildMips}" VerticalAlignment="Center" Content="Build Mipmaps?" Margin="0,5"/>
+
+                    <DockPanel LastChildFill="False">
+                        <Button Content="Extract!" Style="{StaticResource MainButtonStyle}" Padding="8,5" x:Name="Extract_ExtractButton" Command="{Binding Extract_ExtractCommand}" HorizontalAlignment="Center"/>
+                        <Button x:Name="ExtractPanelCloseButton" Content="Close" Style="{StaticResource MainButtonStyle}" Padding="8,5" DockPanel.Dock="Right" Click="ExtractPanelCloseButton_Click"/>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <Border x:Name="ChangePanel" Tag="{Binding ShowChangePanel}" Style="{StaticResource FadedBackgroundBorder}">
+            <Border Style="{StaticResource FadedInnerBorder}">
+                <StackPanel>
+                    <StackPanel.Resources>
+                        <Style TargetType="TextBlock" x:Key="MainBlocks">
+                            <Setter Property="Margin" Value="2,2"/>
+                        </Style>
+
+                        <Style TargetType="DockPanel">
+                            <Setter Property="Margin" Value="3,3"/>
+                        </Style>
+                    </StackPanel.Resources>
+                    <Label Content="Change Texture" FontSize="30" FontWeight="Bold"/>
+
+                    <DockPanel>
+                        <Label Content="Replacing Path: " DockPanel.Dock="Left"/>
+                        <Button x:Name="Change_BrowseButton" Content="Browse" DockPanel.Dock="Right" Click="Change_BrowseButton_Click"/>
+                        <TextBox Text="{Binding Change_SavePath}" VerticalContentAlignment="Center" Margin="10,0"/>
+                    </DockPanel>
+
+                    <CheckBox x:Name="Change_BackgroundToggle" Content="White Preview Backgrounds" VerticalContentAlignment="Center" Margin="6,5,6,2"/>
+                    <CheckBox x:Name="Change_AlphaToggle" Content="Display Composite (incl Alpha Channel)" VerticalContentAlignment="Center" Margin="6,2,5,6" IsChecked="{Binding Change_DisplayAlpha, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <Grid Margin="0,0,0,5">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Background" Value="Black"/>
+
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=Change_BackgroundToggle, Path=IsChecked}" Value="true">
+                                        <Setter Property="Background" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.Resources>
+                            <Style TargetType="Image">
+                                <Setter Property="MaxWidth" Value="512"/>
+                                <Setter Property="MaxHeight" Value="512"/>
+                            </Style>
+                        </Grid.Resources>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="2*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="10*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Image Source="{Binding Change_OrigPreview}"/>
+                        <Image Grid.Column="1" Source="{Binding Change_ConvPreview}"/>
+
+                        <Label Background="White" Content="Preview" HorizontalContentAlignment="Center" Grid.Row="1"/>
+                        <Label Background="White" Content="Auto-Converted Preview" HorizontalContentAlignment="Center" Grid.Row="1" Grid.Column="1"/>
+                    </Grid>
+
+                    <StackPanel>
+                        <Label Content="DXT1 - Alpha Blending" FontSize="12" FontWeight="Bold"/>
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel.Resources>
+                                <Style TargetType="CheckBox">
+                                    <Setter Property="Margin" Value="0,0,15,0"/>
+                                </Style>
+                            </StackPanel.Resources>
+                            <CheckBox Content="Remove" IsChecked="{Binding Change_RemoveAlpha}"/>
+                            <CheckBox Content="Flatten" IsChecked="{Binding Change_FlattenAlpha}"/>
+                        </StackPanel>
+                        <Label Content="Alpha Threshold" FontStyle="Italic"/>
+                        <Slider Minimum="0" Maximum="100" Value="{Binding Change_AlphaThreshold, Mode=TwoWay}" IsEnabled="{Binding Change_FlattenAlpha}"/>
+                    </StackPanel>
+
+                    <TextBlock Style="{StaticResource MainBlocks}">
                         <Run>
                             Tree Texture Format: 
                         </Run>
                         <Run Text="{Binding Change_TreeFormat, Converter={StaticResource ImageEngineFormatConverter}}"/>
-                </TextBlock>
+                    </TextBlock>
 
-                <TextBlock Style="{StaticResource MainBlocks}">
+                    <TextBlock Style="{StaticResource MainBlocks}">
                         <Run>
                             Replacing Texture Format: 
                         </Run>
                         <Run Text="{Binding Change_ReplacingFormat, Converter={StaticResource ImageEngineFormatConverter}}"/>
-                </TextBlock>
+                    </TextBlock>
 
-                <Button Content="Change Texture!" Style="{StaticResource MainButtonStyle}" Padding="0,5" x:Name="Change_ChangeButton" Command="{Binding Change_ChangeCommand}" Margin="0,10,0,0"/>
-            </StackPanel>
-        </ContentControl>
+                    <Button Content="Change Texture!" Style="{StaticResource MainButtonStyle}" Padding="0,5" x:Name="Change_ChangeButton" Command="{Binding Change_ChangeCommand}" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+        </Border>
     </Grid>
 </Window>
