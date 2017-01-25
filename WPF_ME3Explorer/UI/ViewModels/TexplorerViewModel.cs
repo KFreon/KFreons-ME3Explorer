@@ -103,7 +103,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
 
                         // Update tree - thumb change only
-                        CurrentTree.SaveToFile();
+                        await Task.Run(() => CurrentTree.SaveToFile());
 
                         // Close progress
                         if (texes.Length > 5)
@@ -137,53 +137,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     }));
 
                 return changeTree;
-            }
-        }
-
-        CommandHandler exportTexAndInfoCommand = null;
-        public CommandHandler ExportTexAndInfoCommand
-        {
-            get
-            {
-                if (exportTexAndInfoCommand ==null)
-                    exportTexAndInfoCommand = new CommandHandler(new Action<object>(param =>
-                    {
-                        var tex = (TreeTexInfo)param;
-
-                        SaveFileDialog sfd = new SaveFileDialog();
-                        sfd.FileName = Path.GetFileNameWithoutExtension(tex.DefaultSaveName) + ".zip";
-                        sfd.Filter = "Compressed Files|*.zip";
-                        sfd.Title = "Select destination for texture information";
-                        if (sfd.ShowDialog() != true)
-                            return;
-
-                        using (FileStream fs = new FileStream(sfd.FileName, FileMode.Create))
-                        {
-                            using (ZipArchive zipper = new ZipArchive(fs, ZipArchiveMode.Update)) // Just a container
-                            {
-                                // Extract texture itself.
-                                var imgData = ToolsetTextureEngine.ExtractTexture(tex);
-
-                                // Put texture into zip archive
-                                var img = zipper.CreateEntry(tex.DefaultSaveName);
-                                using (Stream sw = img.Open())
-                                    sw.Write(imgData, 0, imgData.Length);
-
-                                // Create details csv
-                                string details = ToolsetTextureEngine.BuildTexDetailsForCSV(tex);
-
-                                // Put details into zip archive
-                                var csv = zipper.CreateEntry($"{Path.GetFileNameWithoutExtension(tex.DefaultSaveName)}_details.csv");
-                                using (Stream sw = csv.Open())
-                                {
-                                    var arr = Encoding.Default.GetBytes(details);
-                                    sw.Write(arr, 0, arr.Length);
-                                }
-                            }
-                        }
-                    }));
-
-                return exportTexAndInfoCommand;
             }
         }
 
@@ -542,6 +495,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 // Clear results if no search performed.
                 if (String.IsNullOrEmpty(value))
                     TextureSearchResults.Clear();
+
+                OnPropertyChanged(nameof(HasSearchResults));
+            }
+        }
+
+        public bool HasSearchResults
+        {
+            get
+            {
+                return TextureSearchResults.Count > 0;
             }
         }
 
@@ -651,6 +614,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             RefreshTreeRelatedProperties();
         }
 
+        bool DisableFTSUpdating = false;
+
         public TexplorerViewModel() : base()
         {
             DebugOutput.StartDebugger("Texplorer");
@@ -688,7 +653,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
             };
             #endregion FTS Filtering
 
-            AbstractFileEntry.Updater = new Action(() => UpdateFTS());
+
+            AbstractFileEntry.Updater = new Action(() =>
+            {
+                if (!DisableFTSUpdating)
+                    UpdateFTS();
+            });
 
             #region Setup Texture UI Commands
             TreeTexInfo.ChangeCommand = new CommandHandler(new Action<object>(async param =>
@@ -730,6 +700,42 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 });
             }));
 
+            TreeTexInfo.ExportTexAndInfoCommand = new CommandHandler(new Action<object>(obj =>
+            {
+                TreeTexInfo tex = (TreeTexInfo)obj;
+                SaveFileDialog sfd = new SaveFileDialog();
+                sfd.FileName = Path.GetFileNameWithoutExtension(tex.DefaultSaveName) + ".zip";
+                sfd.Filter = "Compressed Files|*.zip";
+                sfd.Title = "Select destination for texture information";
+                if (sfd.ShowDialog() != true)
+                    return;
+
+                using (FileStream fs = new FileStream(sfd.FileName, FileMode.Create))
+                {
+                    using (ZipArchive zipper = new ZipArchive(fs, ZipArchiveMode.Update)) // Just a container
+                    {
+                        // Extract texture itself.
+                        var imgData = ToolsetTextureEngine.ExtractTexture(tex);
+
+                        // Put texture into zip archive
+                        var img = zipper.CreateEntry(tex.DefaultSaveName);
+                        using (Stream sw = img.Open())
+                            sw.Write(imgData, 0, imgData.Length);
+
+                        // Create details csv
+                        string details = ToolsetTextureEngine.BuildTexDetailsForCSV(tex);
+
+                        // Put details into zip archive
+                        var csv = zipper.CreateEntry($"{Path.GetFileNameWithoutExtension(tex.DefaultSaveName)}_details.csv");
+                        using (Stream sw = csv.Open())
+                        {
+                            var arr = Encoding.Default.GetBytes(details);
+                            sw.Write(arr, 0, arr.Length);
+                        }
+                    }
+                }
+            }));
+
             TreeTexInfo.ExtractCommand = new CommandHandler(new Action<object>(tex =>
             {
                 // Default settings
@@ -765,6 +771,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             // Setup thumbnail writer - not used unless tree scanning.
             ThumbnailWriter = new ThumbnailWriter(GameDirecs);
+
+            Setup();
         }
 
         void Change_GeneratePreviews()
@@ -971,6 +979,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             if (Trees[gameVersion - 1].Valid)
             {
+                DisableFTSUpdating = true;
+
                 /* Find any existing exclusions from when tree was created.*/
                 // Set excluded DLC's checked first
                 tempDLCs.ForEach(dlc => dlc.IsChecked = !dlc.Files.Any(file => CurrentTree.ScannedPCCs.Contains(file.FilePath)));
@@ -978,6 +988,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 // Then set all remaining exlusions
                 foreach (DLCEntry dlc in tempDLCs.Where(dlc => !dlc.IsChecked))
                     dlc.Files.ForEach(file => file.IsChecked = !CurrentTree.ScannedPCCs.Contains(file.FilePath));
+
+                DisableFTSUpdating = false;
             }
             
 
@@ -1108,7 +1120,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
 
             StartTime = 0; // Stop Elapsed Time from counting
-            ThumbnailWriter.FinishAdding();
 
             if (cts.IsCancellationRequested)
             {
@@ -1128,6 +1139,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             DebugOutput.PrintLn($"Treescan completed. Elapsed time: {ElapsedTime}. Num Textures: {CurrentTree.Textures.Count}.");
             
             CurrentTree.Valid = true; // It was just scanned after all.
+            ThumbnailWriter.FinishAdding();
 
             // Put away TreeScanProgress Window
             ProgressCloser();
@@ -1211,6 +1223,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Debug.WriteLine($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}");
             DebugOutput.PrintLn($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}");
 
+            SetupCurrentTree();
+
             Progress = MaxProgress;
 
             if (cts.IsCancellationRequested)
@@ -1288,18 +1302,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
 
         // Much thanks to Aquadran for his idea of removing the null pointers to prevent weird texture displays when upscaling.
-        bool RemoveInvalidTexEntries(Texture2D tex2D)
+        bool RemoveInvalidTexEntries(PCCObject pcc, Texture2D tex2D)
         {
             // Remove null pointers
             if (tex2D.ImageList.Any(t => t.storageType == Texture2D.storage.empty || t.Offset == -1 || t.CompressedSize == -1))
             {
                 // imgdata/header/footer?,
                 tex2D.ImageList.RemoveAll(t => t.storageType == Texture2D.storage.empty || t.Offset == -1 || t.CompressedSize == -1);
-                if (tex2D.ImageList.Any())
-                {
-                    tex2D.UpdateSizeProperties(tex2D.ImageList[0].ImageSize.Width, tex2D.ImageList[0].ImageSize.Height, true);
-                    tex2D.UpdateMipCountProperty();
-                }
+                tex2D.UpdateSizeProperties(tex2D.ImageList[0].ImageSize.Width, tex2D.ImageList[0].ImageSize.Height, true);
+                tex2D.UpdateMipCountProperty();
+                
+                // Save tex2D's to PCC
+                ToolsetTextureEngine.SaveTex2DToPCC(pcc, tex2D, GameDirecs, tex2D.pccExpIdx);
+                
                 return true;
             }
 
@@ -1328,7 +1343,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 foreach (var tex in group.Distinct())
                 {
                     var tex2D = new Texture2D(pcc, tex.ExpID, GameDirecs);
-                    if (RemoveInvalidTexEntries(tex2D))
+                    if (RemoveInvalidTexEntries(pcc, tex2D))
                         requiresSave = true;
                 }
 
@@ -1362,7 +1377,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     {
                         tex2D = new Texture2D(pcc, i, GameDirecs);
 
-                        if (RemoveNullPointers && RemoveInvalidTexEntries(tex2D))
+                        if (RemoveNullPointers && RemoveInvalidTexEntries(pcc, tex2D))
                             pccRequiresSave = true;
                     }
                     catch (Exception e)
@@ -1388,7 +1403,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                         Errors.Add(e.ToString());
                     }
                 }
-
+                
                 // Save PCC if nulls removed
                 if (RemoveNullPointers && pccRequiresSave)
                     pcc.SaveToFile(pcc.pccFileName);
@@ -1412,15 +1427,21 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             using (PCCObject pcc = new PCCObject(texInfo.PCCs[0].Name, GameVersion))
             {
-                using (Texture2D tex2D = new Texture2D(pcc, texInfo.PCCs[0].ExpID, GameDirecs))
-                {
-                    byte[] img = tex2D.ExtractMaxImage(true);
-                    using (ImageEngineImage jpg = new ImageEngineImage(img))
-                        PreviewImage = jpg.GetWPFBitmap();
-
-                    img = null;
-                }
+                if (texInfo.HasChanged)
+                    SetPreview(texInfo.ChangedAssociatedTexture);
+                else
+                    using (Texture2D tex2D = new Texture2D(pcc, texInfo.PCCs[0].ExpID, GameDirecs))
+                        SetPreview(tex2D);
             }
+        }
+
+        void SetPreview(Texture2D tex2D)
+        {
+            byte[] img = tex2D.ExtractMaxImage(true);
+            using (ImageEngineImage jpg = new ImageEngineImage(img))
+                PreviewImage = jpg.GetWPFBitmap();
+
+            img = null;
         }
 
         // This is going to change to pipeline TPL stuff when TPFTools comes along
@@ -1545,13 +1566,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             RefreshTreeRelatedProperties();
 
+            DisableFTSUpdating = true;
+
             // Clear exclusions
-            foreach (var dlc in FTSDLCs)
-                dlc.IsChecked = false;
+            for (int i = 0; i < FTSDLCs.Count; i++)
+                FTSDLCs[i].IsChecked = false;
 
-            foreach (var file in FTSGameFiles)
-                file.IsChecked = false;
+            for (int i = 0; i < FTSGameFiles.Count; i++)
+                FTSGameFiles[i].IsChecked = false;
 
+            DisableFTSUpdating = false;
 
             LoadFTSandTree(true);
         }
@@ -1563,16 +1587,44 @@ namespace WPF_ME3Explorer.UI.ViewModels
             if (String.IsNullOrEmpty(searchText))
                 return;
 
-            ConcurrentBag<TreeTexInfo> tempResults = new ConcurrentBag<TreeTexInfo>();
+            ConcurrentBag<TreeTexInfo> names = new ConcurrentBag<TreeTexInfo>();
+            ConcurrentBag<TreeTexInfo> pccs = new ConcurrentBag<TreeTexInfo>();
+            ConcurrentBag<TreeTexInfo> expIDs = new ConcurrentBag<TreeTexInfo>();
+            ConcurrentBag<TreeTexInfo> hashes = new ConcurrentBag<TreeTexInfo>();
+            ConcurrentBag<TreeTexInfo> formats = new ConcurrentBag<TreeTexInfo>();
 
             Parallel.ForEach(Textures, texture =>
             {
-                bool found = texture.Searchables.Any(searchable => searchable.Contains(searchText, StringComparison.OrdinalIgnoreCase));
-                if (found)
-                    tempResults.Add(texture);
+                for (int i = 0; i < texture.Searchables.Count; i++)
+                {
+                    bool found = texture.Searchables[i].Contains(searchText, StringComparison.OrdinalIgnoreCase);
+                    if (found)
+                        switch (i)
+                        {
+                            case 0:
+                                names.Add(texture);
+                                break;
+                            case 1:
+                                pccs.Add(texture);
+                                break;
+                            case 2:
+                                expIDs.Add(texture);
+                                break;
+                            case 3:
+                                hashes.Add(texture);
+                                break;
+                            case 4:
+                                formats.Add(texture);
+                                break;
+                        }
+                }
             });
 
-            TextureSearchResults.AddRange(tempResults);
+            TextureSearchResults.AddRange(names);
+            TextureSearchResults.AddRange(pccs);
+            TextureSearchResults.AddRange(expIDs);
+            TextureSearchResults.AddRange(hashes);
+            TextureSearchResults.AddRange(formats);
         }
 
         public void Refresh()

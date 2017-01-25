@@ -22,7 +22,7 @@ namespace WPF_ME3Explorer
     /// </summary>
     public partial class MainWindow : Window
     {
-        static int UI_DelayTime = 200;
+        static int UI_DelayTime = 100;
 
         public MainWindow()
         {

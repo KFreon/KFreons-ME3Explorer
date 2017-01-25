@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -91,7 +92,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             DelegateProperty = 11
         }
 
-
+        [DebuggerDisplay("{Name}: {Value.StringValue}, {Value.IntValue}")]
         public class Property
         {
             public string Name;

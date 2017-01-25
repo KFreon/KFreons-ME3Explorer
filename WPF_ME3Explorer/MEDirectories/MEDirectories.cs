@@ -67,7 +67,7 @@ namespace WPF_ME3Explorer.MEDirectories
         {
             get
             {
-                return customCachePath ?? Path.Combine(PathBIOGame, "CustTextures.tfc"); // Default
+                return customCachePath ?? Path.Combine(PathCooked, "CustTextures.tfc"); // Default
             }
             set
             {

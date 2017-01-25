@@ -57,7 +57,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             get
             {
 
-                uint max = Exports.Max(maxExport => maxExport.DataOffset);
+                /*uint max = Exports.Max(maxExport => maxExport.DataOffset);
                 ExportEntry lastEntry = null;
                 foreach (ExportEntry ex in Exports)
                 {
@@ -68,7 +68,8 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
                     }
 
                 }
-                return (long)(lastEntry.DataOffset + lastEntry.DataSize);
+                return (long)(lastEntry.DataOffset + lastEntry.DataSize);*/
+                return listsStream.Length;
             }
         }
 

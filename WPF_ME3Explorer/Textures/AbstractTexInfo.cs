@@ -150,21 +150,25 @@ namespace WPF_ME3Explorer.Textures
             GameDirecs = direcs;
         }
 
+        List<string> searchables = null;
         public virtual List<string> Searchables
         {
             get
             {
-                List<string> searchables = new List<string>();
+                if (searchables == null)
+                {
+                    searchables = new List<string>();
+                    searchables.Add(TexName);
+                    var pccs = PCCs.Select(pcc => pcc.Name);
+                    var expIDs = PCCs.Select(pcc => pcc.ExpID.ToString());
+                    searchables.AddRange(pccs);
+                    searchables.AddRange(expIDs);
+                    searchables.Add(ToolsetTextureEngine.FormatTexmodHashAsString(Hash));
+                    searchables.Add(Format.ToString());
 
-                searchables.Add(TexName);
-                var pccs = PCCs.Select(pcc => pcc.Name);
-                var expIDs = PCCs.Select(pcc => pcc.ExpID.ToString());
-                searchables.AddRange(pccs);
-                searchables.AddRange(expIDs);
-                searchables.Add(ToolsetTextureEngine.FormatTexmodHashAsString(Hash));
-                searchables.Add(Format.ToString());
-
-                searchables.RemoveAll(t => t == null);  // Remove empty items
+                    searchables.RemoveAll(t => t == null);  // Remove empty items
+                }
+                
                 return searchables;
             }
         }

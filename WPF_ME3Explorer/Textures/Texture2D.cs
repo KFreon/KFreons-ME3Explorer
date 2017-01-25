@@ -76,8 +76,8 @@ namespace WPF_ME3Explorer.Textures
         public List<int> expIDs { get; set; }
         public int pccExpIdx { get; set; }
 
-        public static IEnumerable<string> ME3TFCs = null;
-        public static IEnumerable<string> ME2TFCs = null;
+        public static List<string> ME3TFCs = null;
+        public static List<string> ME2TFCs = null;
         public static Dictionary<string, string> ME1_Filenames_Paths = new Dictionary<string, string>();
 
 
@@ -105,10 +105,10 @@ namespace WPF_ME3Explorer.Textures
 
             // Doesn't matter that it does ME2 and 3, it's all deferred evaluation, so it only assigns a "job" to each one and doesn't do anything with it unless asked to.
             if (ME3TFCs == null)
-                ME3TFCs = MEDirectories.MEDirectories.ME3Files?.Where(file => file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase));
+                ME3TFCs = MEDirectories.MEDirectories.ME3Files?.Where(file => file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase))?.ToList();
 
             if (ME2TFCs == null)
-                ME2TFCs = MEDirectories.MEDirectories.ME2Files?.Where(file => file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase));
+                ME2TFCs = MEDirectories.MEDirectories.ME2Files?.Where(file => file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase))?.ToList();
         }
 
 
@@ -406,9 +406,11 @@ namespace WPF_ME3Explorer.Textures
             File.WriteAllBytes(filename, data);
         }
 
-        void SingleImageUpscale(ImageEngineImage imgFile)
+        void SingleImageUpscale(ImageEngineImage imgFile, int mipIndex)
         {
-            ImageSize biggerImageSizeOnList = ImageList.Max(image => image.ImageSize);
+            var mip = imgFile.MipMaps[mipIndex];
+            ImageSize imgSize = new ImageSize(mip.Width, mip.Height);
+
             // check if replacing image is supported
             ImageEngineFormat imageFileFormat = imgFile.Format;
 
@@ -420,26 +422,24 @@ namespace WPF_ME3Explorer.Textures
             // !!! warning, this method breaks consistency between imgList and imageData[] !!!
             ImageInfo newImgInfo = new ImageInfo();
             newImgInfo.storageType = ImageList.Find(img => img.storageType != storage.empty && img.storageType != storage.pccSto).storageType;
-            newImgInfo.ImageSize = new ImageSize(imgFile.Width, imgFile.Height);
-            newImgInfo.UncompressedSize = 
+            newImgInfo.ImageSize = new ImageSize(mip.Width, mip.Height);
+            newImgInfo.UncompressedSize = ImageFormats.GetCompressedSize(1, new ImageFormats.ImageEngineFormatDetails(texFormat), mip.Width, mip.Height) - 128;  // "Uncompressed" means LZO uncompressed, as in just the image file size.
             newImgInfo.CompressedSize = 0x00; // not yet filled
             newImgInfo.Offset = 0x00; // not yet filled
             ImageList.RemoveAt(0);  // Remove old single image and add new one
             ImageList.Add(newImgInfo);
             //now I let believe the program that I'm doing an image replace, saving lot of code ;)
-            ReplaceImage(newImgInfo.ImageSize, imgFile);
+            ReplaceImage(imgFile, mipIndex);
 
             // update Sizes
             UpdateSizeProperties((int)newImgInfo.ImageSize.Width, (int)newImgInfo.ImageSize.Height, true);
         }
 
-        int GetUncompressedSize(ImageEngineImage img)
+	    void ReplaceImage(ImageEngineImage imgFile, int mipIndex)
         {
-            return ImageFormats.GetUncompressedSize(img.Width, img.Height, img.NumberOfChannels, false);
-        }
+            var mip = imgFile.MipMaps[mipIndex];
+            ImageSize imgSize = new ImageSize(mip.Width, mip.Height);
 
-	    void ReplaceImage(ImageSize imgSize, ImageEngineImage imgFile)
-        {
             if (!ImageList.Exists(img => img.ImageSize == imgSize))
                 throw new FileNotFoundException($"Image with resolution {imgSize} isn't found");
 
@@ -454,11 +454,12 @@ namespace WPF_ME3Explorer.Textures
             if (imgInfo.storageType == storage.empty)
             {
                 imgInfo.storageType = ImageList.Find(img => img.storageType != storage.empty && img.storageType != storage.pccSto).storageType;
-                imgInfo.UncompressedSize = GetUncompressedSize(imgFile);
-                imgInfo.CompressedSize = imgInfo.UncompressedSize; // Don't know why...
+                imgInfo.UncompressedSize = ImageFormats.GetCompressedSize(1, new ImageFormats.ImageEngineFormatDetails(texFormat), imgSize.Width, imgSize.Height) - 128;  // "Uncompressed" means LZO uncompressed, as in just the image file size.
+                imgInfo.CompressedSize = 0; // Gets set later
             }
 
-            byte[] imgData = imgFile.Save(imgFile.FormatDetails, MipHandling.KeepTopOnly);
+            // Keep using imgFile here, as it's the bit that does the saving.
+            byte[] imgData = imgFile.Save(imgFile.FormatDetails, MipHandling.KeepTopOnly, mipToSave: mipIndex, removeAlpha: false);
             imgBuffer = ToolsetTextureEngine.RemoveDDSHeader(imgData);
 
             switch (imgInfo.storageType)
@@ -550,7 +551,7 @@ namespace WPF_ME3Explorer.Textures
                             imgInfo.Offset = (int)dataStream.Position;
                         dataStream.WriteBytes(imgBuffer);
                         imgInfo.CompressedSize = imgBuffer.Length;
-                        imgInfo.UncompressedSize = GetUncompressedSize(imgFile);
+                        imgInfo.UncompressedSize = imgFile.MipMaps.Find(img => img.Width == imgSize.Width).UncompressedSize;
                         imageData = dataStream.ToArray();
                     }
                     break;
@@ -616,7 +617,7 @@ namespace WPF_ME3Explorer.Textures
 
         internal void UpdateMipCountProperty()
         {
-            int propVal = ImageList.Count;
+            int propVal = ImageList.Count - 1;
             properties["MipTailBaseIdx"].Value.IntValue = propVal;
             using (MemoryStream rawStream = new MemoryStream(properties["MipTailBaseIdx"].raw))
             {
@@ -626,38 +627,36 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        void AddBiggerImage(ImageEngineImage imgFile)
+        void AddBiggerImage(ImageEngineImage imgFile, int mipIndex)
         {
             ImageSize biggerImageSizeOnList = ImageList.Max(image => image.ImageSize);
+            var mip = imgFile.MipMaps[mipIndex];
 
             // KFreon: Format check not required. Auto conversion enabled.
 
             // check if image to add is valid
-            if (biggerImageSizeOnList.Width * 2 != imgFile.Width || biggerImageSizeOnList.Height * 2 != imgFile.Height)
-                throw new FormatException($"image size {imgFile.Width}x{imgFile.Height} isn't valid, must be " + new ImageSize(biggerImageSizeOnList.Width * 2, biggerImageSizeOnList.Height * 2));
+            if (biggerImageSizeOnList.Width * 2 != mip.Width || biggerImageSizeOnList.Height * 2 != mip.Height)
+                throw new FormatException($"image size {mip.Width}x{mip.Height} isn't valid, must be " + new ImageSize(biggerImageSizeOnList.Width * 2, biggerImageSizeOnList.Height * 2));
 
             // this check avoids insertion inside textures that have only 1 image stored inside pcc
             if (ImageList.Count <= 1)
                 throw new Exception("Unable to add image, texture must have more than one existing image");
 
-            // !!! warning, this method breaks consistency between imgList and imageData[] !!!
             ImageInfo newImgInfo = new ImageInfo();
             newImgInfo.storageType = ImageList.Find(img => img.storageType != storage.empty && img.storageType != storage.pccSto).storageType;
-            newImgInfo.ImageSize = new ImageSize(imgFile.Width, imgFile.Height);
-            newImgInfo.UncompressedSize = GetUncompressedSize(imgFile);
+            newImgInfo.ImageSize = new ImageSize(mip.Width, mip.Height);
+            newImgInfo.UncompressedSize = ImageFormats.GetCompressedSize(1, new ImageFormats.ImageEngineFormatDetails(texFormat), mip.Width, mip.Height) - 128;  // "Uncompressed" means LZO uncompressed, as in just the image file size, BUT no header.
             newImgInfo.CompressedSize = 0x00; // not yet filled
             newImgInfo.Offset = 0x00; // not yet filled
             ImageList.Insert(0, newImgInfo); // insert new image on top of the list
                                                   //now I let believe the program that I'm doing an image replace, saving lot of code ;)
-            ReplaceImage(newImgInfo.ImageSize, imgFile);
-
+            ReplaceImage(imgFile, mipIndex);
+            
             // update MipTailBaseIdx
             UpdateMipCountProperty();
 
             // Heff: Fixed(?) to account for non-square images
-            int propX = (int)newImgInfo.ImageSize.Width;
-            int propY = (int)newImgInfo.ImageSize.Height;
-            UpdateSizeProperties(propX, propY, GameVersion == 3);
+            UpdateSizeProperties(newImgInfo.ImageSize.Width, newImgInfo.ImageSize.Height, GameVersion == 3);
         }
 
         /// <summary>
@@ -677,18 +676,17 @@ namespace WPF_ME3Explorer.Textures
                 // KFreon: Format check not required - auto conversion engaged. 
 
                 ImageSize mipSize = new ImageSize(mip.Width, mip.Height);
-                var mipmap = new ImageEngineImage(mip);
 
                 // if the image size exists inside the texture2d image list then we have to replace it
                 if (ImageList.Exists(img => img.ImageSize == mipSize))
                 {
                     // ...but at least for now I can reuse my replaceImage function... ;)
-                    ReplaceImage(mipSize, new ImageEngineImage(mip));
+                    ReplaceImage(newImg, i);
                 }
                 else // if the image doesn't exists then we have to add it
                 {
                     // ...and use my addBiggerImage function! :P
-                    AddBiggerImage(new ImageEngineImage(mip));
+                    AddBiggerImage(newImg, i);
                 }
             }
 
@@ -699,7 +697,7 @@ namespace WPF_ME3Explorer.Textures
                     properties["MipTailBaseIdx"].Value.IntValue--;
             }
 
-            UpdateSizeProperties((int)newImg.MipMaps[0].Width, (int)newImg.MipMaps[0].Height);
+            UpdateSizeProperties(newImg.MipMaps[0].Width, newImg.MipMaps[0].Height);
         }
 
         public List<SaltPropertyReader.Property> GetPropertyList()
@@ -1232,6 +1230,12 @@ namespace WPF_ME3Explorer.Textures
             properties["TextureFileCacheName"].Value.StringValue = cacheName;
             arcName = cacheName;
             FullArcPath = cachePath;
+
+            // Add cache to list if required
+            if (GameDirecs.GameVersion == 2)
+                ME2TFCs.Add(cachePath);
+            else if (GameDirecs.GameVersion == 3)
+                ME3TFCs.Add(cachePath);
         }
 
         private void MoveCaches(string cookedPath, string NewCache)
@@ -1714,7 +1718,7 @@ namespace WPF_ME3Explorer.Textures
                 // Heff: Seems like the shadowmap was the best solution in most cases,
                 // adding an exception for known problematic animated textures for now.
                 // (See popup in tpftools)
-                if (properties.ContainsKey("LODGroup"))
+                /*if (properties.ContainsKey("LODGroup"))
                     properties["LODGroup"].Value.String2 = "TEXTUREGROUP_Shadowmap";
                 else
                 {
@@ -1723,7 +1727,7 @@ namespace WPF_ME3Explorer.Textures
                     tempStream.WriteInt64(8);
                     tempStream.WriteInt64(pcc.AddName("TextureGroup"));
                     tempStream.WriteInt64(pcc.AddName("TEXTUREGROUP_Shadowmap"));
-                }
+                }*/
 
                 foreach (KeyValuePair<string, SaltPropertyReader.Property> kvp in properties)
                 {

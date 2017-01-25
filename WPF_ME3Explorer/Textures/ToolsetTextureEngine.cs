@@ -69,7 +69,7 @@ namespace WPF_ME3Explorer.Textures
         public static string GetFullDialogAcceptedImageFilters()
         {
             var filters = AcceptedImageDescriptions.Zip(AcceptedImageExtensions, (one, two) => $"{one}|*.{two}").ToList();
-            return $"All Images | *.{String.Join(";*.", AcceptedImageExtensions)} | {String.Join("|", filters)}";
+            return $"All Images | *{String.Join(";*", AcceptedImageExtensions)} | {String.Join("|", filters)}";
         }
 
         public static string BuildTexDetailsForCSV<T>(T tex) where T : AbstractTexInfo
@@ -139,7 +139,7 @@ namespace WPF_ME3Explorer.Textures
             else
                 imgData = tex2D.ExtractImage(size.First(), true);
 
-            using (MemoryStream ms = new MemoryStream(imgData))
+            using (MemoryStream ms = new MemoryStream(imgData, 0, imgData.Length, false, true))
                 return GenerateThumbnailToStream(ms, ThumbnailSize);
         }
 
@@ -471,16 +471,19 @@ namespace WPF_ME3Explorer.Textures
 
                 // Loop over texture's pcc entries to install desired ones.
                 foreach (var entry in tex.PCCs.Where(p => p.Name == pcc.pccFileName))
-                {
-                    // TODO Get old tex2D  WHYYYY
-                    Texture2D oldTex2D = new Texture2D(pcc, entry.ExpID, GameDirecs);
-                    oldTex2D.CopyImgList(newTex2D, pcc);
-
-                    ExportEntry export = pcc.Exports[entry.ExpID];
-                    export.Data = oldTex2D.ToArray(export.DataOffset, pcc);
-                }
+                    SaveTex2DToPCC(pcc, newTex2D, GameDirecs, entry.ExpID);
             }
             return pcc;
+        }
+
+        internal static void SaveTex2DToPCC(PCCObject pcc, Texture2D tex2D, MEDirectories.MEDirectories GameDirecs, int expID)
+        {
+            // TODO Get old tex2D  WHYYYY
+            /*Texture2D oldTex2D = new Texture2D(pcc, expID, GameDirecs);
+            oldTex2D.CopyImgList(tex2D, pcc);*/
+
+            ExportEntry export = pcc.Exports[expID];
+            export.Data = tex2D.ToArray(export.DataOffset, pcc);  // Was oldTex2D.ToArray - don't know why yet...
         }
 
         public static string EnsureHashInFilename(string FileName, uint Hash)

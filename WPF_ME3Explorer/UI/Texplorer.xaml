@@ -75,13 +75,14 @@
                     </Style>
                 </MenuItem.Style>
             </MenuItem>
-            <MenuItem x:Name="RegenerateTopMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Regenerate All Thumbnails" Click="RegenerateTopMenu_Click"/>
             <MenuItem x:Name="StartTPFToolsMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Start TPFTools Mode" 
                       Command="{Binding StartTPFToolsModeCommand}" Visibility="{Binding TPFToolsModeEnabled, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
             <MenuItem x:Name="StopTPFToolsMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Stop TPFTools Mode" 
                       Command="{Binding StopTPFToolsModeCommand}" Visibility="{Binding TPFToolsModeEnabled, Converter={StaticResource BoolToVisConverter}}"/>
-            <MenuItem x:Name="RemoveNullsMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Remove Null Pointers" 
-                      Command="{Binding RemoveNullPointersCommand}"/>
+            <MenuItem x:Name="AdvancedMenu" IsEnabled="{Binding CurrentTree.Valid}" Style="{StaticResource BaseMenuItemStyle}" Header="Advanced">
+                <MenuItem x:Name="RegenerateTopMenu" Header="Regenerate All Thumbnails" Click="RegenerateTopMenu_Click"/>
+                <MenuItem x:Name="RemoveNullsMenu" Header="Remove Null Pointers" Command="{Binding RemoveNullPointersCommand}"/>
+            </MenuItem>
         </Menu>
 
         <StackPanel x:Name="GameAndTreeIndicators" Orientation="Horizontal" Grid.Column="3" HorizontalAlignment="Right" Margin="0,0,0,0.333">
@@ -331,7 +332,7 @@
             <TextBox x:Name="SearchBox" Text="{Binding TextureSearch, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" 
                      Template="{StaticResource SearchBoxTemplate}" Tag="Search..." VerticalAlignment="Top" BorderBrush="{x:Null}" Margin="0,0,0.333,0" Height="22"/>
 
-            <DockPanel x:Name="SelectedTextureDetails" Margin="0,35,0.333,1.667" LastChildFill="False" DataContext="{Binding ElementName=MainDisplayPanel,Path=SelectedItem}">
+            <DockPanel x:Name="SelectedTextureDetails" Margin="0,35,0.333,1.667" LastChildFill="False" DataContext="{Binding ElementName=MainDisplayPanel, Path=SelectedItem}">
                 <DockPanel.Resources>
                     <Style TargetType="TextBlock">
                         <Setter Property="DockPanel.Dock" Value="Top"/>
@@ -413,54 +414,36 @@
                     </StackPanel>
                 </Grid>
             </DockPanel>
-            <ListBox x:Name="SearchResultsBox" Margin="0,22,0.333,4.667" ItemsSource="{Binding TextureSearchResults}" Background="White" ItemTemplate="{StaticResource SmallItemTemplate}">
+            <ListBox x:Name="SearchResultsBox" Margin="0,22,0.333,4.667" ItemsSource="{Binding TextureSearchResults}" Background="White" ItemTemplate="{StaticResource SmallItemTemplate}" >
                 <ListBox.Style>
                     <Style TargetType="{x:Type ListBox}">
                         <Setter Property="Opacity" Value="0"/>
                         <Setter Property="Visibility" Value="Collapsed"/>
 
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding TextureSearchResults.Count}" Value="0">
-                                <DataTrigger.EnterActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.5" DecelerationRatio="1">
-                                                <DoubleAnimation.EasingFunction>
-                                                    <CubicEase EasingMode="EaseOut"/>
-                                                </DoubleAnimation.EasingFunction>
-                                            </DoubleAnimation>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding HasSearchResults}" Value="True"/>
+                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseCaptureWithin}" Value="true"/>
+                                </MultiDataTrigger.Conditions>
 
-                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
-                                                <DiscreteObjectKeyFrame KeyTime="0:0:0.5" Value="{x:Static Visibility.Collapsed}"/>
-                                            </ObjectAnimationUsingKeyFrames>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </DataTrigger.EnterActions>
+                                <MultiDataTrigger.Setters>
+                                    <Setter Property="Opacity" Value="1"/>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger.Setters>
+                            </MultiDataTrigger>
 
-                                <DataTrigger.ExitActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.5" DecelerationRatio="1" FillBehavior="Stop">
-                                                <DoubleAnimation.EasingFunction>
-                                                    <CubicEase EasingMode="EaseOut"/>
-                                                </DoubleAnimation.EasingFunction>
-                                            </DoubleAnimation>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding HasSearchResults}" Value="True"/>
+                                    <Condition Binding="{Binding ElementName=SearchBox, Path=IsKeyboardFocusWithin}" Value="true"/>
+                                </MultiDataTrigger.Conditions>
 
-                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
-                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
-                                            </ObjectAnimationUsingKeyFrames>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </DataTrigger.ExitActions>
-                            </DataTrigger>
-
-                            <Trigger Property="IsMouseCaptureWithin" Value="true">
-                                <Setter Property="Opacity" Value="1"/>
-                            </Trigger>
-
-                            <DataTrigger Binding="{Binding ElementName=SearchBox, Path=IsKeyboardFocusWithin}" Value="true">
-                                <Setter Property="Opacity" Value="1"/>
-                            </DataTrigger>
+                                <MultiDataTrigger.Setters>
+                                    <Setter Property="Opacity" Value="1"/>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger.Setters>
+                            </MultiDataTrigger>
                         </Style.Triggers>
                     </Style>
                 </ListBox.Style>

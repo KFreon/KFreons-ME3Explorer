@@ -214,7 +214,7 @@ namespace WPF_ME3Explorer.Textures
                     Textures.Add(tex);
                 else
                 {
-                    var existing = Textures[Textures.IndexOf(tex)];
+                    var existing = Textures[tex.TextureListIndex];
                     existing.Update(tex);
                     tex.GenerateThumbnail = null;   // Clear generation code for GC to free up
                     return;
@@ -246,12 +246,11 @@ namespace WPF_ME3Explorer.Textures
             List<TreeTexInfo> TempTextures = new List<TreeTexInfo>();
             try
             {
-                //ing (MemoryStream ms = new MemoryStream(File.ReadAllBytes(tempFilename)))
                 using (FileStream ms = new FileStream(tempFilename, FileMode.Open))
                 {
-                    using (GZipStream compressed = new GZipStream(ms, CompressionMode.Decompress))  // Compressed for nice small trees
+                    //using (GZipStream compressed = new GZipStream(ms, CompressionMode.Decompress))  // Compressed for nice small trees
                     {
-                        using (BinaryReader bin = new BinaryReader(compressed))
+                        using (BinaryReader bin = new BinaryReader(ms))
                         {
                             // Check tree is suitable for this version
                             int magic = bin.ReadInt32();
@@ -273,7 +272,10 @@ namespace WPF_ME3Explorer.Textures
                             {
                                 int pccCount = bin.ReadInt32();
                                 for (int i = 0; i < pccCount; i++)
-                                    ScannedPCCs.Add(bin.ReadString());
+                                {
+                                    string agnostic = bin.ReadString();
+                                    ScannedPCCs.Add(Path.Combine(GameDirecs.BasePath, agnostic));
+                                }
                             }
 
 
@@ -303,11 +305,12 @@ namespace WPF_ME3Explorer.Textures
                                     int numPccs = bin.ReadInt32();
                                     for (int j = 0; j < numPccs; j++)
                                     {
-                                        string userAgnosticPath = ScannedPCCs[bin.ReadInt32()];
+                                        string path = ScannedPCCs[bin.ReadInt32()];
                                         int ExpID = bin.ReadInt32();
-                                        tex.PCCs.Add(new PCCEntry(Path.Combine(GameDirecs.BasePath, userAgnosticPath), ExpID, GameDirecs));
+                                        tex.PCCs.Add(new PCCEntry(path, ExpID, GameDirecs));
                                     }
 
+                                    tex.TextureListIndex = TempTextures.Count;
                                     TempTextures.Add(tex);
                                 }
                             }
@@ -362,9 +365,9 @@ namespace WPF_ME3Explorer.Textures
 
             using (MemoryStream ms = new MemoryStream())
             {
-                using (GZipStream compressed = new GZipStream(ms, CompressionMode.Compress, true))  // Compress for nice small trees
+                //using (GZipStream compressed = new GZipStream(ms, CompressionMode.Compress, true))  // Compress for nice small trees
                 {
-                    using (BinaryWriter bw = new BinaryWriter(compressed, Encoding.Default, true))
+                    using (BinaryWriter bw = new BinaryWriter(ms, Encoding.Default, true))
                     {
                         bw.Write(631991);
                         bw.Write(GameVersion);
@@ -374,6 +377,8 @@ namespace WPF_ME3Explorer.Textures
                         bw.Write(ScannedPCCs.Count);
                         foreach (string pcc in ScannedPCCs)
                             bw.Write(pcc.Remove(0, GameDirecs.BasePath.Length + 1));
+
+                        
 
                         // Textures
                         bw.Write(Textures.Count);
@@ -428,7 +433,8 @@ namespace WPF_ME3Explorer.Textures
             // Textures
             bw.Write(folder.Textures.Count);
             foreach (var tex in folder.Textures)  // Write indexes of textures instead of entire textures
-                bw.Write(Textures.IndexOf(tex));
+                bw.Write(tex.TextureListIndex);
+                //bw.Write(Textures.IndexOf(tex));
         }
 
         TexplorerTextureFolder ReadTreeFolders(BinaryReader br, TexplorerTextureFolder parent)

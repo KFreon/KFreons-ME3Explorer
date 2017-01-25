@@ -20,6 +20,9 @@ namespace WPF_ME3Explorer.Textures
         public static CommandHandler ChangeCommand { get; set; }
         public static CommandHandler LowResFixCommand { get; set; }
         public static CommandHandler RegenerateThumbCommand { get; set; }
+        public static CommandHandler ExportTexAndInfoCommand { get; internal set; }
+
+        public int TextureListIndex = -1;
 
         CommandHandler restoreOriginalCommand = null;
         public CommandHandler RestoreOriginalCommand
@@ -57,7 +60,19 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
-        public storage StorageType { get; private set; }
+        storage storageType = storage.empty;
+        public storage StorageType
+        {
+            get
+            {
+                return storageType;
+            }
+            set
+            {
+                SetProperty(ref storageType, value);
+            }
+        }
+
 
         string textureCache = null;
         public string TextureCache
@@ -106,6 +121,7 @@ namespace WPF_ME3Explorer.Textures
                 
             }
         }
+
         #endregion Properties
 
         public TreeTexInfo()

@@ -127,7 +127,8 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
 
         private void SetData(byte[] newData)
         {
-            pccRef.listsStream.Seek(pccRef.expDataEndOffset, SeekOrigin.Begin);
+            //pccRef.listsStream.Seek(pccRef.expDataEndOffset, SeekOrigin.Begin);
+            pccRef.listsStream.Seek(0, SeekOrigin.End);
             DataOffset = (uint)pccRef.listsStream.Position;
             DataSize = newData.Length;
             pccRef.listsStream.WriteBytes(newData);
