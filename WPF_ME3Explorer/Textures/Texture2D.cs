@@ -1718,7 +1718,7 @@ namespace WPF_ME3Explorer.Textures
                 // Heff: Seems like the shadowmap was the best solution in most cases,
                 // adding an exception for known problematic animated textures for now.
                 // (See popup in tpftools)
-                /*if (properties.ContainsKey("LODGroup"))
+                if (properties.ContainsKey("LODGroup"))
                     properties["LODGroup"].Value.String2 = "TEXTUREGROUP_Shadowmap";
                 else
                 {
@@ -1727,7 +1727,7 @@ namespace WPF_ME3Explorer.Textures
                     tempStream.WriteInt64(8);
                     tempStream.WriteInt64(pcc.AddName("TextureGroup"));
                     tempStream.WriteInt64(pcc.AddName("TEXTUREGROUP_Shadowmap"));
-                }*/
+                }
 
                 foreach (KeyValuePair<string, SaltPropertyReader.Property> kvp in properties)
                 {

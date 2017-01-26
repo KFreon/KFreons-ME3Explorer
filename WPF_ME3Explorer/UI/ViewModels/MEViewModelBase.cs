@@ -310,6 +310,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
             {
                 return Properties.Settings.Default.NumThreads;
             }
+            set
+            {
+                Properties.Settings.Default.NumThreads = value;
+                Properties.Settings.Default.Save();
+                OnPropertyChanged(nameof(NumThreads));
+            }
         }
 
         TimeSpan elapsedTime = TimeSpan.FromSeconds(0);

@@ -13,6 +13,8 @@ namespace WPF_ME3Explorer
 
         int basePathLength = 0;
 
+        public int Tree_ScannedPCCIndex = -1;
+
         bool isChecked = true;
         public bool IsChecked
         {
@@ -54,11 +56,12 @@ namespace WPF_ME3Explorer
             }
         }
 
-        public PCCEntry(string name, int expid, MEDirectories.MEDirectories gameDirecs)
+        public PCCEntry(string name, int expid, MEDirectories.MEDirectories gameDirecs, int treeInd = -1)
         {
             Name = name;
             ExpID = expid;
             basePathLength = gameDirecs.BasePathLength;
+            Tree_ScannedPCCIndex = treeInd;
         }
 
         public override string ToString()

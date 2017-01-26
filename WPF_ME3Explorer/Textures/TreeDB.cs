@@ -288,7 +288,6 @@ namespace WPF_ME3Explorer.Textures
                                     TreeTexInfo tex = new TreeTexInfo(GameDirecs);
                                     tex.TexName = bin.ReadString();
                                     tex.Hash = bin.ReadUInt32();
-                                    //tex.StorageType = (Texture2D.storage)bin.ReadInt32();
                                     tex.FullPackage = bin.ReadString();
                                     tex.Format = (ImageEngineFormat)bin.ReadInt32();
 
@@ -305,9 +304,10 @@ namespace WPF_ME3Explorer.Textures
                                     int numPccs = bin.ReadInt32();
                                     for (int j = 0; j < numPccs; j++)
                                     {
-                                        string path = ScannedPCCs[bin.ReadInt32()];
+                                        int ind = bin.ReadInt32();
+                                        string path = ScannedPCCs[ind];
                                         int ExpID = bin.ReadInt32();
-                                        tex.PCCs.Add(new PCCEntry(path, ExpID, GameDirecs));
+                                        tex.PCCs.Add(new PCCEntry(path, ExpID, GameDirecs, ind));
                                     }
 
                                     tex.TextureListIndex = TempTextures.Count;
@@ -398,7 +398,7 @@ namespace WPF_ME3Explorer.Textures
                             bw.Write(tex.PCCs.Count);
                             foreach (PCCEntry pcc in tex.PCCs)
                             {
-                                bw.Write(ScannedPCCs.IndexOf(pcc.Name));
+                                bw.Write(pcc.Tree_ScannedPCCIndex);
                                 bw.Write(pcc.ExpID);
                             }
                         }

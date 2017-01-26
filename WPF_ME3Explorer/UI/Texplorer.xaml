@@ -786,6 +786,12 @@
                     </StackPanel>
                 </StackPanel>
 
+                <DockPanel Grid.Column="2" Grid.Row="1" VerticalAlignment="Bottom" Margin="5" LastChildFill="False">
+                    <Label Content="Number of threads:   " FontWeight="Bold"/>
+                    <TextBox Width="40" TextAlignment="Center" Text="{Binding NumThreads}" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                </DockPanel>
+                
+
                 <Label Content="Please wait..." Grid.ColumnSpan="2" Grid.RowSpan="2" Background="#B2808080" Foreground="White" FontSize="200" VerticalContentAlignment="Center" 
                        HorizontalContentAlignment="Center" Visibility="{Binding FTSReady, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}" d:IsHidden="True"/>
             </Grid>

@@ -318,8 +318,8 @@ namespace WPF_ME3Explorer.Textures
             if (HasChanged)
                 PopulateDetails(ChangedAssociatedTexture);
             else
-                using (PCCObject pcc = new PCCObject(PCCs[0].Name, GameVersion))
-                    using (Texture2D tex2D = new Texture2D(pcc, PCCs[0].ExpID, GameDirecs))
+                using (PCCObject pcc = new PCCObject(PCCs[3].Name, GameVersion))
+                    using (Texture2D tex2D = new Texture2D(pcc, PCCs[3].ExpID, GameDirecs))
                         PopulateDetails(tex2D);   
         }
 

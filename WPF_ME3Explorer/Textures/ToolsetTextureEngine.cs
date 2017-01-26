@@ -483,7 +483,8 @@ namespace WPF_ME3Explorer.Textures
             oldTex2D.CopyImgList(tex2D, pcc);*/
 
             ExportEntry export = pcc.Exports[expID];
-            export.Data = tex2D.ToArray(export.DataOffset, pcc);  // Was oldTex2D.ToArray - don't know why yet...
+            var temp = tex2D.ToArray(export.DataOffset, pcc);
+            export.Data = temp;  // Was oldTex2D.ToArray - don't know why yet...
         }
 
         public static string EnsureHashInFilename(string FileName, uint Hash)

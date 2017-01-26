@@ -52,6 +52,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
         int headerEnd;
         public bool Loaded = false;
 
+        [Obsolete("Don't use this. It's broken.")]
         public long expDataEndOffset
         {
             get
@@ -69,7 +70,7 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
 
                 }
                 return (long)(lastEntry.DataOffset + lastEntry.DataSize);*/
-                return listsStream.Length;
+                throw new NotImplementedException("KFreon: This shouldn't be used. It just breaks things.");
             }
         }
 
@@ -400,7 +401,8 @@ namespace WPF_ME3Explorer.PCCObjectsAndBits
             if (GameVersion != 1)
             {
                 //Refresh header and namelist
-                listsStream.Seek(expDataEndOffset, SeekOrigin.Begin);
+                //listsStream.Seek(expDataEndOffset, SeekOrigin.Begin);
+                listsStream.Seek(0, SeekOrigin.End);
                 NameOffset = (int)listsStream.Position;
                 NameCount = Names.Count;
                 foreach (string name in Names)
