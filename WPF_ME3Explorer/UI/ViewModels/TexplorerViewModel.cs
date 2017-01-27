@@ -1666,10 +1666,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
             ConcurrentBag<TreeTexInfo> hashes = new ConcurrentBag<TreeTexInfo>();
             ConcurrentBag<TreeTexInfo> formats = new ConcurrentBag<TreeTexInfo>();
 
-            string[] keywords = searchText.Trim(' ').Split(' ');
+            string[] parts = searchText.Trim(' ').Split(' ');
+
+            var keyWords = parts.Where(t => !t[0].isDigit()).ToList();
+            var keyNumbers = parts.Where(t => t[0].isDigit()).ToList();
+
+            bool requiresMoreThanOne = keyWords?.Count > 0 && keyNumbers?.Count > 0;
 
             Parallel.ForEach(Textures, texture =>
             {
+                List<int> foundSearchables = new List<int>();
                 for (int i = 0; i < texture.Searchables.Count; i++)
                 {
                     //texture.Searchables[i].Contains(searchText, StringComparison.OrdinalIgnoreCase);
@@ -1686,43 +1692,88 @@ namespace WPF_ME3Explorer.UI.ViewModels
                             searchableType = 2;
                         else if (test.Contains('\\'))
                             searchableType = 1;
-                        else if (test.Length < 16)  // Shouldn't be any paths shorter than 16, and all things that are shorter should be caught in previous 'ifs'.
+                        else if (test.Length < 16)  // Formats. Shouldn't be any paths shorter than 16, and all things that are shorter should be caught in previous 'ifs'.
                             searchableType = 4;
                     }
-                    
 
                     bool found = true;
 
-                    // Keyword search
-                    foreach (string keyword in keywords)
+                    // SEARCH
+                    if (searchableType == 2 || searchableType == 3)
                     {
-                        if (!test.Contains(keyword, StringComparison.CurrentCultureIgnoreCase))
+                        foreach (string keynumber in keyNumbers)
                         {
-                            found = false;
-                            break;
+                            if (!test.Contains(keynumber, StringComparison.CurrentCultureIgnoreCase))
+                            {
+                                found = false;
+                                break;
+                            }
                         }
                     }
-                    
+                    else
+                    {
+                        // Keyword search
+                        foreach (string keyword in keyWords)
+                        {
+                            if (!test.Contains(keyword, StringComparison.CurrentCultureIgnoreCase))
+                            {
+                                found = false;
+                                break;
+                            }
+                        }
+                    }                    
 
                     if (found)
-                        switch (searchableType)
+                    {
+                        if (!requiresMoreThanOne)
                         {
-                            case 0:
-                                names.Add(texture);
-                                break;
-                            case 1:
-                                pccs.Add(texture);
-                                break;
-                            case 2:
-                                expIDs.Add(texture);
-                                break;
-                            case 3:
-                                hashes.Add(texture);
-                                break;
-                            case 4:
-                                formats.Add(texture);
-                                break;
+                            switch (searchableType)
+                            {
+                                case 0:
+                                    names.Add(texture);
+                                    break;
+                                case 1:
+                                    pccs.Add(texture);
+                                    break;
+                                case 2:
+                                    expIDs.Add(texture);
+                                    break;
+                                case 3:
+                                    hashes.Add(texture);
+                                    break;
+                                case 4:
+                                    formats.Add(texture);
+                                    break;
+                            }
+                            break;
                         }
+                        else
+                            foundSearchables.Add(searchableType);
+                    }
+                }
+
+                if (requiresMoreThanOne)
+                {
+                    int highestPrioritySearchable = foundSearchables.Min();
+
+                    switch (highestPrioritySearchable)
+                    {
+                        case 0:
+                            names.Add(texture);
+                            break;
+                        case 1:
+                            pccs.Add(texture);
+                            break;
+                        case 2:
+                            expIDs.Add(texture);
+                            break;
+                        case 3:
+                            hashes.Add(texture);
+                            break;
+                        case 4:
+                            formats.Add(texture);
+                            break;
+                    }
                 }
             });
 
