@@ -144,7 +144,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             set
             {
                 SetProperty(ref textureSearch, value);
-                Search(value);
             }
         }
 

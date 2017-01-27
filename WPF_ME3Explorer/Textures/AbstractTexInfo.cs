@@ -159,7 +159,7 @@ namespace WPF_ME3Explorer.Textures
                 {
                     searchables = new List<string>();
                     searchables.Add(TexName);
-                    var pccs = PCCs.Select(pcc => pcc.Name);
+                    var pccs = PCCs.Select(pcc => pcc.Name.Remove(0, GameDirecs.BasePathLength));
                     var expIDs = PCCs.Select(pcc => pcc.ExpID.ToString());
                     searchables.AddRange(pccs);
                     searchables.AddRange(expIDs);

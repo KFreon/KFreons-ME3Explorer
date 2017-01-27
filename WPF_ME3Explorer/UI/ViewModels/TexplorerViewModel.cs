@@ -456,6 +456,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
         public Action ProgressCloser = null;
         #endregion UI Actions
 
+        DispatcherTimer searchDelayer = new DispatcherTimer();
+
         #region Properties
         bool removeNullPointers = true;
         public bool RemoveNullPointers
@@ -511,8 +513,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 // Clear results if no search performed.
                 if (String.IsNullOrEmpty(value))
                     TextureSearchResults.Clear();
-
-                OnPropertyChanged(nameof(HasSearchResults));
+                else
+                    searchDelayer.Start();
             }
         }
 
@@ -669,6 +671,15 @@ namespace WPF_ME3Explorer.UI.ViewModels
             };
             #endregion FTS Filtering
 
+            // Setup search
+            searchDelayer.Interval = TimeSpan.FromSeconds(0.5);
+            searchDelayer.Tick += (sender, args) =>
+            {
+                Search(TextureSearch);
+                OnPropertyChanged(nameof(HasSearchResults));
+
+                searchDelayer.Stop();  // Only want it to search once. Will get started when user first types something again.
+            };
 
             AbstractFileEntry.Updater = new Action(() =>
             {
@@ -1638,8 +1649,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
             LoadFTSandTree(true);
         }
 
+
         public override void Search(string searchText)
         {
+            // Was going to do a Stack-based previous search thing, and have future searches work off this, but it's simpler to just have a slight delay when getting results.
+            // So now it waits for a search string to be more complete instead of searching when single characters are entered.
+
             TextureSearchResults.Clear();
 
             if (String.IsNullOrEmpty(searchText))
@@ -1651,13 +1666,46 @@ namespace WPF_ME3Explorer.UI.ViewModels
             ConcurrentBag<TreeTexInfo> hashes = new ConcurrentBag<TreeTexInfo>();
             ConcurrentBag<TreeTexInfo> formats = new ConcurrentBag<TreeTexInfo>();
 
+            string[] keywords = searchText.Trim(' ').Split(' ');
+
             Parallel.ForEach(Textures, texture =>
             {
                 for (int i = 0; i < texture.Searchables.Count; i++)
                 {
-                    bool found = texture.Searchables[i].Contains(searchText, StringComparison.OrdinalIgnoreCase);
+                    //texture.Searchables[i].Contains(searchText, StringComparison.OrdinalIgnoreCase);
+
+                    int searchableType = 0;
+                    string test = texture.Searchables[i];
+
+                    // Name is always first and there's only 1 of them.
+                    if (i != 0)
+                    {
+                        if (test.StartsWith("0x"))
+                            searchableType = 3;
+                        else if (test[0].isDigit())
+                            searchableType = 2;
+                        else if (test.Contains('\\'))
+                            searchableType = 1;
+                        else if (test.Length < 16)  // Shouldn't be any paths shorter than 16, and all things that are shorter should be caught in previous 'ifs'.
+                            searchableType = 4;
+                    }
+                    
+
+                    bool found = true;
+
+                    // Keyword search
+                    foreach (string keyword in keywords)
+                    {
+                        if (!test.Contains(keyword, StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            found = false;
+                            break;
+                        }
+                    }
+                    
+
                     if (found)
-                        switch (i)
+                        switch (searchableType)
                         {
                             case 0:
                                 names.Add(texture);
