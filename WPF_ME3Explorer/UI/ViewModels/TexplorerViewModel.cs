@@ -220,6 +220,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
+        bool extract_IsFolder = false;
+        public bool Extract_IsFolder
+        {
+            get
+            {
+                return extract_IsFolder;
+            }
+            set
+            {
+                SetProperty(ref extract_IsFolder, value);
+            }
+        }
+
         ImageEngineFormat extract_SaveFormat = ImageEngineFormat.Unknown;
         public ImageEngineFormat Extract_SaveFormat
         {
@@ -254,7 +267,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 if (extract_ExtractCommand == null)
                     extract_ExtractCommand = new CommandHandler(() =>
                     {
-                        ExtractTexture(SelectedTexture, Extract_SavePath, Extract_BuildMips, Extract_SaveFormat);
+                        if (Extract_IsFolder)
+                            ExtractTextures(SelectedFolder.TexturesInclSubs, Extract_SavePath);
+                        else
+                            ExtractTexture(SelectedTexture, Extract_SavePath, Extract_BuildMips, Extract_SaveFormat);
                     });
 
                 return extract_ExtractCommand;
@@ -742,6 +758,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 Extract_SavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), SelectedTexture?.DefaultSaveName);
                 Extract_SaveFormat = SelectedTexture?.Format ?? ImageEngineFormat.Unknown;
                 Extract_BuildMips = false;
+                Extract_IsFolder = false;
 
                 ShowExtractionPanel = true;
             }));
@@ -757,6 +774,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }));
 
             TexplorerTextureFolder.RegenerateThumbsDelegate = RegenerateThumbs;
+            TexplorerTextureFolder.ExtractFolderTexturesCommand = new CommandHandler(new Action<object>(obj =>
+            {
+                TexplorerTextureFolder folder = (TexplorerTextureFolder)obj;
+
+                Extract_SavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), SelectedFolder?.Path);
+                Extract_IsFolder = true;
+                
+
+                ShowExtractionPanel = true;
+            }));
 
             #endregion Setup UI Commands
 
@@ -983,13 +1010,15 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                 /* Find any existing exclusions from when tree was created.*/
                 // Set excluded DLC's checked first
-                tempDLCs.ForEach(dlc => dlc.IsChecked = !dlc.Files.Any(file => CurrentTree.ScannedPCCs.Contains(file.FilePath)));
+                tempDLCs.ForEach(dlc => dlc.IsChecked = !dlc.Files.Any(file => !CurrentTree.ScannedPCCs.Contains(file.FilePath)));
+
 
                 // Then set all remaining exlusions
                 foreach (DLCEntry dlc in tempDLCs.Where(dlc => !dlc.IsChecked))
                     dlc.Files.ForEach(file => file.IsChecked = !CurrentTree.ScannedPCCs.Contains(file.FilePath));
 
                 DisableFTSUpdating = false;
+                UpdateFTS();
             }
             
 
@@ -1499,6 +1528,36 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Busy = false;
         }
 
+        internal void ExtractTextures(List<TreeTexInfo> texes, string destFolder)
+        {
+            Busy = true;
+            Progress = 0;
+            MaxProgress = texes.Count;
+            Status = $"Extracting Textures: {Progress} / {MaxProgress}";
+
+            Progress<int> progressIndicator = new Progress<int>(new Action<int>(prog =>
+            {
+                Progress++;
+                Status = $"Extracting Textures: {Progress} / {MaxProgress}";
+            }));
+
+            string error = null;
+            try
+            {
+                ToolsetTextureEngine.ExtractTextures(texes, destFolder, progressIndicator);
+            }
+            catch (Exception e)
+            {
+                error = e.Message;
+                DebugOutput.PrintLn($"Extracting textures failed. Reason: {e.ToString()}");
+            }
+
+            Progress = MaxProgress;
+            Busy = false;
+            Status = error == null ? $"Textures extracted to {destFolder}!" : $"Failed to extract textures. Reason: {error}.";
+            showExtractionPanel = false;
+        }
+
         internal void ExtractTexture(TreeTexInfo tex, string filename, bool buildMips = true, ImageEngineFormat format = ImageEngineFormat.Unknown)
         {
             Busy = true;
@@ -1576,7 +1635,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 FTSGameFiles[i].IsChecked = false;
 
             DisableFTSUpdating = false;
-
             LoadFTSandTree(true);
         }
 

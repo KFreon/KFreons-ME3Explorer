@@ -358,6 +358,35 @@ namespace WPF_ME3Explorer.Textures
             return tex2D;
         }
 
+        internal static void ExtractTextures(List<TreeTexInfo> texes, string destFolder, IProgress<int> progressIndicator)
+        {
+            // Get PCCs
+            var pccGroups = from tex in texes
+                            group tex by tex.PCCs[0].Name;
+
+            var gameDirecs = texes[0].GameDirecs;  // Just use the first tex for GameVersion, can only have texes from a single game per function call.
+
+            foreach (var group in pccGroups)
+            {
+                string pccName = group.Key;
+                using (PCCObject pcc = new PCCObject(pccName, gameDirecs.GameVersion))   
+                {
+                    foreach (var tex in group)
+                    {
+                        // Get tex2D
+                        Texture2D tex2D = null;
+                        if (tex.HasChanged)
+                            tex2D = tex.ChangedAssociatedTexture;
+                        else
+                            using (tex2D = new Texture2D(pcc, tex.PCCs.First(t => t.Name == pccName).ExpID, gameDirecs))
+                                tex2D.ExtractMaxImage(Path.Combine(destFolder, tex.DefaultSaveName));
+
+                        progressIndicator.Report(1);  // Increment 1 as per callback.
+                    }
+                }
+            }
+        }
+
         internal static void ExtractTexture(TreeTexInfo tex, string filename, bool BuildMips = true, ImageEngineFormat format = ImageEngineFormat.Unknown)
         {
             // Get Texture2D

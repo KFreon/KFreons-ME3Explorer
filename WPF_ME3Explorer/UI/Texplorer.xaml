@@ -146,6 +146,11 @@
                                         <Image Source="/WPF_ME3Explorer;component/Resources/RegenerateSubFolders.png"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
+                                <MenuItem Header="Extract Textures from Folder" Command="{Binding ExtractFolderTexturesCommand}">
+                                    <MenuItem.Icon>
+                                        <Image Source="/WPF_ME3Explorer;component/Resources/ExtractTexture.png"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
                             </ContextMenu>
                         </StackPanel.ContextMenu>
                         <Image>
@@ -478,7 +483,7 @@
             <ListBox ItemTemplate="{StaticResource SmallItemTemplate}" ItemsSource="{Binding ChangedTextures}"/>
         </Expander>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="4" x:Name="TreeScanBackground" Background="Black" Margin="0,0,0,0.333">
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="4" x:Name="TreeScanBackground" Background="Black" Margin="0,0,0,0.333" d:IsHidden="True">
             <Grid.Resources>
                 <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
                     <DoubleAnimation.EasingFunction>
@@ -786,9 +791,9 @@
                     </StackPanel>
                 </StackPanel>
 
-                <DockPanel Grid.Column="2" Grid.Row="1" VerticalAlignment="Bottom" Margin="5" LastChildFill="False">
-                    <Label Content="Number of threads:   " FontWeight="Bold"/>
-                    <TextBox Width="40" TextAlignment="Center" Text="{Binding NumThreads}" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                <DockPanel Grid.Column="2" Grid.Row="1" VerticalAlignment="Bottom" Margin="5" LastChildFill="False" HorizontalAlignment="Center">
+                    <Label Content="Number of threads:   " FontWeight="Bold" FontSize="17"/>
+                    <TextBox Width="40" TextAlignment="Center" Text="{Binding NumThreads}" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" BorderThickness="0.5" FontSize="17" VerticalAlignment="Center" Padding="0,2"/>
                 </DockPanel>
                 
 
@@ -940,15 +945,15 @@
                     <DockPanel>
                         <Label Content="Extract Path: " DockPanel.Dock="Left"/>
                         <Button x:Name="Extract_BrowseButton" Content="Browse" DockPanel.Dock="Right" Click="Extract_BrowseButton_Click" Padding="8,5"/>
-                        <TextBox Text="{Binding Extract_SavePath}" VerticalContentAlignment="Center" Margin="10,0"/>
+                        <TextBox Text="{Binding Extract_SavePath}" VerticalContentAlignment="Center" Margin="10,0" Padding="5,2"/>
                     </DockPanel>
 
-                    <DockPanel LastChildFill="False">
+                    <DockPanel LastChildFill="False" Visibility="{Binding Extract_IsFolder, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}">
                         <Label Content="Extract Format: "/>
                         <ComboBox VerticalContentAlignment="Center" ItemsSource="{usefulUIElements:EnumToItemsSource {x:Type ImgLib:ImageEngineFormat}}" DisplayMemberPath="DisplayName" SelectedValue="{Binding Extract_SaveFormat, Mode=TwoWay}" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True"/>
                     </DockPanel>
 
-                    <CheckBox IsChecked="{Binding Extract_BuildMips}" VerticalAlignment="Center" Content="Build Mipmaps?" Margin="0,5"/>
+                    <CheckBox IsChecked="{Binding Extract_BuildMips}" VerticalAlignment="Center" Content="Build Mipmaps?" Margin="0,5" Visibility="{Binding Extract_IsFolder, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
 
                     <DockPanel LastChildFill="False">
                         <Button Content="Extract!" Style="{StaticResource MainButtonStyle}" Padding="8,5" x:Name="Extract_ExtractButton" Command="{Binding Extract_ExtractCommand}" HorizontalAlignment="Center"/>

@@ -55,6 +55,8 @@ namespace WPF_ME3Explorer.Textures
             }
         }
 
+        public static CommandHandler ExtractFolderTexturesCommand { get; set; }
+
         List<TreeTexInfo> texturesInclSubs = null;
         public List<TreeTexInfo> TexturesInclSubs
         {
@@ -117,6 +119,16 @@ namespace WPF_ME3Explorer.Textures
             set
             {
                 SetProperty(ref name, value);
+            }
+        }
+
+        public string Path
+        {
+            get
+            {
+                string parentPath = Parent == null ? "" : ((TexplorerTextureFolder)Parent).Path + "_";
+                parentPath = parentPath.Replace("All Texture Files_", ""); // Don't want the top top entry in at all.
+                return parentPath + Name;
             }
         }
 
