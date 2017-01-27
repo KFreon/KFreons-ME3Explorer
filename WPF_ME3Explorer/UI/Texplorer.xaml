@@ -288,7 +288,7 @@
                             <DataTrigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <ColorAnimation Storyboard.TargetProperty="(Grid.Background).(SolidColorBrush.Color)" From="Transparent" To="#CC000000" Duration="0:0:0.5" DecelerationRatio="1">
+                                        <ColorAnimation Storyboard.TargetProperty="(Grid.Background).(SolidColorBrush.Color)" From="Transparent" To="#CC000000" Duration="0:0:0.3" DecelerationRatio="1">
                                             <ColorAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseOut"/>
                                             </ColorAnimation.EasingFunction>
@@ -304,14 +304,14 @@
                             <DataTrigger.ExitActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <ColorAnimation Storyboard.TargetProperty="(Grid.Background).(SolidColorBrush.Color)" To="Transparent" Duration="0:0:0.5" DecelerationRatio="1">
+                                        <ColorAnimation Storyboard.TargetProperty="(Grid.Background).(SolidColorBrush.Color)" To="Transparent" Duration="0:0:0.3" DecelerationRatio="1">
                                             <ColorAnimation.EasingFunction>
                                                 <CubicEase EasingMode="EaseOut"/>
                                             </ColorAnimation.EasingFunction>
                                         </ColorAnimation>
 
                                         <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
-                                            <DiscreteObjectKeyFrame KeyTime="0:0:0.5" Value="{x:Static Visibility.Collapsed}"/>
+                                            <DiscreteObjectKeyFrame KeyTime="0:0:0.3" Value="{x:Static Visibility.Collapsed}"/>
                                         </ObjectAnimationUsingKeyFrames>
                                     </Storyboard>
                                 </BeginStoryboard>
@@ -320,7 +320,9 @@
                     </Style.Triggers>
                 </Style>
             </Grid.Style>
-            <Image HorizontalAlignment="Center" VerticalAlignment="Center" Source="{Binding PreviewImage, IsAsync=True}"/>
+            <usefulUIElements:PanAndZoomBorder x:Name="PreviewBorder" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Image Source="{Binding PreviewImage, IsAsync=True}"/>
+            </usefulUIElements:PanAndZoomBorder>
         </Grid>
         <Grid x:Name="DetailsArea" Grid.Column="3" Margin="0.333,25,0,0.333" Grid.RowSpan="2">
             <Grid.RowDefinitions>

@@ -847,7 +847,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             int halfThreads = NumThreads / 2;
             if (halfThreads < 1)
                 halfThreads = 1;
-
+            
             // Get all PCCs - maybe same as saving? - only need first pcc of each texture
             var pccBuffer = new BufferBlock<Tuple<PCCObject, IGrouping<string, TreeTexInfo>>>(new DataflowBlockOptions { BoundedCapacity = 1 });
             

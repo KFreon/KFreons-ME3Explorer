@@ -182,8 +182,14 @@ namespace WPF_ME3Explorer.UI
 
         private void PreviewPanel_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            // Don't want to put preview away when trying to pan.
+            // Don't want to put preview away when restoring zoom to normal.
+            if (PreviewBorder.IsZoomed || e == null || e.ChangedButton == MouseButton.Right)
+                return;
+
             vm.ShowingPreview = false;
             vm.PreviewImage = null;
+            e.Handled = true;
         }
 
         private async void SearchResultsItem_MouseDown(object sender, MouseButtonEventArgs e)
