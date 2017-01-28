@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WPF_ME3Explorer.UI"
         xmlns:VM="clr-namespace:WPF_ME3Explorer.UI.ViewModels"
+        xmlns:UsefulThings.WPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         x:Class="WPF_ME3Explorer.UI.TPFTools"
         mc:Ignorable="d"
         Title="TPFTools" Height="882.469" Width="1507.27" Closing="Window_Closing" KeyDown="Window_KeyDown" Icon="/WPF_ME3Explorer;component/Resources/TPFTools icon.ico">
@@ -255,6 +256,7 @@
                                     <ColumnDefinition Width="20*"/>
                                     <ColumnDefinition Width="20*"/>
                                     <ColumnDefinition Width="20*"/>
+                                    <ColumnDefinition Width="20*"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="20*"/>
@@ -267,33 +269,45 @@
                                 <Label Content="Height:" Grid.Row="1"/>
                                 <TextBlock Text="{Binding Height}" Grid.Column="1" Grid.Row="1"/>
 
-                                <Label Content="Hash:" Grid.Column="2"/>
+                                <DockPanel Grid.RowSpan="2" Grid.Column="2">
+                                    <Label Content="Current Game" DockPanel.Dock="Top" FontSize="10"/>
+                                    <TextBlock DockPanel.Dock="Top" FontSize="8">
+                                        <Run Text="Width: "/>
+                                    </TextBlock>
+
+                                    <TextBlock DockPanel.Dock="Top" FontSize="8">
+                                        <Run Text="Height: "/>
+                                    </TextBlock>
+                                </DockPanel>
+
+                                <Label Content="Hash:" Grid.Column="3"/>
                                 <TextBox Text="{Binding Hash, Mode=TwoWay, Converter={StaticResource HashStringConverter}}" Opacity=".6" 
-                                         Grid.Column="3" Margin="0,0,7,0" VerticalContentAlignment="Center" VerticalAlignment="Center" Padding="7,3" 
+                                         Grid.Column="4" Margin="0,0,7,0" VerticalContentAlignment="Center" VerticalAlignment="Center" Padding="7,3" 
                                          Visibility="{Binding IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"
                                          MouseMove="TextBox_MouseMove" KeyDown="TextBox_KeyDown"/>
-                                <Button Content="Reset Hash" Grid.Column="2" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Opacity=".6" Padding="6,2" 
+                                <Button Content="Reset Hash" Grid.Column="3" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Opacity=".6" Padding="6,2" 
                                         Grid.ColumnSpan="2" Style="{StaticResource MainButtonStyle}" Visibility="{Binding HashChanged, Converter={StaticResource BoolToVisConverter}}"/>
 
-                                <Label Content="Format:" Grid.Column="4"/>
-                                <TextBlock Text="{Binding Format, Converter={StaticResource ImageEngineFormatConverter}}" Grid.Column="5"/>
+                                <Label Content="Format:" Grid.Column="5"/>
+                                <TextBlock Text="{Binding Format, Converter={StaticResource ImageEngineFormatConverter}}" Grid.Column="6"/>
 
-                                <Label Content="Tree Format:" Grid.Column="6" Style="{StaticResource TreeDependentFormat}"/>
-                                <TextBlock Text="{Binding TreeFormat, Converter={StaticResource ImageEngineFormatConverter}}" Grid.Column="7" Style="{StaticResource TreeDependentFormatText}"/>
+                                <Label Content="Tree Format:" Grid.Column="7" Style="{StaticResource TreeDependentFormat}"/>
+                                <TextBlock Text="{Binding TreeFormat, Converter={StaticResource ImageEngineFormatConverter}}" Grid.Column="8" Style="{StaticResource TreeDependentFormatText}"/>
 
-                                <Label Content="Mips:" Grid.Column="4" Grid.Row="1"/>
-                                <TextBlock Text="{Binding Mips}" Grid.Column="5" Grid.Row="1"/>
+                                <Label Content="Mips:" Grid.Column="5" Grid.Row="1"/>
+                                <TextBlock Text="{Binding Mips}" Grid.Column="6" Grid.Row="1"/>
 
-                                <Label Content="Tree Mips:" Grid.Column="6" Grid.Row="1" Style="{StaticResource TreeDependentMips}"/>
-                                <TextBlock Text="{Binding TreeMips}" Grid.Column="7" Grid.Row="1" Style="{StaticResource TreeDependentMipsText}"/>
+                                <Label Content="Tree Mips:" Grid.Column="7" Grid.Row="1" Style="{StaticResource TreeDependentMips}"/>
+                                <TextBlock Text="{Binding TreeMips}" Grid.Column="8" Grid.Row="1" Style="{StaticResource TreeDependentMipsText}"/>
                             </Grid>
                         </DockPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
         </DockPanel>
-        <Image x:Name="PreviewImage" Grid.Column="1" Grid.Row="1" Source="{Binding ElementName=MainView, Path=SelectedItem.Preview, IsAsync=True}" 
-               Visibility="{Binding ElementName=MainView, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}"/>
+        <UsefulThings.WPF:PanAndZoomBorder Grid.Column="1" Grid.Row="1" Visibility="{Binding ElementName=MainView, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}">
+            <Image x:Name="PreviewImage" Source="{Binding ElementName=MainView, Path=SelectedItem.Preview, IsAsync=True}"/>
+        </UsefulThings.WPF:PanAndZoomBorder>
         <TextBox x:Name="PreviewText" Grid.Column="1" Grid.Row="1" Text="{Binding ElementName=MainView, Path=SelectedItem.DefPreview, Mode=OneWay}" 
                  Visibility="{Binding ElementName=MainView, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}}"/>
         <TabControl Grid.Column="1" Grid.Row="2" Margin="0.333,0.333,-0.333,0.334" Grid.RowSpan="2">
@@ -318,7 +332,7 @@
                     </Style.Triggers>
                 </Style>
             </TabControl.Resources>
-            <TabItem Header="TPF Info" Style="{StaticResource TPFPanelVisibilityStyle}">
+            <TabItem x:Name="TPFInfoTabItem" Header="TPF Info" Style="{StaticResource TPFPanelVisibilityStyle}">
                 <DockPanel Style="{StaticResource TPFPanelVisibilityStyle}">
                     <TextBlock DockPanel.Dock="Top" Margin="5" TextWrapping="Wrap">
                         <Run Text="Filename" FontWeight="Bold"/>
@@ -343,8 +357,8 @@
                     </TextBlock>
                 </DockPanel>
             </TabItem>
-            <TabItem Header="PCCs" Style="{StaticResource PCCsPanelVisibilityStyle}">
-                <Grid Style="{StaticResource PCCsPanelVisibilityStyle}">
+            <TabItem x:Name="PCCsDetailsTabItem" Header="PCCs" Style="{StaticResource PCCsPanelVisibilityStyle}">
+                <Grid>
                     <CheckBox x:Name="PCCsCheckAllChecker" IsChecked="{Binding PCCsCheckAll}" Style="{StaticResource CheckAllCheckBoxStyle}" HorizontalAlignment="Left" Grid.Row="1" VerticalAlignment="Top" Margin="5"/>
                     <Button x:Name="SavePCCsListButton" Content="Save List" VerticalAlignment="Top" HorizontalAlignment="Right" Style="{StaticResource PCCListOptionsStyle}" 
                             Background="White" Margin="5" Padding="10,2" Click="SavePCCsListButton_Click"/>
@@ -410,46 +424,48 @@
             </TextBlock>
         </DockPanel>
 
-        <ContentControl Tag="{Binding IsTPFBuilding}" Template="{StaticResource OperationPresenter}">
-            <StackPanel Margin="10">
+        <Border Style="{StaticResource FadedBackgroundBorder}">
+            <Border Style="{StaticResource FadedInnerBorder}" Tag="{Binding IsTPFBuilding}">
+                <StackPanel Margin="10">
 
-                <Label Content="Save TPF - Details" Style="{StaticResource TitleStyle}"/>
+                    <Label Content="Save TPF - Details" Style="{StaticResource TitleStyle}"/>
 
-                <DockPanel>
-                    <Label Content="Save Path: " Style="{StaticResource ItemTitleStyle}"/>
-                    <Button Content="Browse" Style="{StaticResource BrowseButtonStyle}"/>
-                    <TextBox Text="{Binding TPFSave_SavePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                </DockPanel>
+                    <DockPanel>
+                        <Label Content="Save Path: " Style="{StaticResource ItemTitleStyle}"/>
+                        <Button Content="Browse" Style="{StaticResource BrowseButtonStyle}"/>
+                        <TextBox Text="{Binding TPFSave_SavePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    </DockPanel>
 
-                <TextBlock Margin="5">
+                    <TextBlock Margin="5">
                         <Run Text="Number of files: " Style="{StaticResource ItemTitleStyle_2}"/>
                         <Run Text="{Binding TPFSave_TexCount, Mode=OneWay}"/>
-                </TextBlock>
+                    </TextBlock>
 
-                <StackPanel Orientation="Horizontal">
-                    <Label Content="Author: " Style="{StaticResource ItemTitleStyle}"/>
-                    <TextBox Text="{Binding TPFSave_Author, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Label Content="Author: " Style="{StaticResource ItemTitleStyle}"/>
+                        <TextBox Text="{Binding TPFSave_Author, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+
+                    <Label Content="Comment" Style="{StaticResource ItemTitleStyle}"/>
+                    <TextBox Text="{Binding TPFSave_Comment, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"/>
+
+                    <DockPanel LastChildFill="False">
+                        <DockPanel.Resources>
+                            <Style TargetType="Button">
+                                <Setter Property="Margin" Value="10,2"/>
+                                <Setter Property="Padding" Value="10,2"/>
+                                <Setter Property="Background" Value="White"/>
+                            </Style>
+                        </DockPanel.Resources>
+                        <Button x:Name="TPFSaveSaveButton" Content="Save!" DockPanel.Dock="Left" Command="{Binding TPFSave_SaveCommand}"/>
+                        <Button x:Name="TPFSaveCancelButton" Content="Cancel" DockPanel.Dock="Right" Command="{Binding TPFSave_CancelCommand}"/>
+
+                    </DockPanel>
+
+                    <TextBlock Text="{Binding Status}" Margin="0,10,0,4"/>
+                    <ProgressBar Value="{Binding Progress}" Maximum="{Binding MaxProgress}" IsIndeterminate="{Binding ProgressIndeterminate}" Height="20"/>
                 </StackPanel>
-
-                <Label Content="Comment" Style="{StaticResource ItemTitleStyle}"/>
-                <TextBox Text="{Binding TPFSave_Comment, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"/>
-
-                <DockPanel LastChildFill="False">
-                    <DockPanel.Resources>
-                        <Style TargetType="Button">
-                            <Setter Property="Margin" Value="10,2"/>
-                            <Setter Property="Padding" Value="10,2"/>
-                            <Setter Property="Background" Value="White"/>
-                        </Style>
-                    </DockPanel.Resources>
-                    <Button x:Name="TPFSaveSaveButton" Content="Save!" DockPanel.Dock="Left" Command="{Binding TPFSave_SaveCommand}"/>
-                    <Button x:Name="TPFSaveCancelButton" Content="Cancel" DockPanel.Dock="Right" Command="{Binding TPFSave_CancelCommand}"/>
-
-                </DockPanel>
-
-                <TextBlock Text="{Binding Status}" Margin="0,10,0,4"/>
-                <ProgressBar Value="{Binding Progress}" Maximum="{Binding MaxProgress}" IsIndeterminate="{Binding ProgressIndeterminate}" Height="20"/>
-            </StackPanel>
-        </ContentControl>
+            </Border>
+        </Border>
     </Grid>
 </Window>

@@ -127,7 +127,7 @@ namespace WPF_ME3Explorer.Textures
         public static void ME1_SortTexturesPCCs(IEnumerable<TreeTexInfo> texes)
         {
             foreach (var tex in texes)
-                tex.PCCs.Sort((x, y) => y.Name.Length.CompareTo(x.Name.Length));
+                tex.PCCs.AddRange(tex.PCCs.OrderByDescending(entry => entry.Name.Length).ToList());
         }
 
         public static MemoryStream GetThumbFromTex2D(Texture2D tex2D)

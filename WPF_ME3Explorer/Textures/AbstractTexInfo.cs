@@ -25,7 +25,7 @@ namespace WPF_ME3Explorer.Textures
                 SetProperty(ref texName, value);
             }
         }
-        public List<PCCEntry> PCCs { get; set; } = new List<PCCEntry>();
+        public MTRangedObservableCollection<PCCEntry> PCCs { get; set; } = new MTRangedObservableCollection<PCCEntry>();
 
         bool isHidden = false;
         public bool IsHidden

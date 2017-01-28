@@ -16,6 +16,7 @@ using WPF_ME3Explorer.UI.ViewModels;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.Textures;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using System.Diagnostics;
 
 namespace WPF_ME3Explorer.UI
 {
@@ -37,13 +38,29 @@ namespace WPF_ME3Explorer.UI
             // Setup drag/drop handling
             DropHelper = new DragDropHandler<TPFTexInfo>(this)
             {
-                DropAction = new Action<TPFTexInfo, string[]>(async (tex, droppedFiles) => await Task.Run(() => vm.LoadFiles(droppedFiles))), // Don't need the TPFTexInfo - it'll be null anyway.
+                DropAction = new Action<TPFTexInfo, string[]>(async (tex, droppedFiles) => await Task.Run(() =>
+                {
+                    if (droppedFiles != null)
+                        vm.LoadFiles(droppedFiles);
+                })), // Don't need the TPFTexInfo - it'll be null anyway.
                 DropValidator = new Predicate<string[]>(files => files.All(file => vm.AcceptedImageExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()))),
                 DragOutDataGetter = tex => new Dictionary<string, Func<byte[]>> { { tex.DefaultSaveName, () => tex.Extract() } },
             };
 
             vm = new TPFToolsViewModel();
             DataContext = vm;
+
+
+            // Wire up Details tab box to SelectedTexture so that a suitable tab can be selected when texture changes.
+            vm.PropertyChanged += (sender, args) =>
+            {
+                if (args.PropertyName == nameof(vm.SelectedTexture))
+                {
+                    // Since the TPF tab is first, it gets selected by default but is hidden if texture isn't a TPF texture, so need to set the tab selected.
+                    if (!vm.SelectedTexture?.IsFromTPF ?? false && !PCCsDetailsTabItem.IsSelected)
+                        PCCsDetailsTabItem.IsSelected = true;
+                }
+            };
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

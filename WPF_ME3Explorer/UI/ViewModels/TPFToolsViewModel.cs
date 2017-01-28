@@ -124,6 +124,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             set
             {
                 base.TextureSearch = value;
+                Search(value);
                 MainDisplayView.Refresh();
             }
         }
@@ -457,6 +458,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             TPFTexInfo.InstallCommand = installCommand;
             TPFTexInfo.ReplaceCommand = ReplaceCommand;
             TPFTexInfo.ExtractCommand = ExtractCommand;
+
+            SetupCurrentTree();
         }
 
         public override void Search(string searchText)
@@ -570,9 +573,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             var thumbBuilder = new ActionBlock<Tuple<TPFTexInfo, byte[]>>(tuple => PopulateTexDetails(tuple.Item1, tuple.Item2), new ExecutionDataflowBlockOptions { BoundedCapacity = maxParallelism, MaxDegreeOfParallelism = maxParallelism });
 
             // Connect pipeline
-            fileBuffer.LinkTo(tpfMaker, new DataflowLinkOptions { PropagateCompletion = true }, file => AcceptedImageExtensions.Where(ext => ext.Contains("tpf")).Contains(Path.GetExtension(file)));
+            fileBuffer.LinkTo(tpfMaker, new DataflowLinkOptions { PropagateCompletion = true }, file => AcceptedImageExtensions.Where(ext => ext.Contains("tpf")).Contains(Path.GetExtension(file), StringComparison.InvariantCultureIgnoreCase));
 
-            fileBuffer.LinkTo(singleTexMaker, new DataflowLinkOptions { PropagateCompletion = true }, file => AcceptedImageExtensions.Where(ext => !ext.Contains("tpf")).Contains(Path.GetExtension(file)));
+            fileBuffer.LinkTo(singleTexMaker, new DataflowLinkOptions { PropagateCompletion = true }, file => AcceptedImageExtensions.Where(ext => !ext.Contains("tpf")).Contains(Path.GetExtension(file), StringComparison.InvariantCultureIgnoreCase));
             singleTexMaker.LinkTo(texExtractor, new DataflowLinkOptions { PropagateCompletion = true });
             texExtractor.LinkTo(thumbBuilder, new DataflowLinkOptions { PropagateCompletion = true });
 
@@ -583,7 +586,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
             fileBuffer.Complete();
 
             // Due to pipeline topology one side can and will finish first, which then Completes everything else despite the other side still working.
-            await Task.WhenAll(thumbBuilder.Completion, tpfMaker.Completion);
+            await Task.WhenAll(tpfMaker.Completion, singleTexMaker.Completion);  // Wait for input blocks to complete, since they're separate.
+            await thumbBuilder.Completion;   // Now wait for the single exit block.
 
             OnPropertyChanged(nameof(SaveTPFEnabled));
             OnPropertyChanged(nameof(TexturesCheckAll));
@@ -655,15 +659,17 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             foreach (var tex in Textures)
             {
-                tex.Analysed = true;
-
                 if (tex.IsDef)
+                {
+                    tex.Analysed = true;
                     continue;
+                }
 
                 var treeTexs = CurrentTree.Textures.Where(tmptreeTex => tmptreeTex.Hash == tex.Hash).ToList();
 
                 if (treeTexs?.Count == 0)
                 {
+                    tex.Analysed = true;
                     tex.Error = "Not Found in Tree";
                     continue;
                 }
@@ -693,10 +699,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 tex.TreeFormat = treeTex.Format;
                 tex.TreeMips = treeTex.Mips;
                 tex.TexName = treeTex.TexName;
-                tex.PCCs = treeTex.PCCs;
+                tex.PCCs.Clear();
+                tex.PCCs.AddRange(treeTex.PCCs);
 
                 Console.WriteLine(tex.TreeMips);
                 Console.WriteLine(tex.TreeFormat);
+                tex.Analysed = true;
             }
 
             // Look for file duplicates - File could still occur here as previously it was data based, but here it's TREE HASH based (i.e. not actual hash of current data)
@@ -716,6 +724,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
 
             OnPropertyChanged(nameof(AllAnalysed));
+            SelectedTexture = SelectedTexture;
             Analysed = true;
 
             Status = $"Analysis Complete! {(!AllAnalysed ? $"{Textures.Where(t => !t.IsDef && !t.FoundInTree).Count()} textures were not found in tree." : "")}";

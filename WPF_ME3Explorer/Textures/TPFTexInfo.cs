@@ -142,6 +142,7 @@ namespace WPF_ME3Explorer.Textures
                 OnPropertyChanged(nameof(FoundInTree));
                 OnPropertyChanged(nameof(FormatOK));
                 OnPropertyChanged(nameof(MipsOK));
+                OnPropertyChanged(nameof(PCCs));
             }
         }
 
@@ -179,14 +180,15 @@ namespace WPF_ME3Explorer.Textures
                     return null;
 
                 byte[] data = Extract();
+
+
+                // Need to do it this way to support images that are unsupported by WIC.
                 using (ImageEngineImage img = new ImageEngineImage(data))
                 {
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        img.Save(ms, img.FormatDetails, MipHandling.KeepTopOnly);
+                        return img.GetWPFBitmap();
+                        /*img.Save(ms, new ImageFormats.ImageEngineFormatDetails(ImageEngineFormat.PNG), MipHandling.KeepTopOnly, removeAlpha: false);
                         var overlayed = ToolsetTextureEngine.OverlayAndPickDetailed(ms);
-                        return UsefulThings.WPF.Images.CreateWPFBitmap(overlayed);
-                    }
+                        return UsefulThings.WPF.Images.CreateWPFBitmap(overlayed);*/
                 }
             }
         }
@@ -346,7 +348,7 @@ namespace WPF_ME3Explorer.Textures
                 var hashGetter = Task.Run(() => CRC32.BlockChecksum(imgData)); // Put it off thread
 
                 // Get image details and build thumbnail.
-                using (MemoryStream ms = new MemoryStream(imgData))
+                using (MemoryStream ms = new MemoryStream(imgData, 0, imgData.Length, false, true))
                 {
                     CSharpImageLibrary.Headers.DDS_Header header = new CSharpImageLibrary.Headers.DDS_Header(ms);
                     Format = header.Format;
@@ -390,7 +392,7 @@ namespace WPF_ME3Explorer.Textures
                 baseSearchables.Add(TreeFormat.ToString());
                 baseSearchables.Add(FilePath);
                 baseSearchables.Add(FileName);
-                baseSearchables.Add(ZipEntry.Filename);
+                baseSearchables.Add(ZipEntry?.Filename);
 
                 baseSearchables.RemoveAll(t => t == null); // Remove any nulls again.
 

@@ -391,11 +391,69 @@ namespace WPF_ME3Explorer.UI.ViewModels
             if (String.IsNullOrEmpty(searchText))
                 return;
 
+
+            string[] parts = searchText.Trim(' ').Split(' ');
+
+            var keyWords = parts.Where(t => !t[0].isDigit()).ToList();
+            var keyNumbers = parts.Where(t => t[0].isDigit()).ToList();
+
+            bool requiresMoreThanOne = keyWords?.Count > 0 && keyNumbers?.Count > 0;
+
             Parallel.ForEach(Textures, texture =>
             {
-                bool found = texture.Searchables.Any(searchable => searchable.Contains(searchText, StringComparison.OrdinalIgnoreCase));
-                texture.IsHidden = !found;
+                for (int i = 0; i < texture.Searchables.Count; i++)
+                {
+                    bool found = SearchSearchable(texture.Searchables[i], i, keyWords, keyNumbers, out int searchableType);
+                    texture.IsHidden = !found;
+                }
             });
+        }
+
+        protected bool SearchSearchable(string searchable, int searchableInd, IEnumerable<string> keyWords, IEnumerable<string> keyNumbers, out int searchableType)
+        {
+            searchableType = 0;
+
+            // Name is always first and there's only 1 of them.
+            if (searchableInd != 0)
+            {
+                if (searchable.StartsWith("0x"))
+                    searchableType = 3;
+                else if (searchable[0].isDigit())
+                    searchableType = 2;
+                else if (searchable.Contains('\\'))
+                    searchableType = 1;
+                else if (searchable.Length < 16)  // Formats. Shouldn't be any paths shorter than 16, and all things that are shorter should be caught in previous 'ifs'.
+                    searchableType = 4;
+            }
+
+            bool found = true;
+
+            // SEARCH
+            if (searchableType == 2 || searchableType == 3)
+            {
+                foreach (string keynumber in keyNumbers)
+                {
+                    if (!searchable.Contains(keynumber, StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        found = false;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                // Keyword search
+                foreach (string keyword in keyWords)
+                {
+                    if (!searchable.Contains(keyword, StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        found = false;
+                        break;
+                    }
+                }
+            }
+
+            return found;
         }
 
         protected virtual void SetupCurrentTree()

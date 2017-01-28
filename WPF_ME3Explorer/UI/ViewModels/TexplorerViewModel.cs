@@ -514,7 +514,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 if (String.IsNullOrEmpty(value))
                     TextureSearchResults.Clear();
                 else
+                {
+                    searchDelayer.Stop();
                     searchDelayer.Start();
+                }
             }
         }
 
@@ -1679,49 +1682,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 for (int i = 0; i < texture.Searchables.Count; i++)
                 {
                     //texture.Searchables[i].Contains(searchText, StringComparison.OrdinalIgnoreCase);
-
-                    int searchableType = 0;
-                    string test = texture.Searchables[i];
-
-                    // Name is always first and there's only 1 of them.
-                    if (i != 0)
-                    {
-                        if (test.StartsWith("0x"))
-                            searchableType = 3;
-                        else if (test[0].isDigit())
-                            searchableType = 2;
-                        else if (test.Contains('\\'))
-                            searchableType = 1;
-                        else if (test.Length < 16)  // Formats. Shouldn't be any paths shorter than 16, and all things that are shorter should be caught in previous 'ifs'.
-                            searchableType = 4;
-                    }
-
-                    bool found = true;
-
-                    // SEARCH
-                    if (searchableType == 2 || searchableType == 3)
-                    {
-                        foreach (string keynumber in keyNumbers)
-                        {
-                            if (!test.Contains(keynumber, StringComparison.CurrentCultureIgnoreCase))
-                            {
-                                found = false;
-                                break;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Keyword search
-                        foreach (string keyword in keyWords)
-                        {
-                            if (!test.Contains(keyword, StringComparison.CurrentCultureIgnoreCase))
-                            {
-                                found = false;
-                                break;
-                            }
-                        }
-                    }                    
+                    bool found = SearchSearchable(texture.Searchables[i], i, keyWords, keyNumbers, out int searchableType);                  
 
                     if (found)
                     {
