@@ -23,6 +23,32 @@ namespace WPF_ME3Explorer.Textures
         public static CommandHandler ExtractCommand { get; set; }
         public static CommandHandler ReplaceCommand { get; set; }
 
+        int inGameWidth = -1;
+        public int InGameWidth
+        {
+            get
+            {
+                return inGameWidth;
+            }
+            set
+            {
+                SetProperty(ref inGameWidth, value);
+            }
+        }
+
+        int inGameHeight = -1;
+        public int InGameHeight
+        {
+            get
+            {
+                return inGameHeight;
+            }
+            set
+            {
+                SetProperty(ref inGameHeight, value);
+            }
+        }
+
         public bool RequiresAutofix
         {
             get

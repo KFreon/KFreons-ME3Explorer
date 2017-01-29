@@ -272,20 +272,23 @@ namespace WPF_ME3Explorer.Textures
 
         internal static bool ChangeTexture(TreeTexInfo tex, string newTextureFileName)
         {
-            // Do stuff different for TPFToolsMode
-            if (TPFToolsModeEnabled)
-            {
-                ToolsetInfo.TPFToolsInstance.vm.Textures.Add(new TPFTexInfo(tex, newTextureFileName));
-                return true;
-            }
-
-
             // Get Texture2D
             Texture2D tex2D = GetTexture2D(tex);
 
-            byte[] imgData = File.ReadAllBytes(newTextureFileName);
+            // Do stuff different for TPFToolsMode
+            if (TPFToolsModeEnabled)
+            {
+                var tpftex = new TPFTexInfo(tex, newTextureFileName)
+                {
+                    InGameHeight = tex2D.ImageList[0].ImageSize.Height,
+                    InGameWidth = tex2D.ImageList[0].ImageSize.Width
+                };
 
-            
+                ToolsetInfo.TPFToolsInstance.vm.Textures.Add(tpftex);
+                return true;
+            }
+
+            byte[] imgData = File.ReadAllBytes(newTextureFileName);            
 
             // Update Texture2D
             // KFreon: No format checks required. Auto conversion switched on.
@@ -302,15 +305,22 @@ namespace WPF_ME3Explorer.Textures
 
         internal static bool ChangeTexture(TreeTexInfo tex, ImageEngineImage newImage)
         {
+            Texture2D tex2D = GetTexture2D(tex);
+
             // Do stuff different for TPFToolsMode
             if (TPFToolsModeEnabled)
             {
-                ToolsetInfo.TPFToolsInstance.vm.Textures.Add(new TPFTexInfo(tex, newImage));
+                var tpftex = new TPFTexInfo(tex, newImage)
+                {
+                    InGameHeight = tex2D.ImageList[0].ImageSize.Height,
+                    InGameWidth = tex2D.ImageList[0].ImageSize.Width
+                };
+
+                ToolsetInfo.TPFToolsInstance.vm.Textures.Add(tpftex);
                 return true;
             }
 
 
-            Texture2D tex2D = GetTexture2D(tex);
             tex2D.OneImageToRuleThemAll(newImage);
 
             // Ensure tex2D is part of the TreeTexInfo for later use.

@@ -269,14 +269,16 @@
                                 <Label Content="Height:" Grid.Row="1"/>
                                 <TextBlock Text="{Binding Height}" Grid.Column="1" Grid.Row="1"/>
 
-                                <DockPanel Grid.RowSpan="2" Grid.Column="2">
+                                <DockPanel Grid.RowSpan="2" Grid.Column="2" Visibility="{Binding Analysed, Converter={StaticResource BoolToVisConverter}}">
                                     <Label Content="Current Game" DockPanel.Dock="Top" FontSize="10"/>
-                                    <TextBlock DockPanel.Dock="Top" FontSize="8">
-                                        <Run Text="Width: "/>
+                                    <TextBlock DockPanel.Dock="Top" FontSize="7">
+                                        <Run Text="Width: " FontWeight="Bold"/>
+                                        <Run Text="{Binding InGameWidth}"/>
                                     </TextBlock>
 
-                                    <TextBlock DockPanel.Dock="Top" FontSize="8">
-                                        <Run Text="Height: "/>
+                                    <TextBlock DockPanel.Dock="Top" FontSize="7">
+                                        <Run Text="Height: " FontWeight="Bold"/>
+                                        <Run Text="{Binding InGameHeight}"/>
                                     </TextBlock>
                                 </DockPanel>
 

@@ -17,6 +17,7 @@ using UsefulThings.WPF;
 using WPF_ME3Explorer.Textures;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using System.Diagnostics;
+using UsefulThings;
 
 namespace WPF_ME3Explorer.UI
 {
@@ -43,7 +44,8 @@ namespace WPF_ME3Explorer.UI
                     if (droppedFiles != null)
                         vm.LoadFiles(droppedFiles);
                 })), // Don't need the TPFTexInfo - it'll be null anyway.
-                DropValidator = new Predicate<string[]>(files => files.All(file => vm.AcceptedImageExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()))),
+
+                DropValidator = new Predicate<string[]>(files => files.All(file => vm.AcceptedImageExtensions.Contains(Path.GetExtension(file), StringComparison.InvariantCultureIgnoreCase))),
                 DragOutDataGetter = tex => new Dictionary<string, Func<byte[]>> { { tex.DefaultSaveName, () => tex.Extract() } },
             };
 

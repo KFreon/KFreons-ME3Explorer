@@ -16,6 +16,7 @@ using System.ComponentModel;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using WPF_ME3Explorer.PCCObjectsAndBits;
 
 namespace WPF_ME3Explorer.UI.ViewModels
 {
@@ -682,28 +683,35 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     foreach (var treet in treeTexs)
                     {
                         // Only need texname for display - can't selected in any other way, link PCCs for installation too.
-                        TPFTexInfo dup = new TPFTexInfo(GameDirecs);
-                        dup.TexName = treet.TexName;
-                        dup.PCCs.AddRange(treet.PCCs);
+                        TPFTexInfo dup = new TPFTexInfo(GameDirecs)
+                        {
+                            TexName = treet.TexName,
+                            
+                            // Get thumb
+                            Thumb = treet.Thumb
+                        };
 
-                        // Get thumb
-                        dup.Thumb = treet.Thumb;
+                        dup.PCCs.AddRange(treet.PCCs);
                     }
                 }
-                var treeTex = treeTexs[0];
-                Console.WriteLine(treeTexs.Count);
-                Console.WriteLine(treeTexs[0].TexName);
-                Console.WriteLine(treeTexs[0].Mips);
-                Console.WriteLine(treeTexs[0].Format);
 
+                var treeTex = treeTexs[0];
                 tex.TreeFormat = treeTex.Format;
                 tex.TreeMips = treeTex.Mips;
                 tex.TexName = treeTex.TexName;
                 tex.PCCs.Clear();
                 tex.PCCs.AddRange(treeTex.PCCs);
 
-                Console.WriteLine(tex.TreeMips);
-                Console.WriteLine(tex.TreeFormat);
+                // Get some details about texture's current state in game
+                using (PCCObject pcc = new PCCObject(tex.PCCs[0].Name, GameVersion))
+                {
+                    using (Texture2D tex2D = new Texture2D(pcc, tex.PCCs[0].ExpID, GameDirecs))
+                    {
+                        tex.InGameWidth = tex2D.ImageList[0].ImageSize.Width;
+                        tex.InGameHeight = tex2D.ImageList[0].ImageSize.Height;
+                    }
+                }
+
                 tex.Analysed = true;
             }
 
