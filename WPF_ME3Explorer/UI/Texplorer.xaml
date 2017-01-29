@@ -58,10 +58,28 @@
                 </StackPanel>
             </DataTemplate>
         </Grid.Resources>
+        <Grid.Style>
+            <Style TargetType="Grid">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding TPFToolsModeEnabled}" Value="true">
+                        <Setter Property="Background" Value="AliceBlue"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Grid.Style>
 
 
-
-        <Menu x:Name="MainMenuBar" Background="White" Grid.ColumnSpan="2">
+        <Menu x:Name="MainMenuBar" Grid.ColumnSpan="2">
+            <Menu.Style>
+                <Style TargetType="Menu">
+                    <Setter Property="Background" Value="White"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding TPFToolsModeEnabled}" Value="true">
+                            <Setter Property="Background" Value="LightBlue"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Menu.Style>
             <MenuItem x:Name="SaveChangesButton" Header="Save Changes" Command="{Binding SaveChangesCommand}">
                 <MenuItem.Style>
                     <Style TargetType="MenuItem" BasedOn="{StaticResource BaseMenuItemStyle}">
@@ -69,6 +87,11 @@
 
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding ChangedTextures.Count}" Value="0">
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </DataTrigger>
+
+
+                            <DataTrigger Binding="{Binding IsTPFModeEnabled}" Value="true">
                                 <Setter Property="IsEnabled" Value="False"/>
                             </DataTrigger>
                         </Style.Triggers>

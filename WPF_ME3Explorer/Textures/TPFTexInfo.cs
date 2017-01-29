@@ -290,6 +290,7 @@ namespace WPF_ME3Explorer.Textures
         }
 
         ImageEngineFormat treeFormat = new ImageEngineFormat();
+
         public ImageEngineFormat TreeFormat
         {
             get
@@ -318,6 +319,59 @@ namespace WPF_ME3Explorer.Textures
             }
             else
                 FileName = file;
+        }
+
+        public TPFTexInfo(TreeTexInfo tex, string newFile)
+        {
+            Width = tex.Width;
+            Height = tex.Height;
+            Hash = tex.Hash;
+            OriginalHash = Hash;
+            GameDirecs = tex.GameDirecs;
+            FileName = Path.GetFileName(newFile);
+            FilePath = Path.GetDirectoryName(newFile);
+
+            var bytes = File.ReadAllBytes(newFile);
+            FileHash = CRC32.BlockChecksum(bytes);
+
+            using (ImageEngineImage img = new ImageEngineImage(bytes))
+            {
+                Format = img.Format;
+                Mips = img.NumMipMaps;
+                Thumb = new Thumbnail(img.Save(new ImageFormats.ImageEngineFormatDetails(ImageEngineFormat.JPG), MipHandling.KeepTopOnly, 64));
+            }
+            PCCs.AddRange(tex.PCCs.Where(p => p.IsChecked));
+            TexName = tex.TexName;
+            TreeFormat = tex.Format;
+            TreeMips = tex.Mips;
+
+            Analysed = true;
+        }
+
+        public TPFTexInfo(TreeTexInfo tex, ImageEngineImage newImage)
+        {
+            Width = tex.Width;
+            Height = tex.Height;
+            Hash = tex.Hash;
+            OriginalHash = Hash;
+            GameDirecs = tex.GameDirecs;
+            FileName = Path.GetFileName(newImage.FilePath);
+            FilePath = Path.GetDirectoryName(newImage.FilePath);
+
+            var bytes = newImage.OriginalData;
+            FileHash = CRC32.BlockChecksum(bytes);
+
+
+            Format = newImage.Format;
+            Mips = newImage.NumMipMaps;
+            Thumb = new Thumbnail(newImage.Save(new ImageFormats.ImageEngineFormatDetails(ImageEngineFormat.JPG), MipHandling.KeepTopOnly, 64));
+            
+            PCCs.AddRange(tex.PCCs.Where(p => p.IsChecked));
+            TexName = tex.TexName;
+            TreeFormat = tex.Format;
+            TreeMips = tex.Mips;
+
+            Analysed = true;
         }
 
         internal byte[] Extract()
@@ -352,10 +406,7 @@ namespace WPF_ME3Explorer.Textures
                 {
                     CSharpImageLibrary.Headers.DDS_Header header = new CSharpImageLibrary.Headers.DDS_Header(ms);
                     Format = header.Format;
-                    ImageEngineImage image = null;
-
-
-                    image = new ImageEngineImage(ms);
+                    ImageEngineImage image = new ImageEngineImage(ms);
                     Width = image.Width;
                     Height = image.Height;
                     Mips = image.NumMipMaps;
