@@ -45,8 +45,6 @@ namespace WPF_ME3Explorer.Textures
         #region Properties
         public Action GenerateThumbnail = null;
 
-        public Texture2D ChangedAssociatedTexture { get; set; }
-
         string fullPackage = null;
         public string FullPackage
         {

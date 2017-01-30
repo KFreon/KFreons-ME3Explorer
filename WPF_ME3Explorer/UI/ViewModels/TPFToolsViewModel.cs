@@ -113,7 +113,18 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
         }
 
-        public bool Analysed { get; set; }
+        bool analysed = false;
+        public bool Analysed
+        {
+            get
+            {
+                return analysed;
+            }
+            set
+            {
+                SetProperty(ref analysed, value);
+            }
+        }
 
         public override string TextureSearch
         {
@@ -263,6 +274,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
         }
         #endregion SaveTPF Commands
 
+        static readonly object Install_CachedLocker = new object();
 
         CommandHandler installCommand = null;
         public CommandHandler InstallCommand
@@ -282,8 +294,60 @@ namespace WPF_ME3Explorer.UI.ViewModels
                             texes = ((IEnumerable<TPFTexInfo>)(param)).ToArray();
                         else
                             texes = new TPFTexInfo[] { (TPFTexInfo)(param) };
-                        
-                        await Task.Run(async () => await ToolsetTextureEngine.InstallTextures(NumThreads, this, GameDirecs, cts, texes));
+
+
+
+                        List<Texture2D> cachedTex2Ds = new List<Texture2D>();
+
+                        // loop over PCCs, creating and caching textures.
+                        var pccTexGroups =
+                                from tex in texes
+                                from pcc in tex.PCCs
+                                where pcc.IsChecked
+                                group tex by pcc.Name;
+
+                        var action = new Action<IGrouping<string, TPFTexInfo>>(texGroup =>
+                        {
+                            if (cts.IsCancellationRequested)
+                                return;
+
+                            string pcc = texGroup.Key;
+                            PCCObject pccobj = new PCCObject(pcc, GameVersion);
+
+                            foreach (var tex in texGroup)
+                            {
+                                // Get texture.
+                                Texture2D tex2D = null;
+                                lock (Install_CachedLocker)
+                                {
+                                    tex2D = cachedTex2Ds.FirstOrDefault(t => t.texName == tex.TexName && t.Hash == tex.Hash);
+
+                                    // Need to create texture.
+                                    if (tex2D == null)
+                                    {
+                                        tex2D = new Texture2D(pccobj, tex.PCCs.First(t => t.Name == pcc).ExpID, GameDirecs);
+                                        cachedTex2Ds.Add(tex2D);
+
+                                        using (ImageEngineImage img = new ImageEngineImage(tex.Extract()))
+                                            tex2D.OneImageToRuleThemAll(img);
+                                    }
+                                }
+
+                                
+                                // Install things
+                                foreach (var entry in tex.PCCs.Where(t => t.Name == pcc))
+                                    ToolsetTextureEngine.SaveTex2DToPCC(pccobj, tex2D, GameDirecs, entry.ExpID);
+                            }
+
+                            // Save PCC
+                            pccobj.SaveToFile(pcc);
+                        });
+
+                        if (ImageEngine.EnableThreading)
+                            await Task.Run(() => Parallel.ForEach(pccTexGroups, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, action));
+                        else
+                            foreach (var texGroup in pccTexGroups)
+                                action(texGroup);
 
                         Progress = MaxProgress;
                         Status = "All textures installed!";

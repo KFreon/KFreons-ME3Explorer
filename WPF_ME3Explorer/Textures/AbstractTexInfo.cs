@@ -27,6 +27,9 @@ namespace WPF_ME3Explorer.Textures
         }
         public MTRangedObservableCollection<PCCEntry> PCCs { get; set; } = new MTRangedObservableCollection<PCCEntry>();
 
+        public Texture2D ChangedAssociatedTexture { get; set; }
+
+
         bool isHidden = false;
         public bool IsHidden
         {

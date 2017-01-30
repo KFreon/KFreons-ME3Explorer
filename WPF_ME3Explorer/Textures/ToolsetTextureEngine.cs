@@ -270,15 +270,15 @@ namespace WPF_ME3Explorer.Textures
 
         
 
-        internal static bool ChangeTexture(TreeTexInfo tex, string newTextureFileName)
+        internal static bool ChangeTexture(AbstractTexInfo tex, string newTextureFileName)
         {
             // Get Texture2D
             Texture2D tex2D = GetTexture2D(tex);
 
             // Do stuff different for TPFToolsMode
-            if (TPFToolsModeEnabled)
+            if (TPFToolsModeEnabled && tex is TreeTexInfo)
             {
-                var tpftex = new TPFTexInfo(tex, newTextureFileName)
+                var tpftex = new TPFTexInfo((TreeTexInfo)tex, newTextureFileName)
                 {
                     InGameHeight = tex2D.ImageList[0].ImageSize.Height,
                     InGameWidth = tex2D.ImageList[0].ImageSize.Width
@@ -298,19 +298,21 @@ namespace WPF_ME3Explorer.Textures
 
             // Ensure tex2D is part of the TreeTexInfo for later use.
             tex.ChangedAssociatedTexture = tex2D;
-            tex.HasChanged = true;
+
+            if (tex is TreeTexInfo t)
+                t.HasChanged = true;
 
             return true;
         }
 
-        internal static bool ChangeTexture(TreeTexInfo tex, ImageEngineImage newImage)
+        internal static bool ChangeTexture(AbstractTexInfo tex, ImageEngineImage newImage)
         {
             Texture2D tex2D = GetTexture2D(tex);
 
             // Do stuff different for TPFToolsMode
-            if (TPFToolsModeEnabled)
+            if (TPFToolsModeEnabled && tex is TreeTexInfo)
             {
-                var tpftex = new TPFTexInfo(tex, newImage)
+                var tpftex = new TPFTexInfo((TreeTexInfo)tex, newImage)
                 {
                     InGameHeight = tex2D.ImageList[0].ImageSize.Height,
                     InGameWidth = tex2D.ImageList[0].ImageSize.Width
@@ -325,12 +327,14 @@ namespace WPF_ME3Explorer.Textures
 
             // Ensure tex2D is part of the TreeTexInfo for later use.
             tex.ChangedAssociatedTexture = tex2D;
-            tex.HasChanged = true;
+
+            if (tex is TreeTexInfo t)
+                t.HasChanged = true;
 
             return true;
         }
 
-        static Texture2D GetTexture2D(TreeTexInfo tex)
+        static Texture2D GetTexture2D(AbstractTexInfo tex)
         {
             if (tex.PCCs?.Count < 1)
                 throw new IndexOutOfRangeException($"Tex: {tex.TexName} has no PCC's.");
@@ -507,11 +511,9 @@ namespace WPF_ME3Explorer.Textures
             foreach (var tex in texGroup)
             {
                 Texture2D newTex2D = null;
-                var texType = tex as TreeTexInfo;
+                var texType = tex as AbstractTexInfo;
                 if (texType != null)
                     newTex2D = texType.ChangedAssociatedTexture;
-                else
-                    newTex2D = new Texture2D(pcc, 0, GameDirecs); // TODO TPFTools
 
                 // Loop over texture's pcc entries to install desired ones.
                 foreach (var entry in tex.PCCs.Where(p => p.Name == pcc.pccFileName))
