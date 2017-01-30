@@ -91,7 +91,7 @@
                             </DataTrigger>
 
 
-                            <DataTrigger Binding="{Binding IsTPFModeEnabled}" Value="true">
+                            <DataTrigger Binding="{Binding TPFToolsModeEnabled}" Value="true">
                                 <Setter Property="IsEnabled" Value="False"/>
                             </DataTrigger>
                         </Style.Triggers>
