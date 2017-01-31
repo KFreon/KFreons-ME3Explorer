@@ -508,7 +508,7 @@
             <ListBox ItemTemplate="{StaticResource SmallItemTemplate}" ItemsSource="{Binding ChangedTextures}"/>
         </Expander>
 
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="4" x:Name="TreeScanBackground" Background="Black" Margin="0,0,0,0.333" d:IsHidden="True">
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="4" x:Name="TreeScanBackground" Background="Black" Margin="0,0,0,0.333">
             <Grid.Resources>
                 <DoubleAnimation x:Key="TreeScanPanelClose" Storyboard.TargetName="TreeScanPanel" Storyboard.TargetProperty="Width" From="1500" To="0" Duration="0:0:1" DecelerationRatio="1">
                     <DoubleAnimation.EasingFunction>
@@ -654,7 +654,17 @@
                         </Grid.ColumnDefinitions>
                         <Grid>
                             <Label Content="DLCs" VerticalAlignment="Top"/>
-                            <Button Content="Exclude All" Style="{StaticResource MainButtonStyle}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="5,5,0,0" Command="{Binding FTSDLCsUnCheckAll}"/>
+                            <Button Content="Exclude All" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="5,5,0,0" Command="{Binding FTSDLCsUnCheckAll}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource MainButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ElementName=DLCsListBox, Path=Items.Count}" Value="0">
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                             <ListBox x:Name="DLCsListBox" ItemsSource="{Binding DLCItemsView}" Margin="5,26,5,0"/>
                         </Grid>
 

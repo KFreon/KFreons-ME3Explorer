@@ -42,7 +42,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     ftsDLCsUnCheckAll = new CommandHandler(() =>
                     {
                         for (int i = 0; i < FTSDLCs.Count; i++)
-                            FTSDLCs[i].IsChecked = false;
+                            FTSDLCs[i].IsChecked = true;
                     });
 
                 return ftsDLCsUnCheckAll;
