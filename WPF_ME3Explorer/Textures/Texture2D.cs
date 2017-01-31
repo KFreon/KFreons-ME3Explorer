@@ -141,8 +141,9 @@ namespace WPF_ME3Explorer.Textures
         /// <param name="pccObj">PCCObject containing texture.</param>
         /// <param name="texIdx">Export ID of texture in pcc.</param>
         /// <param name="direcs">Mass Effect Directory information.</param>
+        /// <param name="treescanning">True if treescanning, null entries not filtered out. False = null entries are filtered out.</param>
         /// <param name="hash">Hash of texture.</param>
-        public Texture2D(PCCObject pccObj, int texIdx, MEDirectories.MEDirectories direcs, uint hash = 0) : this()
+        public Texture2D(PCCObject pccObj, int texIdx, MEDirectories.MEDirectories direcs, uint hash = 0, bool treescanning = false) : this()
         {
             GameDirecs = direcs;
             allPccs.Add(pccObj.pccFileName);
@@ -231,10 +232,12 @@ namespace WPF_ME3Explorer.Textures
 
                 imgInfo.ImageSize = new ImageSize(dataStream.ReadInt32(), dataStream.ReadInt32());  // FG: 6th & 7th [or nth and (nth + 1) if local] int32 are width x height
 
-                // KFreon: Not doing this anymore because want to remove them later (from aquadran)
                 // KFreon: Test - instead of filtering out the null entries later, just don't add them here.
-                //if (imgInfo.Offset != -1 && imgInfo.CompressedSize != -1)
-                    ImageList.Add(imgInfo);                                                                   // FG: A salty's favorite, add the struct to a list<struct>
+                // KFreon: Now removing them during treescan
+                if (!treescanning && (imgInfo.Offset == -1 || imgInfo.CompressedSize == -1 || imgInfo.storageType == storage.empty))
+                    continue;
+
+                ImageList.Add(imgInfo);    // FG: A salty's favorite, add the struct to a list<struct>
                 count--;
             }
 
