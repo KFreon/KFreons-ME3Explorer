@@ -132,7 +132,7 @@ namespace WPF_ME3Explorer.Textures
             GameDirecs = direcs;
         }
 
-        public TreeTexInfo(Texture2D tex2D, ThumbnailWriter ThumbWriter, ExportEntry export, Dictionary<string, MemoryStream> TFCs, IList<string> Errors, MEDirectories.MEDirectories direcs) : this(direcs)
+        public TreeTexInfo(Texture2D tex2D, ThumbnailWriter ThumbWriter, ExportEntry export, Dictionary<string, MemoryStream> TFCs, IList<string> Errors, MEDirectories.MEDirectories direcs, MTRangedObservableCollection<string> ScannedPCCs) : this(direcs)
         {
             TexName = tex2D.texName;
             Format = tex2D.texFormat;
@@ -181,7 +181,13 @@ namespace WPF_ME3Explorer.Textures
             GenerateThumbnail = new Action(() => CreateThumbnail(ToolsetTextureEngine.AddDDSHeader(imgData, info, tex2D.texFormat), tex2D, ThumbWriter, info, TFCs, Errors));
 
             for (int i = 0; i < tex2D.allPccs.Count; i++)
-                PCCs.Add(new PCCEntry(tex2D.allPccs[i], tex2D.expIDs[i], GameDirecs));
+            {
+                int scannedIndex = ScannedPCCs.IndexOf(tex2D.allPccs[i]);
+                if (scannedIndex == -1)
+                    throw new InvalidOperationException("PCC must be in ScannedPCCs.");
+
+                PCCs.Add(new PCCEntry(tex2D.allPccs[i], tex2D.expIDs[i], GameDirecs, scannedIndex));
+            }
 
             // KFreon: ME2 only?
             if (export.PackageFullName == "Base Package")

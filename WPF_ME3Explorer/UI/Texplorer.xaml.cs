@@ -55,7 +55,7 @@ namespace WPF_ME3Explorer.UI
 
             vm.ProgressCloser = new Action(() =>
             {
-                HiderButton.Dispatcher.Invoke(() =>   // Not sure if this is necessary, but things aren't working otherwise.
+                Dispatcher.Invoke(() =>   // Not sure if this is necessary, but things aren't working otherwise.
                 {
                     Storyboard closer = (Storyboard)HiderButton.Resources["ProgressPanelCloser"];
                     closer.Begin();
@@ -64,23 +64,30 @@ namespace WPF_ME3Explorer.UI
 
             vm.ProgressOpener = new Action(() =>
             {
-                TreeScanBackground.Dispatcher.Invoke(() =>   // Not sure if this is necessary, but things aren't working otherwise.
+                Dispatcher.BeginInvoke(new Action(() =>   // Not sure if this is necessary, but things aren't working otherwise.
                 {
                     Storyboard closer = (Storyboard)TreeScanBackground.Resources["ProgressPanelOpener"];
                     closer.Begin();
-                });
+                }));
             });
 
             vm.TreePanelCloser = new Action(() =>
             {
-                Storyboard closer = (Storyboard)TreeScanBackground.Resources["TreeScanClosePanelAnimation"];
-                closer.Begin();
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    Storyboard closer = (Storyboard)TreeScanBackground.Resources["TreeScanClosePanelAnimation"];
+                    closer.Begin();
+                }));
+                
             });
 
             vm.TreePanelOpener = new Action(() =>
             {
-                Storyboard opener = (Storyboard)SettingsButton.Resources["TreeScanPanelOpener"];
-                opener.Begin();
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    Storyboard opener = (Storyboard)SettingsButton.Resources["TreeScanPanelOpener"];
+                    opener.Begin();
+                }));
             });
 
 

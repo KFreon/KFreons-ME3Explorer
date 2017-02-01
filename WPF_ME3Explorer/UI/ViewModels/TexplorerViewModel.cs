@@ -1066,9 +1066,13 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     break;
             }
 
-            DLCItemsView.Refresh();
-            ExclusionsItemsView.Refresh();
-            FileItemsView.Refresh();
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                DLCItemsView.Refresh();
+                ExclusionsItemsView.Refresh();
+                FileItemsView.Refresh();
+            }));
+            
 
             OnPropertyChanged(nameof(FTSDLCs));
             OnPropertyChanged(nameof(FTSExclusions));
@@ -1170,7 +1174,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 return;
             }
             
-            CurrentTree.IsSelected = true;  // TODO: Need to call LoadFTSandTree? 
+            CurrentTree.IsSelected = true; 
 
             DebugOutput.PrintLn("Saving tree to disk...");
             await Task.Run(() =>
@@ -1179,11 +1183,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 SetupPCCCheckBoxLinking(CurrentTree.Textures);
             }).ConfigureAwait(false);
             await Task.Run(() => CurrentTree.SaveToFile()).ConfigureAwait(false);
-            DebugOutput.PrintLn($"Treescan completed. Elapsed time: {ElapsedTime}. Num Textures: {CurrentTree.Textures.Count}.");
+            DebugOutput.PrintLn($"Treescan completed. Elapsed time: {ElapsedTime.ToString(@"%h\:mm\:ss\.ss")}. Num Textures: {CurrentTree.Textures.Count}.");
             
-            CurrentTree.Valid = true; // It was just scanned after all.
             ThumbnailWriter.FinishAdding();
-
+            
             // Put away TreeScanProgress Window
             ProgressCloser();
             GC.Collect();  // On a high RAM x64 system, things sit around at like 6gb. Might as well clear it.
@@ -1244,8 +1247,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             Status = "Beginning Tree Scan...";
 
-            
-
             // Perform scan
             await ScanAllPCCs(PCCsToScan, TFCs).ConfigureAwait(false);   // Start entire thing on another thread which awaits when collection is full, then wait for pipeline completion.
 
@@ -1266,6 +1267,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             Debug.WriteLine($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}");
             DebugOutput.PrintLn($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}");
 
+            CurrentTree.Valid = true; // It was just scanned after all.
             SetupCurrentTree();
 
             Progress = MaxProgress;
@@ -1273,7 +1275,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             if (cts.IsCancellationRequested)
                 Status = "Tree scan was cancelled!";
             else
-                Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures. Elapsed scan time: {ElapsedTime}.";
+                Status = $"Scan complete. Found {CurrentTree.Textures.Count} textures. Elapsed scan time: {ElapsedTime.ToString(@"%h\:mm\:ss\.ss")}.";
         }
 
         Task ScanAllPCCs(IList<string> PCCs, Dictionary<string, MemoryStream> TFCs)
@@ -1385,7 +1387,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 bool requiresSave = false;
                 foreach (var tex in group.Distinct())
                 {
-                    var tex2D = new Texture2D(pcc, tex.ExpID, GameDirecs);
+                    var tex2D = new Texture2D(pcc, tex.ExpID, GameDirecs, treescanning: true);
                     if (RemoveInvalidTexEntries(pcc, tex2D))
                         requiresSave = true;
                 }
@@ -1418,7 +1420,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     Texture2D tex2D = null;
                     try
                     {
-                        tex2D = new Texture2D(pcc, i, GameDirecs);
+                        tex2D = new Texture2D(pcc, i, GameDirecs, treescanning: true);
 
                         if (RemoveNullPointers && RemoveInvalidTexEntries(pcc, tex2D))
                             pccRequiresSave = true;
@@ -1438,7 +1440,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                     try
                     {
-                        TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs, Errors, GameDirecs);
+                        TreeTexInfo info = new TreeTexInfo(tex2D, ThumbnailWriter, export, TFCs, Errors, GameDirecs, CurrentTree.ScannedPCCs);
                         texes.Add(info);
                     }
                     catch(Exception e)

@@ -34,9 +34,7 @@ namespace WPF_ME3Explorer
                 MessageBox.Show(
                     "An unhandled exception has occured and the application will close." + Environment.NewLine + 
                     "Take note of the reason below, as it may help the developer." + Environment.NewLine + Environment.NewLine + 
-                    args.ExceptionObject.ToString() + Environment.NewLine + 
-                    "OR:" + Environment.NewLine + 
-                    args.ToString());
+                    args.ExceptionObject.ToString());
                 Application.Current.Shutdown();
             };
 

@@ -211,10 +211,13 @@ namespace WPF_ME3Explorer.Textures
             lock (Locker)
             {
                 if (!Textures.Contains<TreeTexInfo>(tex))  // Enable comparison by IEquatable interface
+                {
+                    tex.TextureListIndex = Textures.Count;
                     Textures.Add(tex);
+                }
                 else
                 {
-                    var existing = Textures[tex.TextureListIndex];
+                    var existing = Textures[tex.TextureListIndex != -1 ? tex.TextureListIndex : Textures.IndexOf(tex)];
                     existing.Update(tex);
                     tex.GenerateThumbnail = null;   // Clear generation code for GC to free up
                     return;
@@ -416,6 +419,7 @@ namespace WPF_ME3Explorer.Textures
             }
             var end = Environment.TickCount;
             Console.WriteLine($"Tree save elapsed: {end - start}");
+            OnPropertyChanged(nameof(Exists));
         }
 
         void WriteTreeFolders(BinaryWriter bw, TexplorerTextureFolder folder)
