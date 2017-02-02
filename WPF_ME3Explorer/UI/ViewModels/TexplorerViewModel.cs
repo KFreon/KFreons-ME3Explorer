@@ -1009,15 +1009,22 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     break;
             }
 
+            // Only add if none already there. 
+            if (tempDLCs.Count != 0)
+            {
+                // Get DLC's
+                tempDLCs.Add(basegame);
+                GetDLCEntries(gameVersion);
 
-            // Get DLC's
-            tempDLCs.Add(basegame);
-            GetDLCEntries(gameVersion);
+                // Add all DLC files to global files list
+                foreach (DLCEntry dlc in tempDLCs)
+                    tempGameFiles.AddRange(dlc.Files);
 
-            // Add all DLC files to global files list
-            foreach (DLCEntry dlc in tempDLCs)
-                tempGameFiles.AddRange(dlc.Files);
+                tempExclusions.AddRange(tempDLCs);
+                tempExclusions.AddRange(tempGameFiles);
+            }
 
+            
             if (Trees[gameVersion - 1].Valid)
             {
                 DisableFTSUpdating = true;
@@ -1033,11 +1040,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                 DisableFTSUpdating = false;
                 UpdateFTS();
-            }
-            
-
-            tempExclusions.AddRange(tempDLCs);
-            tempExclusions.AddRange(tempGameFiles);
+            }            
         }
 
         public void UpdateFTS()
