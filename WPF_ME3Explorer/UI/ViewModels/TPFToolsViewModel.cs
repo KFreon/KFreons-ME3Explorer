@@ -557,7 +557,18 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             Busy = true;
             Progress = 0;
-            MaxProgress = fileNames.Length;
+
+            // Deal with folders, if present. (Thanks jokoho48 - https://github.com/ME3Explorer/ME3Explorer/pull/466)
+            List<string> tempFileNames = new List<string>();
+            foreach (string path in fileNames)
+            {
+                if (path.isDirectory())
+                    tempFileNames.AddRange(Directory.GetFiles(path, "*", SearchOption.AllDirectories));
+                else
+                    tempFileNames.Add(path);
+            }
+
+            MaxProgress = tempFileNames.Count;
             int prevTexCount = Textures.Count;
 
             int maxParallelism = NumThreads;
@@ -645,7 +656,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             texExtractor.LinkTo(thumbBuilder, new DataflowLinkOptions { PropagateCompletion = true });
 
             // Start pipeline
-            foreach (var file in fileNames)
+            foreach (var file in tempFileNames)
                 fileBuffer.Post(file);
 
             fileBuffer.Complete();
@@ -657,7 +668,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             OnPropertyChanged(nameof(SaveTPFEnabled));
             OnPropertyChanged(nameof(TexturesCheckAll));
 
-            Status = $"Loaded {Textures.Count - prevTexCount} from {fileNames.Length} files.";
+            Status = $"Loaded {Textures.Count - prevTexCount} from {tempFileNames.Count} files.";
             Progress = MaxProgress;
             Busy = false;
         }

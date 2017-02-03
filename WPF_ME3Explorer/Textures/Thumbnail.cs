@@ -43,6 +43,9 @@ namespace WPF_ME3Explorer.Textures
         public BitmapSource GetImage()
         {
             MemoryStream ms = GetImageAsStream();
+            if (ms == null)
+                return null;
+
             return UsefulThings.WPF.Images.CreateWPFBitmap(ms, DisposeStream: StreamThumb == null);  // Dispose of stream only if it's not the ChangedThumb being used
         }
 

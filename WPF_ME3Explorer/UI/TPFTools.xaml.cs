@@ -45,7 +45,7 @@ namespace WPF_ME3Explorer.UI
                         vm.LoadFiles(droppedFiles);
                 })), // Don't need the TPFTexInfo - it'll be null anyway.
 
-                DropValidator = new Predicate<string[]>(files => files.All(file => vm.AcceptedImageExtensions.Contains(Path.GetExtension(file), StringComparison.InvariantCultureIgnoreCase))),
+                DropValidator = new Predicate<string[]>(files => files.All(file => file.isDirectory() || vm.AcceptedImageExtensions.Contains(Path.GetExtension(file), StringComparison.InvariantCultureIgnoreCase))),
                 DragOutDataGetter = tex => new Dictionary<string, Func<byte[]>> { { tex.DefaultSaveName, () => tex.Extract() } },
             };
 
