@@ -131,7 +131,7 @@ namespace WPF_ME3Explorer.UI
             var treecloser = new Action<Task>(r =>
             {
                 // As VM should be created before this constructor is called, can do this check now.
-                if (vm.CurrentTree.Valid)
+                if (vm.CurrentTree.Valid || vm.GameDirecs.BasePath == null)
                     vm.TreePanelCloser();
             });
 

@@ -658,6 +658,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             FileItemsView = CollectionViewSource.GetDefaultView(FTSGameFiles);
             FileItemsView.Filter = item =>
             {
+                if (item == null)
+                    return false;
+                
                 GameFileEntry entry = (GameFileEntry)item;
                 return !entry.IsChecked && !entry.FilterOut && 
                     (String.IsNullOrEmpty(FTSFilesSearch) ? true : 
@@ -814,6 +817,13 @@ namespace WPF_ME3Explorer.UI.ViewModels
             ThumbnailWriter = new ThumbnailWriter(GameDirecs);
 
             Setup();
+
+            // Show game pathing info if paths not found.
+            if (GameDirecs.BasePath == null)
+            {
+                Status = "Game files not found! Check game pathing window.";
+                ShowGameInfoCommand.Execute(GameVersion.ToString());
+            }
         }
 
         void Change_GeneratePreviews()
@@ -944,11 +954,15 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             base.SetupCurrentTree();
 
-            InitialiseFTS(1);
-            InitialiseFTS(2);
-            InitialiseFTS(3);
+            bool one = InitialiseFTS(1);
+            bool two = InitialiseFTS(2);
+            bool three = InitialiseFTS(3);
 
-            LoadFTSandTree();
+            if (one && two && three)
+                LoadFTSandTree();
+            else
+                if (TreePanelCloser != null)
+                    TreePanelCloser();
         }
 
         void LoadFTSandTree(bool panelAlreadyOpen = false)
@@ -976,29 +990,36 @@ namespace WPF_ME3Explorer.UI.ViewModels
             UpdateFTS();
         }
 
-        void InitialiseFTS(int gameVersion)
+        bool InitialiseFTS(int gameVersion)
         {
             // Setup temps
             List<DLCEntry> tempDLCs = null;
             List<GameFileEntry> tempGameFiles = null;
             List<AbstractFileEntry> tempExclusions = null;
             DLCEntry basegame = null;
+
+            MEDirectories.MEDirectories direcs = GameDirecs.GameVersion == gameVersion ? GameDirecs : new MEDirectories.MEDirectories(gameVersion);
+
+            // Game files not found.
+            if (direcs.BasePath == null)
+                return !(GameVersion == gameVersion);  // Only want to break things when selected game doesn't exist.
+
             switch (gameVersion)
             {
                 case 1:
-                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME1Files?.Where(file => !file.Contains(@"DLC\DLC_")).ToList(), GameDirecs);
+                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME1Files?.Where(file => !file.Contains(@"DLC\DLC_")).ToList(), direcs);
                     tempDLCs = ME1FTSDLCs;
                     tempGameFiles = ME1FTSGameFiles;
                     tempExclusions = ME1FTSExclusions;
                     break;
                 case 2:
-                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME2Files?.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), GameDirecs);
+                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME2Files?.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), direcs);
                     tempDLCs = ME2FTSDLCs;
                     tempGameFiles = ME2FTSGameFiles;
                     tempExclusions = ME2FTSExclusions;
                     break;
                 case 3:
-                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME3Files?.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), GameDirecs);
+                    basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME3Files?.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), direcs);
                     tempDLCs = ME3FTSDLCs;
                     tempGameFiles = ME3FTSGameFiles;
                     tempExclusions = ME3FTSExclusions;
@@ -1010,11 +1031,11 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
 
             // Only add if none already there. 
-            if (tempDLCs.Count != 0)
+            if (tempDLCs.Count == 0)
             {
                 // Get DLC's
                 tempDLCs.Add(basegame);
-                GetDLCEntries(gameVersion);
+                GetDLCEntries(direcs);
 
                 // Add all DLC files to global files list
                 foreach (DLCEntry dlc in tempDLCs)
@@ -1040,7 +1061,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                 DisableFTSUpdating = false;
                 UpdateFTS();
-            }            
+            }
+
+            return true;
         }
 
         public void UpdateFTS()
@@ -1086,13 +1109,13 @@ namespace WPF_ME3Explorer.UI.ViewModels
             OnPropertyChanged(nameof(FileItemsView));
         }
 
-        void GetDLCEntries(int tempGame)
+        void GetDLCEntries(MEDirectories.MEDirectories direcs)
         {
             List<string> DLCs = null;
             List<DLCEntry> tempFTSDLCs = null;
             List<string> tempGameFiles = null;
 
-            switch (tempGame)
+            switch (direcs.GameVersion)
             {
                 case 1:
                     if (!Directory.Exists(MEDirectories.MEDirectories.ME1DLCPath))
@@ -1126,7 +1149,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 string DLCName = parts.First(part => part.Contains("DLC_"));
 
                 string name = MEDirectories.MEDirectories.GetCommonDLCName(DLCName);
-                DLCEntry entry = new DLCEntry(name, tempGameFiles.Where(file => file.Contains(DLCName) && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), GameDirecs);
+                DLCEntry entry = new DLCEntry(name, tempGameFiles.Where(file => file.Contains(DLCName) && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), direcs);
 
                 tempFTSDLCs.Add(entry);
             }
@@ -1425,7 +1448,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     {
                         tex2D = new Texture2D(pcc, i, GameDirecs, treescanning: true);
 
-                        if (RemoveNullPointers && RemoveInvalidTexEntries(pcc, tex2D))
+                        if (GameVersion != 1 && RemoveNullPointers && RemoveInvalidTexEntries(pcc, tex2D))  // Only remove nulls for ME3
                             pccRequiresSave = true;
                     }
                     catch (Exception e)
@@ -1453,7 +1476,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 }
                 
                 // Save PCC if nulls removed
-                if (RemoveNullPointers && pccRequiresSave)
+                if (GameVersion != 1 && RemoveNullPointers && pccRequiresSave)
                     pcc.SaveToFile(pcc.pccFileName);
             }
             catch (Exception e)

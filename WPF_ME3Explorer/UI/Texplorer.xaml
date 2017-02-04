@@ -601,7 +601,18 @@
 
 
                     <DockPanel DockPanel.Dock="Bottom">
-                        <CheckBox Content="Remove Null Pointers" DockPanel.Dock="Left" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" IsChecked="{Binding RemoveNullPointers}"/>
+                        <CheckBox Content="Remove Null Pointers" DockPanel.Dock="Left" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" IsChecked="{Binding RemoveNullPointers}">
+                            <CheckBox.Style>
+                                <Style TargetType="CheckBox">
+                                    <Setter Property="IsEnabled" Value="True"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding GameVersion}" Value="1">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </CheckBox.Style>
+                        </CheckBox>
                         <Label Content="Prevents weird artifacting when upscaling." VerticalAlignment="Center" FontSize="9" Foreground="Gray"/>
                         <Button x:Name="BeginScanButton" DockPanel.Dock="Bottom" HorizontalAlignment="Center" FontSize="20" Margin="0,2" Padding="7,0" Click="BeginScanButton_Click">
                         <Button.Style>

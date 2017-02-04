@@ -31,7 +31,7 @@
             <ColumnDefinition Width="512*"/>
         </Grid.ColumnDefinitions>
 
-        <Menu Grid.ColumnSpan="2" Margin="0,0,511.667,0.333" Background="White">
+        <Menu x:Name="MenuBar" Grid.ColumnSpan="2" Margin="0,0,511.667,0.333" Background="White">
             <MenuItem x:Name="LoadMenuItem" Header="Load" Style="{StaticResource BaseMenuItemStyle}" Click="LoadMenuItem_Click"/>
             <MenuItem x:Name="ClearAllMenuItem" Header="Clear" Command="{Binding ClearAllCommand}">
                 <MenuItem.Style>
@@ -59,14 +59,14 @@
             <MenuItem x:Name="BulkExtractButton" Header="Bulk Extract TPFs" Style="{StaticResource BaseMenuItemStyle}" Click="BulkExtractButton_Click"/>
         </Menu>
 
-        <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Margin="0,0,-0.333,0">
+        <StackPanel x:Name="GameTreeIndicatorPanel" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Margin="0,0,-0.333,0">
             <ContentControl Template="{StaticResource GameIndicators}"/>
             <ContentControl Template="{StaticResource TreeIndicators}" />
         </StackPanel>
 
-        <StatusBar Template="{StaticResource StatusBarTemplate}" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Grid.Row="4" Margin="0,0,-0.333,0.334"/>
+        <StatusBar x:Name="MainStatusBar" Template="{StaticResource StatusBarTemplate}" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Grid.Row="4" Margin="0,0,-0.333,0.334"/>
 
-        <DockPanel Grid.Row="1" Grid.RowSpan="2">
+        <DockPanel x:Name="MainListViewDisplayBox" Grid.Row="1" Grid.RowSpan="2">
             <DockPanel DockPanel.Dock="Top">
                 <CheckBox IsThreeState="True" Margin="2,6,10,0" IsChecked="{Binding TexturesCheckAll}"/>
                 <TextBox x:Name="SearchBox" Height="22" BorderBrush="{x:Null}" Tag="Search..." DockPanel.Dock="Right" Template="{StaticResource SearchBoxTemplate}"
@@ -307,12 +307,12 @@
                 </ListBox.ItemTemplate>
             </ListBox>
         </DockPanel>
-        <UsefulThings.WPF:PanAndZoomBorder Grid.Column="1" Grid.Row="1" Visibility="{Binding ElementName=MainView, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}">
+        <UsefulThings.WPF:PanAndZoomBorder x:Name="PreviewBox" Grid.Column="1" Grid.Row="1" Visibility="{Binding ElementName=MainView, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource True}}">
             <Image x:Name="PreviewImage" Source="{Binding ElementName=MainView, Path=SelectedItem.Preview, IsAsync=True}"/>
         </UsefulThings.WPF:PanAndZoomBorder>
         <TextBox x:Name="PreviewText" Grid.Column="1" Grid.Row="1" Text="{Binding ElementName=MainView, Path=SelectedItem.DefPreview, Mode=OneWay}" 
                  Visibility="{Binding ElementName=MainView, Path=SelectedItem.IsDef, Converter={StaticResource BoolToVisConverter}}"/>
-        <TabControl Grid.Column="1" Grid.Row="2" Margin="0.333,0.333,-0.333,0.334" Grid.RowSpan="2">
+        <TabControl x:Name="PCCTabPanel" Grid.Column="1" Grid.Row="2" Margin="0.333,0.333,-0.333,0.334" Grid.RowSpan="2">
             <TabControl.Resources>
                 <Style TargetType="FrameworkElement" x:Key="TPFPanelVisibilityStyle">
                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -370,7 +370,7 @@
         </TabControl>
         
 
-        <DockPanel Grid.Row="3" LastChildFill="False">
+        <DockPanel x:Name="BottomButtonsPanel" Grid.Row="3" LastChildFill="False">
             <DockPanel.Resources>
                 <Style BasedOn="{StaticResource MainButtonStyle}" TargetType="Button" x:Key="BigButtonStyle">
                     <Setter Property="IsEnabled" Value="True"/>
@@ -426,7 +426,7 @@
             </TextBlock>
         </DockPanel>
 
-        <Border Style="{StaticResource FadedBackgroundBorder}">
+        <Border x:Name="SaveTPFPanel" Style="{StaticResource FadedBackgroundBorder}">
             <Border Style="{StaticResource FadedInnerBorder}" Tag="{Binding IsTPFBuilding}">
                 <StackPanel Margin="10">
 
