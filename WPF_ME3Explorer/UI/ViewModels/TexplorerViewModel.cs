@@ -1092,14 +1092,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     break;
             }
 
-            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                DLCItemsView.Refresh();
-                ExclusionsItemsView.Refresh();
-                FileItemsView.Refresh();
-            }));
-            
-
             OnPropertyChanged(nameof(FTSDLCs));
             OnPropertyChanged(nameof(FTSExclusions));
             OnPropertyChanged(nameof(FTSGameFiles));
@@ -1107,6 +1099,13 @@ namespace WPF_ME3Explorer.UI.ViewModels
             OnPropertyChanged(nameof(DLCItemsView));
             OnPropertyChanged(nameof(ExclusionsItemsView));
             OnPropertyChanged(nameof(FileItemsView));
+
+            Application.Current.Dispatcher.Invoke(new Action(() =>
+            {
+                DLCItemsView.Refresh();
+                ExclusionsItemsView.Refresh();
+                FileItemsView.Refresh();
+            }));
         }
 
         void GetDLCEntries(MEDirectories.MEDirectories direcs)
