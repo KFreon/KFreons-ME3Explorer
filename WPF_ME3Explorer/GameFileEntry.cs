@@ -9,19 +9,6 @@ namespace WPF_ME3Explorer
 {
     public class GameFileEntry : AbstractFileEntry
     {
-        bool filterOut = false;
-        public bool FilterOut
-        {
-            get
-            {
-                return filterOut;
-            }
-            set
-            {
-                SetProperty(ref filterOut, value);
-            }
-        }
-
         public GameFileEntry(string path, MEDirectories.MEDirectories gameDirecs) : base()
         {
             Name = path.Remove(0, gameDirecs.BasePathLength);

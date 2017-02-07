@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UsefulThings.WPF;
+using WPF_ME3Explorer.UI.ViewModels;
 
 namespace WPF_ME3Explorer
 {
@@ -11,17 +12,18 @@ namespace WPF_ME3Explorer
     {
         internal static Action Updater = null;
 
-        bool isChecked = false;
-        public virtual bool IsChecked
+        bool? isExcluded = false;
+        public virtual bool? IsExcluded
         {
             get
             {
-                return isChecked;
+                return isExcluded;
             }
             set
             {
-                SetProperty(ref isChecked, value);
-                Updater();
+                SetProperty(ref isExcluded, value);
+                if (!TexplorerViewModel.DisableFTSUpdating)
+                    Updater();
             }
         }
 

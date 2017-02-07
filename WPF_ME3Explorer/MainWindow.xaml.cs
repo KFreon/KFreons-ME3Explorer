@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,6 +30,7 @@ namespace WPF_ME3Explorer
             InitializeComponent();
             DebugOutput.StartDebugger("The Toolset");
 
+            // Only have this top level catch if not debugging
             AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
             {
                 MessageBox.Show(

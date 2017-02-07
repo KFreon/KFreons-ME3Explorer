@@ -7,6 +7,7 @@
         xmlns:local="clr-namespace:WPF_ME3Explorer"
         xmlns:ImgLib="clr-namespace:CSharpImageLibrary;assembly=CSharpImageLibrary"
         xmlns:VM="clr-namespace:WPF_ME3Explorer.UI.ViewModels"
+        xmlns:VCs="clr-namespace:WPF_ME3Explorer.UI.ValueConverters"
         xmlns:usefulUIElements="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
@@ -19,6 +20,8 @@
                 <ResourceDictionary Source="UIResources.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
+
+        
     </Window.Resources>
     
     <Window.TaskbarItemInfo>
@@ -40,6 +43,8 @@
         </Grid.RowDefinitions>
 
         <Grid.Resources>
+            <VCs:NullableBool_NullIsTrueConverter x:Key="NullableConv"/>
+            
             <DataTemplate x:Key="SmallItemTemplate">
                 <StackPanel x:Name="SearchResultsItem" Orientation="Horizontal" MouseDown="SearchResultsItem_MouseDown" Background="Transparent">
                     <Image Source="{Binding Thumb, Converter={StaticResource ThumbnailConverter}, ConverterParameter={StaticResource DefaultTexture}}" Height="64" Width="64"/>
@@ -639,7 +644,17 @@
                     <Grid DockPanel.Dock="Right">
                         <Grid.Resources>
                             <DataTemplate x:Key="ListTemplate">
-                                <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" Content="{Binding Name}" VerticalContentAlignment="Center"/>
+                                <DockPanel>
+                                    <CheckBox IsChecked="{Binding IsExcluded, Mode=TwoWay}" VerticalContentAlignment="Center" DockPanel.Dock="Left" Margin="2,0,5,0"/>
+                                    <TextBlock Text="{Binding Name}" DockPanel.Dock="Left"/>
+                                </DockPanel>
+                            </DataTemplate>
+
+                            <DataTemplate x:Key="ExcludedListTemplate">
+                                <DockPanel>
+                                    <CheckBox IsChecked="{Binding IsExcluded, Mode=TwoWay, Converter={StaticResource NullableConv}}" VerticalContentAlignment="Center" DockPanel.Dock="Left" Margin="2,0,5,0"/>
+                                    <TextBlock Text="{Binding Name}" DockPanel.Dock="Left"/>
+                                </DockPanel>
                             </DataTemplate>
 
                             <Style TargetType="Label">
@@ -665,7 +680,7 @@
                         </Grid.ColumnDefinitions>
                         <Grid>
                             <Label Content="DLCs" VerticalAlignment="Top"/>
-                            <Button Content="Exclude All" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="5,5,0,0" Command="{Binding FTSDLCsUnCheckAll}">
+                            <Button Content="Exclude All" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="5,5,0,0" Command="{Binding FTSExcludeAll}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource MainButtonStyle}">
                                         <Style.Triggers>
@@ -676,19 +691,26 @@
                                     </Style>
                                 </Button.Style>
                             </Button>
-                            <ListBox x:Name="DLCsListBox" ItemsSource="{Binding DLCItemsView}" Margin="5,26,5,0"/>
+                            <ListBox x:Name="DLCsListBox" ItemsSource="{Binding DLCsView}" Margin="5,26,5,0" PreviewMouseDown="DLCsListBox_PreviewMouseDown"/>
                         </Grid>
 
                         <DockPanel Grid.Column="1">
-                            <Label Content="All Game Files incl DLC"/>
+                            <Label Content="Selected DLC Files"/>
                             <TextBox Text="{Binding FTSFilesSearch, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Template="{StaticResource SearchBoxTemplate}" Tag="Search..."/>
-                            <ListBox x:Name="FilesListBox" ItemsSource="{Binding FileItemsView}"/>
+                            <ListBox x:Name="FilesListBox" ItemsSource="{Binding ElementName=DLCsListBox, Path=SelectedItem.Files}"/>
+                            <ListBox x:Name="ExcludedFilesListBox" ItemsSource="{Binding ElementName=ExclusionsListBox, Path=SelectedItem.Files}">
+                                <ListBox.Style>
+                                    <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+                                        <Setter Property="ItemTemplate" Value="{StaticResource ExcludedListTemplate}"/>
+                                    </Style>
+                                </ListBox.Style>
+                            </ListBox>
                         </DockPanel>
 
                         <DockPanel Grid.Column="2">
                             <Label Content="Excluded from Tree Scan"/>
                             <TextBox Text="{Binding FTSExclusionsSearch, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Template="{StaticResource SearchBoxTemplate}" Tag="Search..."/>
-                            <ListBox x:Name="ExclusionsListBox" ItemsSource="{Binding ExclusionsItemsView}" Background="Pink" Margin="5,0"/>
+                            <ListBox x:Name="ExclusionsListBox" ItemsSource="{Binding ExclusionsView}" Background="Pink" Margin="5,0" PreviewMouseDown="ExclusionsListBox_PreviewMouseDown"/>
                         </DockPanel>
                     </Grid>
                 </DockPanel>

@@ -537,5 +537,25 @@ namespace WPF_ME3Explorer.MEDirectories
             OnPropertyChanged(nameof(DLCPath));
             OnPropertyChanged(nameof(Files));
         }
+
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine("--- MEDirectory Information ---");
+            sb.AppendLine($"Current Game: {this.GameVersion}.");
+            sb.AppendLine();
+            sb.AppendLine();
+            sb.AppendLine($"Base Path: {this.BasePath}.");
+            sb.AppendLine($"BIOGame Path: {this.PathBIOGame}.");
+            sb.AppendLine($"Cooked Path: {this.PathCooked}.");
+            sb.AppendLine($"DLC Path: {this.DLCPath}.");
+            sb.AppendLine($"Cache Path: {this.CachePath}.");
+            sb.AppendLine($"Files Count: {this.Files.Count}.");
+            sb.AppendLine($"Thumbnail Cache Path: {this.ThumbnailCachePath}.");
+
+
+            return sb.ToString();
+        }
     }
 }

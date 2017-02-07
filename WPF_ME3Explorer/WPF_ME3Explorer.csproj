@@ -141,6 +141,7 @@
     </Compile>
     <Compile Include="UI\ValueConverters\MipmapCountConverter.cs" />
     <Compile Include="UI\ValueConverters\ImageEngineFormatConverter.cs" />
+    <Compile Include="UI\ValueConverters\NullableBool_NullIsTrueConverter.cs" />
     <Compile Include="UI\ValueConverters\ThumbnailConverter.cs" />
     <Compile Include="UI\ViewModels\GameInformationVM.cs" />
     <Compile Include="UI\ViewModels\MEViewModelBase.cs" />

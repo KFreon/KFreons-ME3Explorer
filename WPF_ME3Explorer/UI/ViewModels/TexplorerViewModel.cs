@@ -33,19 +33,24 @@ namespace WPF_ME3Explorer.UI.ViewModels
     public class TexplorerViewModel : MEViewModelBase<TreeTexInfo>
     {
         #region Commands
-        CommandHandler ftsDLCsUnCheckAll = null;
-        public CommandHandler FTSDLCsUnCheckAll
+        CommandHandler ftsExcludeAll = null;
+        public CommandHandler FTSExcludeAll
         {
             get
             {
-                if (ftsDLCsUnCheckAll == null)
-                    ftsDLCsUnCheckAll = new CommandHandler(() =>
+                if (ftsExcludeAll == null)
+                    ftsExcludeAll = new CommandHandler(() =>
                     {
+                        DisableFTSUpdating = true;
                         for (int i = 0; i < FTSDLCs.Count; i++)
-                            FTSDLCs[i].IsChecked = true;
+                            FTSDLCs[i].IsExcluded = true;
+
+                        DisableFTSUpdating = false;
+                        ExclusionsView.Refresh();
+                        DLCsView.Refresh();
                     });
 
-                return ftsDLCsUnCheckAll;
+                return ftsExcludeAll;
             }
         }
 
@@ -474,27 +479,26 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         #region Caches
         List<DLCEntry> ME1FTSDLCs { get; set; } = new List<DLCEntry>();
-        List<GameFileEntry> ME1FTSGameFiles { get; set; } = new List<GameFileEntry>();
+        //List<GameFileEntry> ME1FTSGameFiles { get; set; } = new List<GameFileEntry>();
         List<AbstractFileEntry> ME1FTSExclusions { get; set; } = new List<AbstractFileEntry>();
 
         List<DLCEntry> ME2FTSDLCs { get; set; } = new List<DLCEntry>();
-        List<GameFileEntry> ME2FTSGameFiles { get; set; } = new List<GameFileEntry>();
+        //List<GameFileEntry> ME2FTSGameFiles { get; set; } = new List<GameFileEntry>();
         List<AbstractFileEntry> ME2FTSExclusions { get; set; } = new List<AbstractFileEntry>();
 
         List<DLCEntry> ME3FTSDLCs { get; set; } = new List<DLCEntry>();
-        List<GameFileEntry> ME3FTSGameFiles { get; set; } = new List<GameFileEntry>();
+        //List<GameFileEntry> ME3FTSGameFiles { get; set; } = new List<GameFileEntry>();
         List<AbstractFileEntry> ME3FTSExclusions { get; set; } = new List<AbstractFileEntry>();
 
         // Mains
         MTRangedObservableCollection<DLCEntry> FTSDLCs { get; set; } = new MTRangedObservableCollection<DLCEntry>();
-        MTRangedObservableCollection<GameFileEntry> FTSGameFiles { get; set; } = new MTRangedObservableCollection<GameFileEntry>();
+        //MTRangedObservableCollection<GameFileEntry> FTSGameFiles { get; set; } = new MTRangedObservableCollection<GameFileEntry>();
         MTRangedObservableCollection<AbstractFileEntry> FTSExclusions { get; set; } = new MTRangedObservableCollection<AbstractFileEntry>();
         #endregion Caches
 
         public MTRangedObservableCollection<TreeTexInfo> TextureSearchResults { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
-        public ICollectionView DLCItemsView { get; set; }
-        public ICollectionView ExclusionsItemsView { get; set; }
-        public ICollectionView FileItemsView { get; set; }
+        public ICollectionView DLCsView { get; set; }
+        public ICollectionView ExclusionsView { get; set; }
         ThumbnailWriter ThumbnailWriter = null;
         public MTRangedObservableCollection<string> Errors { get; set; } = new MTRangedObservableCollection<string>();
         public MTRangedObservableCollection<TreeTexInfo> ChangedTextures { get; set; } = new MTRangedObservableCollection<TreeTexInfo>();
@@ -564,7 +568,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             set
             {
                 SetProperty(ref ftsFilesSearch, value);
-                FileItemsView.Refresh();
             }
         }
 
@@ -578,7 +581,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             set
             {
                 SetProperty(ref ftsExclusionsSearch, value);
-                ExclusionsItemsView.Refresh();
+                ExclusionsView.Refresh();
             }
         }
         
@@ -635,7 +638,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             RefreshTreeRelatedProperties();
         }
 
-        bool DisableFTSUpdating = false;
+        internal static bool DisableFTSUpdating = false;
 
         public TexplorerViewModel() : base()
         {
@@ -652,10 +655,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
             };
 
             #region FTS Filtering
-            DLCItemsView = CollectionViewSource.GetDefaultView(FTSDLCs);
-            DLCItemsView.Filter = item => !((DLCEntry)item).IsChecked;
-
-            FileItemsView = CollectionViewSource.GetDefaultView(FTSGameFiles);
+            DLCsView = CollectionViewSource.GetDefaultView(FTSDLCs);
+            DLCsView.Filter = item => !((DLCEntry)item)?.IsExcluded ?? true;
+            
+            /*FileItemsView = CollectionViewSource.GetDefaultView(FTSGameFiles);
             FileItemsView.Filter = item =>
             {
                 if (item == null)
@@ -665,14 +668,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 return !entry.IsChecked && !entry.FilterOut && 
                     (String.IsNullOrEmpty(FTSFilesSearch) ? true : 
                     entry.Name.Contains(FTSFilesSearch, StringComparison.OrdinalIgnoreCase) || entry.FilePath?.Contains(FTSFilesSearch, StringComparison.OrdinalIgnoreCase) == true);
-            };
+            };*/
 
-            ExclusionsItemsView = CollectionViewSource.GetDefaultView(FTSExclusions);
-            ExclusionsItemsView.Filter = item =>
+            ExclusionsView = CollectionViewSource.GetDefaultView(FTSExclusions);
+            ExclusionsView.Filter = item =>
             {
+                if (item == null)
+                    return false;
+
                 AbstractFileEntry entry = (AbstractFileEntry)item;
-                return entry.IsChecked && ((entry as GameFileEntry)?.FilterOut != true) && 
-                    (String.IsNullOrEmpty(FTSExclusionsSearch) ? true : 
+                return entry.IsExcluded == true && (String.IsNullOrEmpty(FTSExclusionsSearch) ? true : 
                     entry.Name.Contains(FTSExclusionsSearch, StringComparison.OrdinalIgnoreCase) || entry.FilePath?.Contains(FTSExclusionsSearch, StringComparison.OrdinalIgnoreCase) == true);
             };
             #endregion FTS Filtering
@@ -687,11 +692,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 searchDelayer.Stop();  // Only want it to search once. Will get started when user first types something again.
             };
 
-            AbstractFileEntry.Updater = new Action(() =>
-            {
-                if (!DisableFTSUpdating)
-                    UpdateFTS();
-            });
+            AbstractFileEntry.Updater = UpdateFTS;
 
             #region Setup Texture UI Commands
             TreeTexInfo.ChangeCommand = new CommandHandler(new Action<object>(async param =>
@@ -994,7 +995,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
         {
             // Setup temps
             List<DLCEntry> tempDLCs = null;
-            List<GameFileEntry> tempGameFiles = null;
             List<AbstractFileEntry> tempExclusions = null;
             DLCEntry basegame = null;
 
@@ -1009,19 +1009,16 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 case 1:
                     basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME1Files?.Where(file => !file.Contains(@"DLC\DLC_")).ToList(), direcs);
                     tempDLCs = ME1FTSDLCs;
-                    tempGameFiles = ME1FTSGameFiles;
                     tempExclusions = ME1FTSExclusions;
                     break;
                 case 2:
                     basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME2Files?.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), direcs);
                     tempDLCs = ME2FTSDLCs;
-                    tempGameFiles = ME2FTSGameFiles;
                     tempExclusions = ME2FTSExclusions;
                     break;
                 case 3:
                     basegame = new DLCEntry("BaseGame", MEDirectories.MEDirectories.ME3Files?.Where(file => !file.Contains(@"DLC\DLC_") && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), direcs);
                     tempDLCs = ME3FTSDLCs;
-                    tempGameFiles = ME3FTSGameFiles;
                     tempExclusions = ME3FTSExclusions;
                     break;
 
@@ -1036,13 +1033,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 // Get DLC's
                 tempDLCs.Add(basegame);
                 GetDLCEntries(direcs);
-
-                // Add all DLC files to global files list
-                foreach (DLCEntry dlc in tempDLCs)
-                    tempGameFiles.AddRange(dlc.Files);
-
-                tempExclusions.AddRange(tempDLCs);
-                tempExclusions.AddRange(tempGameFiles);
             }
 
             
@@ -1052,15 +1042,23 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                 /* Find any existing exclusions from when tree was created.*/
                 // Set excluded DLC's checked first
-                tempDLCs.ForEach(dlc => dlc.IsChecked = !dlc.Files.Any(file => !CurrentTree.ScannedPCCs.Contains(file.FilePath)));
+                tempDLCs.ForEach(dlc => dlc.IsExcluded = !dlc.Files.Any(file => !CurrentTree.ScannedPCCs.Contains(file.FilePath)));
 
 
                 // Then set all remaining exlusions
-                foreach (DLCEntry dlc in tempDLCs.Where(dlc => !dlc.IsChecked))
-                    dlc.Files.ForEach(file => file.IsChecked = !CurrentTree.ScannedPCCs.Contains(file.FilePath));
+                foreach (DLCEntry dlc in tempDLCs.Where(dlc => dlc.IsExcluded == true))
+                    foreach(var file in dlc.Files)
+                        file.IsExcluded = !CurrentTree.ScannedPCCs.Contains(file.FilePath);
 
                 DisableFTSUpdating = false;
                 UpdateFTS();
+            }
+
+            if (tempExclusions.Count == 0)
+            {
+                tempExclusions.AddRange(tempDLCs);
+                foreach (var dlc in tempDLCs)
+                    tempExclusions.AddRange(dlc.Files);
             }
 
             return true;
@@ -1071,41 +1069,54 @@ namespace WPF_ME3Explorer.UI.ViewModels
             // Update FTS collections
             FTSDLCs.Clear();
             FTSExclusions.Clear();
-            FTSGameFiles.Clear();
 
             switch (GameVersion)
             {
                 case 1:
                     FTSDLCs.AddRange(ME1FTSDLCs);
-                    FTSGameFiles.AddRange(ME1FTSGameFiles);
                     FTSExclusions.AddRange(ME1FTSExclusions);
                     break;
                 case 2:
                     FTSDLCs.AddRange(ME2FTSDLCs);
-                    FTSGameFiles.AddRange(ME2FTSGameFiles);
                     FTSExclusions.AddRange(ME2FTSExclusions);
                     break;
                 case 3:
                     FTSDLCs.AddRange(ME3FTSDLCs);
-                    FTSGameFiles.AddRange(ME3FTSGameFiles);
                     FTSExclusions.AddRange(ME3FTSExclusions);
                     break;
             }
 
             OnPropertyChanged(nameof(FTSDLCs));
             OnPropertyChanged(nameof(FTSExclusions));
-            OnPropertyChanged(nameof(FTSGameFiles));
 
-            OnPropertyChanged(nameof(DLCItemsView));
-            OnPropertyChanged(nameof(ExclusionsItemsView));
-            OnPropertyChanged(nameof(FileItemsView));
-
-            Application.Current.Dispatcher.Invoke(new Action(() =>
+            try
             {
-                DLCItemsView.Refresh();
-                ExclusionsItemsView.Refresh();
-                FileItemsView.Refresh();
-            }));
+                Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    try
+                    {
+                        DLCsView.Refresh();
+                    }
+                    catch (Exception e)
+                    {
+                        DebugOutput.PrintLn($"{nameof(DLCsView)} failed to refresh: {e}");
+                    }
+
+                    try
+                    {
+                        ExclusionsView.Refresh();
+                    }
+                    catch (Exception e)
+                    {
+                        DebugOutput.PrintLn($"{nameof(ExclusionsView)} failed to refresh: {e}");
+                    }
+
+                }));
+            }
+            catch(Exception e)
+            {
+                DebugOutput.PrintLn($"Failed to refresh views: {e}");
+            }
         }
 
         void GetDLCEntries(MEDirectories.MEDirectories direcs)
@@ -1165,8 +1176,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             DebugOutput.PrintLn($"Beginning Tree scan for ME{GameVersion}.");
 
             // Populate Tree PCCs in light of exclusions
-            foreach (GameFileEntry item in FTSGameFiles.Where(file => !file.IsChecked && !file.FilterOut))
-                CurrentTree.ScannedPCCs.Add(item.FilePath);
+            foreach (DLCEntry dlc in FTSDLCs.Where(d => d.IsExcluded != false))
+                foreach (GameFileEntry file in dlc.Files.Where(f => f.IsExcluded == false))
+                    CurrentTree.ScannedPCCs.Add(file.FilePath);
 
             DebugOutput.PrintLn("Attempting to delete old thumbnails.");
 
@@ -1261,6 +1273,10 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     // Enough RAM to load TFCs
                     TFCs = new Dictionary<string, MemoryStream>();
 
+                    var basegameTFCs = GameDirecs.Files.Where(t => t.EndsWith("tfc", StringComparison.InvariantCultureIgnoreCase) && !t.Contains("BIOGame\\DLC\\", StringComparison.InvariantCultureIgnoreCase));
+                    var DLCTFCs = GameDirecs.Files.Where(t => t.EndsWith("tfc", StringComparison.InvariantCultureIgnoreCase) && t.Contains("BIOGame\\DLC\\", StringComparison.InvariantCultureIgnoreCase));
+                    
+                    // Determine which TFCs to load
                     var tfcfiles = GameDirecs.Files.Where(tfc => tfc.EndsWith("tfc"));
                     foreach (var tfc in tfcfiles)
                     {
@@ -1289,8 +1305,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 TFCs = null;
             }
                 
-            Debug.WriteLine($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}");
-            DebugOutput.PrintLn($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}");
+            Debug.WriteLine($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}gb");
+            DebugOutput.PrintLn($"Max ram during scan: {Process.GetCurrentProcess().PeakWorkingSet64 / 1024d / 1024d / 1024d}gb");
 
             CurrentTree.Valid = true; // It was just scanned after all.
             SetupCurrentTree();
@@ -1305,6 +1321,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
         Task ScanAllPCCs(IList<string> PCCs, Dictionary<string, MemoryStream> TFCs)
         {
+            DebugOutput.PrintLn(GameDirecs.ToString());
+            DebugOutput.PrintLn(CurrentTree.ScannedPCCs.Count.ToString());
+
             // Parallel scanning
             int bound = 10;
             double RAMinGB = ToolsetInfo.AvailableRam / 1024d / 1024d / 1024d;
@@ -1452,6 +1471,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     }
                     catch (Exception e)
                     {
+                        DebugOutput.PrintLn($"Error scanning {tex2D.texName} from {pcc.pccFileName} at {i}. Reason: {e}");
                         Errors.Add(e.ToString());
                         continue;
                     }
@@ -1459,6 +1479,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     // Skip if no images
                     if (tex2D.ImageList.Count == 0)
                     {
+                        DebugOutput.PrintLn($"No images found in {tex2D.texName} from {pcc.pccFileName} at {i}.");
                         tex2D.Dispose();
                         continue;
                     }
@@ -1470,6 +1491,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     }
                     catch(Exception e)
                     {
+                        DebugOutput.PrintLn($"Error scanning {tex2D.texName} from {pcc.pccFileName} at {i}. Reason: {e}");
                         Errors.Add(e.ToString());
                     }
                 }
@@ -1489,6 +1511,8 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             Progress++;
             Status = $"Scanning PCC's to build ME{GameVersion} tree: {Progress} / {MaxProgress}";
+
+            DebugOutput.PrintLn($"Found {texes.Count} textures in {pcc.pccFileName}.");
 
             return texes;       
         }
@@ -1670,10 +1694,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
             // Clear exclusions
             for (int i = 0; i < FTSDLCs.Count; i++)
-                FTSDLCs[i].IsChecked = false;
-
-            for (int i = 0; i < FTSGameFiles.Count; i++)
-                FTSGameFiles[i].IsChecked = false;
+                FTSDLCs[i].IsExcluded = false;
 
             DisableFTSUpdating = false;
             LoadFTSandTree(true);

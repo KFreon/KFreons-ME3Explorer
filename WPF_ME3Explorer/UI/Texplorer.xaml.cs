@@ -94,6 +94,7 @@ namespace WPF_ME3Explorer.UI
             DataContext = vm;
             InitializeComponent();
 
+            ChangeFTSFilesListBoxVisibility(false);
 
             GetBackgroundMovie();
             BackgroundMovie.Play();
@@ -425,6 +426,26 @@ namespace WPF_ME3Explorer.UI
         private void ExtractPanelCloseButton_Click(object sender, RoutedEventArgs e)
         {
             vm.ShowExtractionPanel = false;
+        }
+
+
+        void ChangeFTSFilesListBoxVisibility(bool isExcludedVisisble)
+        {
+            FilesListBox.Visibility = isExcludedVisisble ? Visibility.Collapsed : Visibility.Visible;
+            ExcludedFilesListBox.Visibility = isExcludedVisisble ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+
+        private void ExclusionsListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            ChangeFTSFilesListBoxVisibility(true);
+
+        }
+
+        private void DLCsListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            ChangeFTSFilesListBoxVisibility(false);
+
         }
     }
 }
