@@ -677,7 +677,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     return false;
 
                 AbstractFileEntry entry = (AbstractFileEntry)item;
-                return entry.IsExcluded == true && (String.IsNullOrEmpty(FTSExclusionsSearch) ? true : 
+                return (entry.IsExcluded == true || (entry.IsExcluded == null && entry is DLCEntry)) && (String.IsNullOrEmpty(FTSExclusionsSearch) ? true : 
                     entry.Name.Contains(FTSExclusionsSearch, StringComparison.OrdinalIgnoreCase) || entry.FilePath?.Contains(FTSExclusionsSearch, StringComparison.OrdinalIgnoreCase) == true);
             };
             #endregion FTS Filtering
@@ -1055,11 +1055,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
 
             if (tempExclusions.Count == 0)
-            {
                 tempExclusions.AddRange(tempDLCs);
-                foreach (var dlc in tempDLCs)
-                    tempExclusions.AddRange(dlc.Files);
-            }
 
             return true;
         }

@@ -12,6 +12,7 @@ namespace WPF_ME3Explorer
     {
         public MTRangedObservableCollection<GameFileEntry> Files { get; set; } = new MTRangedObservableCollection<GameFileEntry>();
 
+
         public override bool? IsExcluded
         {
             get
@@ -20,18 +21,13 @@ namespace WPF_ME3Explorer
             }
             set
             {
-                var current = TexplorerViewModel.DisableFTSUpdating;  // Ensures that external setting of this value is not messed with.
-                TexplorerViewModel.DisableFTSUpdating = true;
                 bool? fileSetting = value == true ? null : (bool?)false;
-                foreach (var entry in Files)
-                    entry.IsExcluded = fileSetting;  // File setting is null when indirectly excluded. e.g. here.
-
+                ChangeAll(fileSetting);
                 base.IsExcluded = value == true;  // Don't want to be able to set to null by clicking.
-
-                TexplorerViewModel.DisableFTSUpdating = current;
-                Updater();
             }
         }
+
+        static bool EnMasse = false;
 
         public DLCEntry(string name, List<string> files, MEDirectories.MEDirectories gameDirecs)
         {
@@ -46,15 +42,19 @@ namespace WPF_ME3Explorer
                 // Wire up trigger to change IsEnabled for the DLC when the files' IsEnabled is changed.
                 entry.PropertyChanged += (sender, args) =>
                 {
-                    if (args.PropertyName == nameof(IsExcluded))
+                    if (args.PropertyName == nameof(IsExcluded) && !EnMasse)
                     {
-                        var current = TexplorerViewModel.DisableFTSUpdating;
-                        TexplorerViewModel.DisableFTSUpdating = true;
-
                         switch (IsExcluded)
                         {
                             // First two, set the intermediate stage. DLC is already set to the extremes, so can only go to null from here.
                             case true:
+                                // Need to change all others to true
+                                //ChangeAll(true);
+
+                                EnMasse = true;
+                                // Change sender back to unchecked.
+                                //((AbstractFileEntry)sender).IsExcluded = false;
+                                EnMasse = false;
                                 base.IsExcluded = null;  // Set on base as we don't want the side effects of changing all Files' IsExcluded.
                                 break;
                             case false:
@@ -70,12 +70,23 @@ namespace WPF_ME3Explorer
                                     base.IsExcluded = false;
                                 break;
                         }
-
-                        TexplorerViewModel.DisableFTSUpdating = current;
                     }
                 };
                 Files.Add(entry);
             }
+        }
+
+        void ChangeAll(bool? fileSetting)
+        {
+            EnMasse = true;
+            var current = TexplorerViewModel.DisableFTSUpdating;  // Ensures that external setting of this value is not messed with.
+            TexplorerViewModel.DisableFTSUpdating = true;
+            foreach (var entry in Files)
+                entry.IsExcluded = fileSetting;  // File setting is null when indirectly excluded. e.g. here.
+
+            TexplorerViewModel.DisableFTSUpdating = current;
+            Updater();
+            EnMasse = false;
         }
     }
 }

@@ -12,12 +12,14 @@ namespace WPF_ME3Explorer.UI.ValueConverters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return ((bool?)value) == null ? true : false;
+            return ((bool?)value) != false? true : false;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return ((bool?)value) == null ? true : false;
+            bool? val = (bool?)value;
+            bool? param = (bool?)parameter;  // true = convert true to true, false = null = convert null to true
+            return val == true ? (param == true ? (bool?)true : null) : false;
         }
     }
 }
