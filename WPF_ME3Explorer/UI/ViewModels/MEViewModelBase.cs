@@ -176,7 +176,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             get
             {
                 // This stops taskbar element from staying green/red forever.
-                double prog = Progress / MaxProgress;
+                double prog = Progress / (MaxProgress * 0.1);
                 if (prog == 1)
                     return 0;
                 else

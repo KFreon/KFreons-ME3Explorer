@@ -567,24 +567,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
             set
             {
-                SetProperty(ref ftsFilesSearch, value);
+                SetProperty(ref ftsFilesSearch, value);  // UI refresh done in backside of UI class
             }
-        }
-
-        string ftsExclusionsSearch = null;
-        public string FTSExclusionsSearch
-        {
-            get
-            {
-                return ftsExclusionsSearch;
-            }
-            set
-            {
-                SetProperty(ref ftsExclusionsSearch, value);
-                ExclusionsView.Refresh();
-            }
-        }
-        
+        }        
 
         bool showingPreview = false;
         public bool ShowingPreview
@@ -657,18 +642,6 @@ namespace WPF_ME3Explorer.UI.ViewModels
             #region FTS Filtering
             DLCsView = CollectionViewSource.GetDefaultView(FTSDLCs);
             DLCsView.Filter = item => !((DLCEntry)item)?.IsExcluded ?? true;
-            
-            /*FileItemsView = CollectionViewSource.GetDefaultView(FTSGameFiles);
-            FileItemsView.Filter = item =>
-            {
-                if (item == null)
-                    return false;
-                
-                GameFileEntry entry = (GameFileEntry)item;
-                return !entry.IsChecked && !entry.FilterOut && 
-                    (String.IsNullOrEmpty(FTSFilesSearch) ? true : 
-                    entry.Name.Contains(FTSFilesSearch, StringComparison.OrdinalIgnoreCase) || entry.FilePath?.Contains(FTSFilesSearch, StringComparison.OrdinalIgnoreCase) == true);
-            };*/
 
             ExclusionsView = CollectionViewSource.GetDefaultView(FTSExclusions);
             ExclusionsView.Filter = item =>
@@ -677,8 +650,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     return false;
 
                 AbstractFileEntry entry = (AbstractFileEntry)item;
-                return (entry.IsExcluded == true || (entry.IsExcluded == null && entry is DLCEntry)) && (String.IsNullOrEmpty(FTSExclusionsSearch) ? true : 
-                    entry.Name.Contains(FTSExclusionsSearch, StringComparison.OrdinalIgnoreCase) || entry.FilePath?.Contains(FTSExclusionsSearch, StringComparison.OrdinalIgnoreCase) == true);
+                return entry.IsExcluded != false;
             };
             #endregion FTS Filtering
 
@@ -1033,6 +1005,19 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 // Get DLC's
                 tempDLCs.Add(basegame);
                 GetDLCEntries(direcs);
+
+                Predicate<Object> DLCFileFilter = item =>
+                {
+                    if (item == null)
+                        return false;
+
+                    GameFileEntry entry = (GameFileEntry)item;
+                    return String.IsNullOrEmpty(FTSFilesSearch) ? true :
+                        (entry.Name.Contains(FTSFilesSearch, StringComparison.InvariantCultureIgnoreCase) || entry.FilePath.Contains(FTSFilesSearch, StringComparison.InvariantCultureIgnoreCase));
+                };
+
+                foreach (var dlc in tempDLCs)
+                    dlc.FilesView.Filter = DLCFileFilter;
             }
 
             
@@ -1156,11 +1141,9 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                 string name = MEDirectories.MEDirectories.GetCommonDLCName(DLCName);
                 DLCEntry entry = new DLCEntry(name, tempGameFiles.Where(file => file.Contains(DLCName) && !file.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList(), direcs);
-
+                entry.FilePath = dlc;
                 tempFTSDLCs.Add(entry);
             }
-
-            
         }
 
         internal async Task BeginTreeScan()
@@ -1172,7 +1155,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             DebugOutput.PrintLn($"Beginning Tree scan for ME{GameVersion}.");
 
             // Populate Tree PCCs in light of exclusions
-            foreach (DLCEntry dlc in FTSDLCs.Where(d => d.IsExcluded != false))
+            foreach (DLCEntry dlc in FTSDLCs.Where(d => d.IsExcluded != true))
                 foreach (GameFileEntry file in dlc.Files.Where(f => f.IsExcluded == false))
                     CurrentTree.ScannedPCCs.Add(file.FilePath);
 
@@ -1271,11 +1254,25 @@ namespace WPF_ME3Explorer.UI.ViewModels
 
                     var basegameTFCs = GameDirecs.Files.Where(t => t.EndsWith("tfc", StringComparison.InvariantCultureIgnoreCase) && !t.Contains("BIOGame\\DLC\\", StringComparison.InvariantCultureIgnoreCase));
                     var DLCTFCs = GameDirecs.Files.Where(t => t.EndsWith("tfc", StringComparison.InvariantCultureIgnoreCase) && t.Contains("BIOGame\\DLC\\", StringComparison.InvariantCultureIgnoreCase));
-                    
+
                     // Determine which TFCs to load
-                    var tfcfiles = GameDirecs.Files.Where(tfc => tfc.EndsWith("tfc"));
-                    foreach (var tfc in tfcfiles)
+
+                    var scannedDLCs = FTSDLCs.Where(t => t.IsExcluded != true && t.Name != "BaseGame");
+
+
+                    // Always load basegame TFCs
+                    foreach (var tfc in basegameTFCs)
                     {
+                        var item = await LoadTFC(tfc);
+                        TFCs.Add(item.Key, item.Value);
+                    }
+
+                    foreach (var dlc in scannedDLCs)
+                    {
+                        string tfc = DLCTFCs.FirstOrDefault(t => t.Contains(dlc.FilePath));
+                        if (tfc == null)
+                            continue;
+
                         var item = await LoadTFC(tfc);
                         TFCs.Add(item.Key, item.Value);
                     }

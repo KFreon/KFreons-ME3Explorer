@@ -51,6 +51,19 @@ namespace WPF_ME3Explorer.UI
                     Dispatcher.Invoke(() => TaskBarUpdater(vm.Progress == 0 || vm.Progress == vm.MaxProgress ? System.Windows.Shell.TaskbarItemProgressState.None : System.Windows.Shell.TaskbarItemProgressState.Normal));
                 else if (args.PropertyName == nameof(vm.ProgressIndeterminate))
                     Dispatcher.Invoke(() => TaskBarUpdater(vm.ProgressIndeterminate ? System.Windows.Shell.TaskbarItemProgressState.Indeterminate : TaskBarProgressMeter.ProgressState));
+                else if(args.PropertyName == nameof(vm.FTSFilesSearch))
+                {
+                    // Determine which search needs updating
+                    DLCEntry entry = null;
+
+                    if (FilesListBox.Visibility == Visibility.Visible)
+                        entry = DLCsListBox?.SelectedItem as DLCEntry;
+                    else
+                        entry = ExclusionsListBox?.SelectedItem as DLCEntry;
+
+                    if (entry != null)
+                        entry.FilesView.Refresh();
+                }
             };
 
             vm.ProgressCloser = new Action(() =>
@@ -439,13 +452,13 @@ namespace WPF_ME3Explorer.UI
         private void ExclusionsListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             ChangeFTSFilesListBoxVisibility(true);
-
+            vm.FTSFilesSearch = null;
         }
 
         private void DLCsListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             ChangeFTSFilesListBoxVisibility(false);
-
+            vm.FTSFilesSearch = null;
         }
     }
 }

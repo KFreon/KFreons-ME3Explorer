@@ -710,14 +710,14 @@
                         <DockPanel Grid.Column="1">
                             <Label Content="Selected DLC Files"/>
                             <TextBox Text="{Binding FTSFilesSearch, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Template="{StaticResource SearchBoxTemplate}" Tag="Search..."/>
-                            <ListBox x:Name="FilesListBox" ItemsSource="{Binding ElementName=DLCsListBox, Path=SelectedItem.Files}">
+                            <ListBox x:Name="FilesListBox" ItemsSource="{Binding ElementName=DLCsListBox, Path=SelectedItem.FilesView}">
                                 <ListBox.Style>
                                     <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
                                         <Setter Property="ItemTemplate" Value="{StaticResource ExcludedListTemplate}"/>
                                     </Style>
                                 </ListBox.Style>
                             </ListBox>
-                            <ListBox x:Name="ExcludedFilesListBox" ItemsSource="{Binding ElementName=ExclusionsListBox, Path=SelectedItem.Files}">
+                            <ListBox x:Name="ExcludedFilesListBox" ItemsSource="{Binding ElementName=ExclusionsListBox, Path=SelectedItem.FilesView}">
                                 <ListBox.Style>
                                     <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
                                         <Setter Property="ItemTemplate" Value="{StaticResource ExcludedListTemplate}"/>

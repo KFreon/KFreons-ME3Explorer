@@ -207,7 +207,7 @@ namespace WPF_ME3Explorer.Debugging
                 };
                 debugger.Show();
 
-                Closer = new Action(() =>
+                /*Closer = new Action(() =>
                 {
                     if (!debugger.Dispatcher.HasShutdownStarted)
                         try
@@ -215,34 +215,7 @@ namespace WPF_ME3Explorer.Debugging
                             debugger.Dispatcher.Invoke(() => debugger.Close());
                         }
                         catch { } // Fails when closing toolset when debugger has already been closed.
-                });
-
-                // KFreon: Thread debugger
-                /*Thread thread = new Thread(() =>
-                {
-                    DebugWindow Debugger = new DebugWindow();
-                    Debugger.WindowState = System.Windows.WindowState.Minimized;
-                    Debugger.Show();
-                    Debugger.Closed += (sender, args) =>
-                    {
-                        rtb = null;  // Nullify rtb to indicate window is closed.
-                        Debugger.Dispatcher.InvokeShutdown();
-                    };
-
-                    Closer = new Action(() =>
-                    {
-                        if (!Debugger.Dispatcher.HasShutdownStarted)
-                            try
-                            {
-                                Debugger.Dispatcher.Invoke(() => Debugger.Close());
-                            }
-                            catch { } // Fails when closing toolset when debugger has already been closed.
-                    });
-
-                    Dispatcher.Run();
-                });
-                thread.SetApartmentState(ApartmentState.STA);
-                thread.Start();*/
+                });*/
 
 
                 waiting = new StringBuilder();

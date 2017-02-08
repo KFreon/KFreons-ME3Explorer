@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Data;
 using UsefulThings.WPF;
 using WPF_ME3Explorer.UI.ViewModels;
 
@@ -10,7 +13,8 @@ namespace WPF_ME3Explorer
 {
     public class DLCEntry : AbstractFileEntry
     {
-        public MTRangedObservableCollection<GameFileEntry> Files { get; set; } = new MTRangedObservableCollection<GameFileEntry>();
+        internal MTRangedObservableCollection<GameFileEntry> Files { get; set; } = new MTRangedObservableCollection<GameFileEntry>();
+        public ICollectionView FilesView { get; private set; }
 
 
         public override bool? IsExcluded
@@ -74,6 +78,9 @@ namespace WPF_ME3Explorer
                 };
                 Files.Add(entry);
             }
+
+            FilesView = CollectionViewSource.GetDefaultView(Files);
+            // Filter set in TexplorerViewModel
         }
 
         void ChangeAll(bool? fileSetting)
