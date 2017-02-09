@@ -35,7 +35,7 @@ namespace WPF_ME3Explorer.Debugging
         static string DebugFilePath = null;
         static StreamWriter debugFileWriter = null;
         static StringBuilder waiting = new StringBuilder();
-        static Action Closer = null;
+        public static Action Closer = null;
         static System.Windows.Controls.ScrollViewer Scroller = null;
 
         internal static string Save(string fileName)
@@ -207,7 +207,7 @@ namespace WPF_ME3Explorer.Debugging
                 };
                 debugger.Show();
 
-                /*Closer = new Action(() =>
+                Closer = new Action(() =>
                 {
                     if (!debugger.Dispatcher.HasShutdownStarted)
                         try
@@ -215,7 +215,7 @@ namespace WPF_ME3Explorer.Debugging
                             debugger.Dispatcher.Invoke(() => debugger.Close());
                         }
                         catch { } // Fails when closing toolset when debugger has already been closed.
-                });*/
+                });
 
 
                 waiting = new StringBuilder();
@@ -233,18 +233,6 @@ namespace WPF_ME3Explorer.Debugging
             }
             else
                 PrintLn($"-----New Execution of {toolName}-----");
-        }
-
-        internal static void Close()
-        {
-            try
-            {
-                Closer();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine();
-            }
         }
     }
 }

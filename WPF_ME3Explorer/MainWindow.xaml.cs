@@ -88,7 +88,7 @@ namespace WPF_ME3Explorer
             ToolsetInfo.TPFToolsInstance?.Close();
             ToolsetInfo.TexplorerInstance?.Close();
             ToolsetInfo.ModmakerInstance?.Close();
-            DebugOutput.Close();
+            DebugOutput.Closer?.Invoke();
         }
     }
 }

@@ -1028,12 +1028,12 @@ namespace WPF_ME3Explorer.UI.ViewModels
                 /* Find any existing exclusions from when tree was created.*/
                 // Set excluded DLC's checked first
                 tempDLCs.ForEach(dlc => dlc.IsExcluded = !dlc.Files.Any(file => !CurrentTree.ScannedPCCs.Contains(file.FilePath)));
-
+                
 
                 // Then set all remaining exlusions
-                foreach (DLCEntry dlc in tempDLCs.Where(dlc => dlc.IsExcluded == true))
+                foreach (DLCEntry dlc in tempDLCs.Where(dlc => dlc.IsExcluded != true))
                     foreach(var file in dlc.Files)
-                        file.IsExcluded = !CurrentTree.ScannedPCCs.Contains(file.FilePath);
+                        file.IsExcluded = CurrentTree.ScannedPCCs.Contains(file.FilePath);
 
                 DisableFTSUpdating = false;
                 UpdateFTS();
