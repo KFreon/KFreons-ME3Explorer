@@ -1464,7 +1464,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     }
                     catch (Exception e)
                     {
-                        DebugOutput.PrintLn($"Error scanning {tex2D.texName} from {pcc.pccFileName} at {i}. Reason: {e}");
+                        DebugOutput.PrintLn($"Error scanning {tex2D?.texName} from {pcc?.pccFileName} at {i}. Reason: {e}");
                         Errors.Add(e.ToString());
                         continue;
                     }
@@ -1472,7 +1472,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     // Skip if no images
                     if (tex2D.ImageList.Count == 0)
                     {
-                        DebugOutput.PrintLn($"No images found in {tex2D.texName} from {pcc.pccFileName} at {i}.");
+                        DebugOutput.PrintLn($"No images found in {tex2D?.texName} from {pcc?.pccFileName} at {i}.");
                         tex2D.Dispose();
                         continue;
                     }
@@ -1484,7 +1484,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
                     }
                     catch(Exception e)
                     {
-                        DebugOutput.PrintLn($"Error scanning {tex2D.texName} from {pcc.pccFileName} at {i}. Reason: {e}");
+                        DebugOutput.PrintLn($"Error scanning {tex2D?.texName} from {pcc?.pccFileName} at {i}. Reason: {e}");
                         Errors.Add(e.ToString());
                     }
                 }
@@ -1495,7 +1495,7 @@ namespace WPF_ME3Explorer.UI.ViewModels
             }
             catch (Exception e)
             {
-                DebugOutput.PrintLn($"Scanning failed on {pcc.pccFileName}. Reason: {e.ToString()}.");
+                DebugOutput.PrintLn($"Scanning failed on {pcc?.pccFileName}. Reason: {e}.");
             }
             finally
             {

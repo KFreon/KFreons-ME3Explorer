@@ -99,7 +99,8 @@ namespace WPF_ME3Explorer.Textures
                 for (int i = 0; i < GameFiles.Count; i++)
                 {
                     string tempFile = Path.GetFileNameWithoutExtension(GameFiles[i]).ToUpperInvariant();
-                    ME1_Filenames_Paths.Add(tempFile, GameFiles[i]);
+                    if (!ME1_Filenames_Paths.ContainsKey(tempFile))
+                        ME1_Filenames_Paths.Add(tempFile, GameFiles[i]);
                 }
             }
 
@@ -339,7 +340,7 @@ namespace WPF_ME3Explorer.Textures
 
             // Treescanning uses full list of TFCs read in, switch based on whether scanning or just getting texture.
             Stream archiveStream = null;
-            if (TFCs != null)
+            if (TFCs != null && TFCs.ContainsKey(archivePath))
                 archiveStream = TFCs[archivePath];
             else
                 archiveStream = File.OpenRead(archivePath);
@@ -360,7 +361,7 @@ namespace WPF_ME3Explorer.Textures
 
             // Can dispose of stream if not a memory-loaded ME2 or 3 TFC
             if (TFCs == null)
-                archiveStream.Dispose();
+                archiveStream?.Dispose();
 
             return imgBuffer;
         }
